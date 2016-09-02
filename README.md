@@ -1,15 +1,19 @@
 **# Pre-requisites: #**
 
-(1) **...** - ...
+(1) LAPACK library
 
 (2) **...** - ...
 
 
 **# How to compile: #**
 
-(1) **...** - ...
-
-(2) **...** - ...
+```
+  $ ./configure.sh
+  $ cd yael
+  $ make
+  $ cd ..
+  $ make
+```
 
 
 **# How to execute: #**
@@ -17,4 +21,3 @@
 (1) **...** - ...
 
 (2) **...** - ...
-

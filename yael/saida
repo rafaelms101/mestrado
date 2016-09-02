@@ -1,0 +1,20 @@
+gcc -fPIC -Wall -g -O3  -c matrix.c -o matrix.o  -DFINTEGER=int -DHAVE_THREADS -fopenmp -fopenmp 
+gcc -fPIC -Wall -g -O3  -c vector.c -o vector.o  
+gcc -fPIC -Wall -g -O3  -c nn.c -o nn.o  -DFINTEGER=int -DHAVE_THREADS -fopenmp 
+gcc -fPIC -Wall -g -O3  -c kmeans.c -o kmeans.o  -DHAVE_THREADS
+gcc -fPIC -Wall -g -O3  -c hkm.c -o hkm.o  -DHAVE_THREADS
+gcc -fPIC -Wall -g -O3  -c gmm.c -o gmm.o  -DHAVE_THREADS -DFINTEGER=int
+gcc -fPIC -Wall -g -O3  -c eigs.c -o eigs.o  -DFINTEGER=int -DFINTEGER=int  -fopenmp 
+gcc -fPIC -Wall -g -O3  -c spectral_clustering.c -o spectral_clustering.o  
+gcc -fPIC -Wall -g -O3  -c sorting.c -o sorting.o  
+gcc -fPIC -Wall -g -O3  -c binheap.c -o binheap.o  
+gcc -fPIC -Wall -g -O3  -c machinedeps.c -o machinedeps.o  -fopenmp 
+gcc -fPIC -Wall -g -O3  -c vlad.c -o vlad.o  
+gcc -fPIC -Wall -g -O3  -c kmlsh.c -o kmlsh.o  -DHAVE_THREADS -DFINTEGER=int
+gcc -fPIC -Wall -g -O3  -c ivf.c -o ivf.o  -DHAVE_THREADS  
+gcc -fPIC -Wall -g -O3  -c hamming.c -o hamming.o  
+hamming.c:103:2: aviso: #warning "SSE4.2 NOT USED FOR HAMMING DISTANCE COMPUTATION. Consider adding -msse4!" [-Wcpp]
+ar r libyael.a matrix.o vector.o nn.o kmeans.o hkm.o gmm.o eigs.o spectral_clustering.o sorting.o binheap.o machinedeps.o vlad.o kmlsh.o ivf.o hamming.o
+ar: criando libyael.a
+gcc -g -fPIC  -shared -o libyael.so matrix.o vector.o nn.o kmeans.o hkm.o gmm.o eigs.o spectral_clustering.o sorting.o binheap.o machinedeps.o vlad.o kmlsh.o ivf.o hamming.o /usr/lib/libblas.so.3gf /usr/lib/liblapack.so.3gf  -fopenmp
+make: *** Sem regra para processar o alvo `yael.swg', necessário por `yael_wrap.c'.  Pare.
