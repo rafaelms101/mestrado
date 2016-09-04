@@ -14,7 +14,7 @@ pqtipo pq_new(int nsq, mat v){
 			*vs;
 
 	pqtipo pq;
-	
+
 	flags = flags & KMEANS_INIT_RANDOM;
 	ds=v.train.d/nsq;
 	ks=2^nsq;
@@ -24,7 +24,7 @@ pqtipo pq_new(int nsq, mat v){
 	pq.nsq = nsq;
 	pq.ks = ks;
 	pq.ds = ds;
-	pq->centroids=fvec_new(nsq);
+	pq.centroids.mat=fvec_new(nsq);
 
 	for(i=0;i<nsq;i++){
 		for(j=0;j<ds;j++){
@@ -35,4 +35,8 @@ pqtipo pq_new(int nsq, mat v){
 	}
 
 	return pq;
+}
+
+void check_new(){
+  cout << "::PQ_NEW OK::" << endl;
 }

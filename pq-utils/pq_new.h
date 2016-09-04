@@ -9,7 +9,7 @@
 extern "C" {
 #include "../yael/kmeans.h"
 #include "../yael/vector.h"
-#include "../yael/matrix.h"	
+#include "../yael/matrix.h"
 }
 
 /* flags for kmeans */
@@ -23,13 +23,14 @@ extern "C" {
 
 using namespace std;
 
-typedef struct {
+typedef struct pqtipo{
 	int nsq;
 	int ks;
 	int ds;
-	float *centroids;
+	mat centroids;
 } pqtipo;
 
 pqtipo pq_new(int, mat);
+void check_new();
 
 #endif

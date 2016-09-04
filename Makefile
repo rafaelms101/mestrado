@@ -1,11 +1,13 @@
-.SUFFIXES: .cpp .c .o 
+.SUFFIXES: .cpp .c .o
 
 include makefile.inc
 
-CC=gcc 
+CC=gcc
 CXX=g++
+PQ_UTILS_DIR = ./pq-utils
+OBJDIR=./obj
 
-all: pq_test
+all: pq_test_load_vectors.o pq_new.o pq_assign.o pq_test.o pq_test
 
 ifeq "$(USEARPACK)" "yes"
   EXTRAYAELLDFLAG=$(ARPACKLDFLAGS)
@@ -17,7 +19,7 @@ ifeq "$(USEOPENMP)" "yes"
   EXTRAYAELLDFLAG+=-fopenmp
 endif
 
-# Various  
+# Various
 
 .c.o:
 	$(cc) $(cflags) -c $< -o $@ $(flags) $(extracflags) $(yaelcflags)
@@ -25,13 +27,26 @@ endif
 .cpp.o:
 	$(CXX) $(cflags) -c $< -o $@ $(flags) $(extracflags) $(yaelcflags)
 
+pq_assign.o:
+$(OBJDIR)/pq_assign.o: $(PQ_UTILS_DIR)/pq_assign.cpp $(PQ_UTILS_DIR)/pq_assign.h $(PQ_UTILS_DIR)/pq_test_load_vectors.h $(PQ_UTILS_DIR)/pq_new.h yael/nn.h yael/vector.h
+		$(CXX) $(cflags) -c $< -o $@ $(flags) $(extracflags) $(yaelcflags)
 
-pq_test: pq_test.o 
+pq_new.o:
+$(OBJDIR)/pq_new.o: $(PQ_UTILS_DIR)/pq_new.cpp $(PQ_UTILS_DIR)/pq_new.h $(PQ_UTILS_DIR)/pq_test_load_vectors.h yael/kmeans.h yael/vector.h yael/matrix.h
+		$(CXX) $(cflags) -c $< -o $@ $(flags) $(extracflags) $(yaelcflags)
+
+pq_test_load_vectors.o:
+$(OBJDIR)/pq_test_load_vectors.o: $(PQ_UTILS_DIR)/pq_test_load_vectors.cpp $(PQ_UTILS_DIR)/pq_test_load_vectors.h yael/matrix.h
+		$(CXX) $(cflags) -c $< -o $@ $(flags) $(extracflags) $(yaelcflags)
+
+pq_test.o:
+$(OBJDIR)/pq_test.o: pq_test.cpp yael/vector.h yael/kmeans.h yael/ivf.h $(PQ_UTILS_DIR)/pq_assign.h $(PQ_UTILS_DIR)/pq_new.h
+		$(CXX) $(cflags) -c $< -o $@ $(flags) $(extracflags) $(yaelcflags)
+
+pq_test: $(OBJDIR)/pq_test.o $(OBJDIR)/pq_assign.o $(PQ_UTILS_DIR)/pq_assign.h  $(OBJDIR)/pq_new.o $(PQ_UTILS_DIR)/pq_new.h
 	$(CXX) -o $@ $^ $(LDFLAGS) $(LAPACKLDFLAGS) $(THREADLDFLAGS) $(EXTRAYAELLDFLAG) $(YAELLDFLAGS)
 
-# Dependencies  
-
-pq_test.o: pq_test.cpp yael/vector.h yael/kmeans.h yael/ivf.h
+# Dependencies
 
 clean:
-	rm -f *.o pq_test 
+	rm -f $(OBJDIR)/*.o pq_test *.o
