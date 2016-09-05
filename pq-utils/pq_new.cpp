@@ -1,6 +1,6 @@
 #include "pq_new.h"
 
-pqtipo pq_new(int nsq, mat v){
+pqtipo pq_new(int nsq, mat vtrain){
 	int	i,
 		j,
 		ds,
@@ -16,10 +16,10 @@ pqtipo pq_new(int nsq, mat v){
 	pqtipo pq;
 
 	flags = flags & KMEANS_INIT_RANDOM;
-	ds=v.train.d/nsq;
+	ds=vtrain.d/nsq;
 	ks=2^nsq;
 
-	vs=fmat_new (ds, v.train.n);
+	vs=fmat_new (ds, vtrain.n);
 
 	pq.nsq = nsq;
 	pq.ks = ks;
@@ -28,10 +28,10 @@ pqtipo pq_new(int nsq, mat v){
 
 	for(i=0;i<nsq;i++){
 		for(j=0;j<ds;j++){
-			vs[j]=v.train.mat[(i+j-1)*ds];
+			vs[j]=vtrain.mat[(i+j-1)*ds];
 		}
-		kmeans(ds, n, ks, 100, vs, flags, seed/*numero aleatorio dif de 0*/, 1, centroids_tmp , dis, assign, NULL);
-		pq.centroids[i]=centroids_tmp;
+		kmeans(ds, vtrain.n, ks, 100, vs, flags, seed/*numero aleatorio dif de 0*/, 1, centroids_tmp , dis, assign, NULL);
+		//pq.centroids=centroids_tmp;
 	}
 
 	return pq;
