@@ -3,7 +3,7 @@
 using namespace std;
 
 void check_assign(){
-  cout << "::PQ_ASSIGN OK::" << endl;
+  cout << ":::PQ_ASSIGN OK:::" << endl;
 }
 
 /*
@@ -25,7 +25,8 @@ mat pq_assign (pqtipo pq, mat v, int n){
 
     copySubVectors(vsub, v, (i)*pq.ds, (i+1)*pq.ds);
     //TODO modificar knn, para não precisar realizar as copias
-    knn_full(L2, pq.centroids.n / pq.centroids.d , (v.n/v.d), pq.ds, 100, vsub, pq.centroids.mat , NULL, assigns, dis);
+    knn_full(L2, pq.centroids.n / pq.centroids.d , (v.n/v.d), pq.ds, 100, vsub,
+             pq.centroids.mat , NULL, assigns, dis);
     //TODO
 
   }

@@ -31,12 +31,23 @@ pqtipo pq_new(int nsq, mat vtrain){
 			vs[j]=vtrain.mat[(i+j-1)*ds];
 		}
 		kmeans(ds, vtrain.n, ks, 100, vs, flags, seed/*numero aleatorio dif de 0*/, 1, centroids_tmp , dis, assign, NULL);
-		//pq.centroids=centroids_tmp;
+		//pq.centroids=centroids_tmp
+		//fvec_concat(pq.centroids.mat, pq.centroids.n, pq.centroids.d, centroids_tmp, ks, ds);
 	}
 
 	return pq;
 }
 
 void check_new(){
-  cout << "::PQ_NEW OK::" << endl;
+  cout << ":::PQ_NEW OK:::" << endl;
+}
+
+void fvec_concat(float* vinout, int vinout_n, int vinout_d, float* vin, int vin_n, int vin_d){
+	fvec_resize(vinout, vinout_n + vin_n);
+	memcpy(vinout + vinout_n, vin, sizeof(float)*vin_n);
+}
+
+void ivec_concat(int* vinout, int vinout_n, int vinout_d, int* vin, int vin_n, int vin_d){
+	ivec_resize(vinout, vinout_n + vin_n);
+	memcpy(vinout + vinout_n, vin, sizeof(int)*vin_n);
 }
