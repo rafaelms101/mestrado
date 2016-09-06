@@ -24,7 +24,7 @@ pqtipo pq_new(int nsq, mat vtrain){
 	pq.nsq = nsq;
 	pq.ks = ks;
 	pq.ds = ds;
-	pq.centroids.mat=fvec_new(nsq);
+	pq.centroids.mat = fvec_new(nsq);
 
 	for(i=0;i<nsq;i++){
 		for(j=0;j<ds;j++){

@@ -30,7 +30,7 @@ int* pq_assign (pqtipo pq, mat v, int n){
     //TODO modificar knn, para não precisar realizar as copias
     knn_full(L2, pq.centroids.n / pq.centroids.d , (v.n/v.d), pq.ds, 100, vsub,
              pq.centroids.mat , NULL, assigns, dis);
-             
+
     ivec_concat(code, code_n, assigns, 100*v.n);
     code_n += 100*v.n;
 
