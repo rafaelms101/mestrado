@@ -12,7 +12,7 @@ extern "C" {
 #include "../yael/matrix.h"
 }
 
-/* flags for kmeans */
+/* flags para o kmeans */
 #define KMEANS_QUIET                    0x10000
 #define KMEANS_INIT_BERKELEY            0x20000
 #define KMEANS_NORMALIZE_CENTS          0x40000
