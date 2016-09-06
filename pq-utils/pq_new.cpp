@@ -1,5 +1,9 @@
 #include "pq_new.h"
 
+/*
+* nsq: numero de subquantizadores (m no paper)
+* vtrain: estrutura de vetores, contendo os dados de treinamento
+*/
 pqtipo pq_new(int nsq, mat vtrain){
 	int	i,
 		j,
@@ -24,15 +28,14 @@ pqtipo pq_new(int nsq, mat vtrain){
 	pq.nsq = nsq;
 	pq.ks = ks;
 	pq.ds = ds;
-	pq.centroids.mat=fvec_new(nsq);
+	pq.centroids.n=ks;
 
 	for(i=0;i<nsq;i++){
 		for(j=0;j<ds;j++){
 			vs[j]=vtrain.mat[(i+j-1)*ds];
 		}
 		kmeans(ds, vtrain.n, ks, 100, vs, flags, seed/*numero aleatorio dif de 0*/, 1, centroids_tmp , dis, assign, NULL);
-		//pq.centroids=centroids_tmp
-		//fvec_concat(pq.centroids.mat, pq.centroids.n, pq.centroids.d, centroids_tmp, ks, ds);
+		fvec_concat(pq.centroids.mat, pq.centroids.n, centroids_tmp, ks);
 	}
 
 	return pq;
