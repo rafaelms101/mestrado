@@ -21,7 +21,7 @@ int main(){
 	printf("vec2 = ");
 	ivec_print(vec2, 2);
 
-	ivec_concat(vec, 2, 1, vec2, 2, 1);
+	ivec_concat(vec, 2, vec2, 2);
 
 	printf("vec = ");
 	ivec_print(vec, 4);

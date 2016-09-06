@@ -33,14 +33,14 @@ typedef struct pqtipo{
 pqtipo pq_new(int, mat);
 void check_new();
 
-/* vinout : vetor a ser aumentado com os valores de vin
+/* Concatena dois vetores, caso um não exista ele é criado exatamente igual ao vin
+ * vinout : vetor a ser aumentado com os valores de vin
  * vinout_n : tamanho do vetor
- * vinout_d : dimensão do vetor
  * vin : vetor a ser copiado
  *  ...
  */
-void fvec_concat(float* vinout, int vinout_n, int vinout_d, float* vin, int vin_n, int vin_d);
+void fvec_concat(float* vinout, int vinout_n, float* vin, int vin_n);
 
-void ivec_concat(int* vinout, int vinout_n, int vinout_d, int* vin, int vin_n, int vin_d);
+void ivec_concat(int* vinout, int vinout_n, int* vin, int vin_n);
 
 #endif

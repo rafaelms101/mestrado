@@ -9,17 +9,20 @@ void check_assign(){
 /*
 * pq : estrutura do quantizador
 * v : base de vetores a ser usada
-* n :
+* n : tamanho do vetor
 */
 
-mat pq_assign (pqtipo pq, mat v, int n){
+int* pq_assign (pqtipo pq, mat v, int n){
 
-  int* idx = NULL;
   //aloca um vetor de varios subvetores de dimencao ds
   float* vsub = (float*)malloc(sizeof(float)*(pq.ds)*(v.n/v.d));
-  int* assigns;
-  float* dis;
-  mat code;
+  int* assigns = (int*)malloc(sizeof(int)*100*v.n);    //indice dos k elementos mais proximos
+  float* dis;      //distancia deles para os definitivos
+
+  //codebook a ser gerado
+  int* code = NULL;
+  int code_n = 0;
+  //code = (int*)malloc(sizeof(int)*100*pq.centroids.n);
 
   for (int i = 0; i < pq.nsq ; i++) {
 
@@ -27,7 +30,9 @@ mat pq_assign (pqtipo pq, mat v, int n){
     //TODO modificar knn, para não precisar realizar as copias
     knn_full(L2, pq.centroids.n / pq.centroids.d , (v.n/v.d), pq.ds, 100, vsub,
              pq.centroids.mat , NULL, assigns, dis);
-    //TODO
+             
+    ivec_concat(code, code_n, assigns, 100*v.n);
+    code_n += 100*v.n;
 
   }
 
@@ -35,8 +40,9 @@ mat pq_assign (pqtipo pq, mat v, int n){
 }
 
 void copySubVectors(float *vout, mat vin, int ini, int fim) {
+  int ds = fim-ini;
 
-  for (int i = 0; i < vin.n/vin.d ; i+= (vin.n/vin.d)) {
+  for (int i = 0; i < ds ; i+= ds) {
       memcpy(vout + i, vin.mat + i + ini, sizeof(float)*(fim - ini));
   }
 

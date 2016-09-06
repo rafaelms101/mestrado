@@ -42,12 +42,26 @@ void check_new(){
   cout << ":::PQ_NEW OK:::" << endl;
 }
 
-void fvec_concat(float* vinout, int vinout_n, int vinout_d, float* vin, int vin_n, int vin_d){
-	fvec_resize(vinout, vinout_n + vin_n);
-	memcpy(vinout + vinout_n, vin, sizeof(float)*vin_n);
+void fvec_concat(float* vinout, int vinout_n, float* vin, int vin_n){
+	if (vinout == NULL) {
+		vinout = (float*)malloc(sizeof(float)*vin_n);
+		vinout_n = 0;
+		memcpy(vinout + vinout_n, vin, sizeof(float)*vin_n);
+	}
+	else{
+		fvec_resize(vinout, vinout_n + vin_n);
+		memcpy(vinout + vinout_n, vin, sizeof(float)*vin_n);
+	}
 }
 
-void ivec_concat(int* vinout, int vinout_n, int vinout_d, int* vin, int vin_n, int vin_d){
-	ivec_resize(vinout, vinout_n + vin_n);
-	memcpy(vinout + vinout_n, vin, sizeof(int)*vin_n);
+void ivec_concat(int* vinout, int vinout_n, int* vin, int vin_n){
+	if (vinout == NULL) {
+		vinout = (int*)malloc(sizeof(int)*vin_n);
+		vinout_n = 0;
+		memcpy(vinout + vinout_n, vin, sizeof(int)*vin_n);
+	}
+	else{
+		ivec_resize(vinout, vinout_n + vin_n);
+		memcpy(vinout + vinout_n, vin, sizeof(int)*vin_n);
+	}
 }

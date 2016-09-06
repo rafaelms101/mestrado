@@ -18,8 +18,16 @@ using namespace std;
 
 void check_assign();
 
+/*
+	Copia os subvetores determinados pelo inicio e o fim de  cada vetor
+	para o vout
+	vout : vetor de saida
+	v : int vetor de entrada
+	ini : inicio do indice de cada subvetor
+	fim : indice do final de cada subvetor
+*/
 void copySubVectors(float *vout, mat vin, int ini, int fim);
-mat pq_assign (pqtipo pq, mat v, int n);
+int* pq_assign (pqtipo pq, mat v, int n);
 
 
 #endif
