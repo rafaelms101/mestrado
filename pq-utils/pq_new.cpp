@@ -19,7 +19,9 @@ pqtipo pq_new(int nsq, mat vtrain){
 
 	pqtipo pq;
 
-	flags = flags & KMEANS_INIT_RANDOM;
+	flags = flags | KMEANS_INIT_RANDOM;
+	flags |= 1;
+	flags |= KMEANS_QUIET;
 	ds=vtrain.d/nsq;
 	ks=2^nsq;
 
@@ -32,8 +34,8 @@ pqtipo pq_new(int nsq, mat vtrain){
 	pq.centroids.n=ks;
 
 	for(i=0;i<nsq;i++){
-		for(j=0;j<ds;j++){
-			vs[j]=vtrain.mat[(i+j-1)*ds];
+		for(j=0;j<ds*vtrain.n;j++){
+			vs[j]=vtrain.mat[(i*vtrain.n*ds)+j];
 		}
 		kmeans(ds, vtrain.n, ks, 100, vs, flags, seed/*numero aleatorio dif de 0*/, 1, centroids_tmp , dis, assign, NULL);
 		fvec_concat(pq.centroids.mat, pq.centroids.n, centroids_tmp, ks);
