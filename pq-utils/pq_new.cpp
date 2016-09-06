@@ -4,7 +4,21 @@
 * nsq: numero de subquantizadores (m no paper)
 * vtrain: estrutura de vetores, contendo os dados de treinamento
 */
+
 pqtipo pq_new(int nsq, mat vtrain){
+
+	/*
+	*ds: dimensao dos subvetores
+	*ks: numero de centroides por subquantizador
+	*flags: modo de inicializacao do kmeans
+	*assign: vetor que guarda os indices dos centroides
+	*seed: semente do kmeans
+	*centroids_tmp: vetor que guarda temporariamente os centroides de um subvetor
+	*dis: vetor que guarda as distancias entre um centroide e o vetor assinalado por ele
+	*vs: vetor que guarda temporariamente cada subvetor
+	*pq: estrutura do quantizador
+	*/
+
 	int	i,
 		j,
 		ds,
@@ -19,25 +33,26 @@ pqtipo pq_new(int nsq, mat vtrain){
 
 	pqtipo pq;
 
-	flags = flags | KMEANS_INIT_RANDOM;
-	flags |= 1;
-	flags |= KMEANS_QUIET;
+	//definicao de variaveis
+
+	flags = flags & KMEANS_INIT_RANDOM;
 	ds=vtrain.d/nsq;
-	ks=2^nsq;
-
-	vs=fmat_new (ds, vtrain.n);
-
+	ks=pow(2,nsq);
 	pq.nsq = nsq;
 	pq.ks = ks;
 	pq.ds = ds;
-	pq.centroids.mat = fvec_new(nsq);
 	pq.centroids.n=ks;
 
+	//alocacao de memoria
+	
+	centroids_tmp= fvec_new(ks);
+	dis = fvec_new(pq.centroids.n);
+	assign= ivec_new(pq.centroids.n);
+	vs=fmat_new (ds, vtrain.n);
+
 	for(i=0;i<nsq;i++){
-		for(j=0;j<ds*vtrain.n;j++){
-			vs[j]=vtrain.mat[(i*vtrain.n*ds)+j];
-		}
-		kmeans(ds, vtrain.n, ks, 100, vs, flags, seed/*numero aleatorio dif de 0*/, 1, centroids_tmp , dis, assign, NULL);
+		memcpy(vs,vtrain.mat+vtrain.n*ds*i, sizeof(float)*vtrain.n*ds);
+		kmeans(ds, vtrain.n, ks, 100, vs, flags, seed, 1, centroids_tmp , dis, assign, NULL);
 		fvec_concat(pq.centroids.mat, pq.centroids.n, centroids_tmp, ks);
 		pq.centroids.n += ks;
 	}
