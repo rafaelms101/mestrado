@@ -9,6 +9,7 @@ extern "C" {
 }
 
 int main(){
+	int nsq=8;
 	data base;
 	pqtipo pq;
 
@@ -31,7 +32,7 @@ int main(){
 
 	base = pq_test_load_vectors();
 
-	pq = pq_new(8, base.train);
+	pq = pq_new(nsq, base.train);
 
 	return 0;
 }
