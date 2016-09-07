@@ -9,6 +9,9 @@ extern "C" {
 }
 
 int main(){
+	data base;
+	pqtipo pq;
+
 	check_new();
 	check_assign();
 
@@ -26,9 +29,9 @@ int main(){
 	printf("vec = ");
 	ivec_print(vec, 4);
 
-	data base = pq_test_load_vectors();
+	base = pq_test_load_vectors();
 
-	pqtipo pq = pq_new(8, base.train);
+	pq = pq_new(8, base.train);
 
 	return 0;
 }
