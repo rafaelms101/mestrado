@@ -26,5 +26,9 @@ int main(){
 	printf("vec = ");
 	ivec_print(vec, 4);
 
+	data base = pq_test_load_vectors();
+
+	pqtipo pq = pq_new(8, base.train);
+
 	return 0;
 }
