@@ -16,6 +16,12 @@ using namespace std;
 
 #define L2 2
 
+typedef struct{
+	int *mat;
+	int n,
+		d;
+}matI;
+
 void check_assign();
 
 /*
@@ -27,7 +33,7 @@ void check_assign();
 	fim : indice do final de cada subvetor
 */
 void copySubVectors(float *vout, mat vin, int ini, int fim);
-int* pq_assign (pqtipo pq, mat v, int n);
+matI pq_assign (pqtipo, mat);
 
 
 #endif

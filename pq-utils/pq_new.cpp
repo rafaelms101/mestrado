@@ -44,7 +44,7 @@ pqtipo pq_new(int nsq, mat vtrain){
 	pq.centroids.n=ks;
 
 	//alocacao de memoria
-	
+
 	centroids_tmp= fvec_new(ks);
 	dis = fvec_new(pq.centroids.n);
 	assign= ivec_new(pq.centroids.n);

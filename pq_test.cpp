@@ -10,6 +10,7 @@ extern "C" {
 
 int main(){
 	int nsq=8;
+	matI codebook;
 	data base;
 	pqtipo pq;
 
@@ -29,10 +30,31 @@ int main(){
 
 	printf("vec = ");
 	ivec_print(vec, 4);
+	free(vec);
+	free(vec2);
 
 	base = pq_test_load_vectors();
 
+	mat BASE;
+	BASE.mat = (float*)malloc(sizeof(float)*base.base.n);
+	BASE.n = base.base.n;
+	BASE.d = base.base.d;
+	memcpy(BASE.mat, base.base.mat, sizeof(float)*BASE.n);
+
 	pq = pq_new(nsq, base.train);
+
+
+
+	//fvec_print(pq.centroids.mat, pq.centroids.n);
+
+	//fvec_print(base.base.mat, base.base.n);
+	codebook = pq_assign(pq, BASE);
+
+	free(pq.centroids.mat);
+	free(codebook.mat);
+	//free(base.base.mat);
+	//free(base.query.mat);
+	//free(base.train.mat);
 
 	return 0;
 }
