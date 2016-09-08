@@ -6,7 +6,8 @@ void pq_search(pqtipo pq, int *cbase, mat vquery, int k){
 		*ids;
 
 	float 	*distab,
-			*dis;
+			*dis,
+			*disquerybase;
 
 	mat vsub;
 
@@ -14,8 +15,7 @@ void pq_search(pqtipo pq, int *cbase, mat vquery, int k){
 
 		for (j=0;j<pq.nsq;j++){
 			copySubVectors(vsub.mat,vquery ,pq.ds,j,i,i);
-			compute_cross_distances (vsub.d, vsub.n, pq.centroids.n, vsub.mat, pq.centroids.mat, distab);
-			//criar sumidxtab
+			compute_cross_distances (vsub.d, vsub.n, pq.centroidsn, vsub.mat, pq.centroids[j], distab);
 		}
 
 

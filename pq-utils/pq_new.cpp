@@ -41,22 +41,28 @@ pqtipo pq_new(int nsq, mat vtrain){
 	pq.nsq = nsq;
 	pq.ks = ks;
 	pq.ds = ds;
-	pq.centroids.n=ks;
+	pq.centroidsn=ks;
+	pq.centroidsd=nsq;
+	pq.centroids=(float **) malloc(sizeof(float*)*nsq);
+	for (i=0; i<nsq; i++){
+		pq.centroids[i]=(float *) malloc(sizeof(float)*ks);
+	}
 
 	//alocacao de memoria
 
 	centroids_tmp= fvec_new(ks);
-	dis = fvec_new(pq.centroids.n);
-	assign= ivec_new(pq.centroids.n);
+	dis = fvec_new(pq.centroidsn);
+	assign= ivec_new(pq.centroidsn);
 	vs=fmat_new (ds, vtrain.n);
 
 	for(i=0;i<nsq;i++){
 		copySubVectors(vs,vtrain,ds,i,0,vtrain.n-1);
 		kmeans(ds, vtrain.n, ks, 100, vs, flags, seed, 1, centroids_tmp , dis, assign, NULL);
-		fvec_concat(pq.centroids.mat, pq.centroids.n, centroids_tmp, ks);
-		pq.centroids.n += ks;
+		memcpy(pq.centroids[i], centroids_tmp, sizeof(float)*ks);
+		//fvec_concat(pq.centroids[i], pq.centroidsn, centroids_tmp, ks);
 	}
 
+	printf("%g\n", pq.centroids[0][0]);
 	return pq;
 }
 

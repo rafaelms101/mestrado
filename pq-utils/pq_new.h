@@ -28,7 +28,9 @@ typedef struct pqtipo{
 	int nsq;
 	int ks;
 	int ds;
-	mat centroids;
+	float **centroids;
+	int centroidsn;
+	int centroidsd;
 } pqtipo;
 
 pqtipo pq_new(int, mat);

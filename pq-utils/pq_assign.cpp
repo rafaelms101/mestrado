@@ -14,12 +14,14 @@ void check_assign(){
 
 matI pq_assign (pqtipo pq, mat v){
 
-    fvec_print(pq.centroids.mat , pq.centroids.n );
+    mat vsub;
 
     //aloca um vetor de varios subvetores de dimencao ds
-    float* vsub = (float*)malloc(sizeof(float)*(pq.ds)*(v.n));
+    vsub.mat = (float*)malloc(sizeof(float)*(pq.ds)*(v.n));
+    vsub.d=pq.ds;
+    vsub.n=v.n;
     int* assigns = (int*)malloc(sizeof(int)*v.n);    //indice dos k elementos mais proximos
-    float* dis;      //distancia deles para os definitivos
+    float* dis = (float*)malloc(sizeof(float)*v.n);      //distancia deles para os definitivos
 
     //codebook a ser gerado
     static matI code;
@@ -29,17 +31,17 @@ matI pq_assign (pqtipo pq, mat v){
 
     for (int i = 0; i < pq.nsq ; i++) {
         printf("ds = %d\n", i);
-        copySubVectors(vsub, v, pq.ds,i, 0, v.n-1);
+        copySubVectors(vsub.mat, v, pq.ds,i, 0, (v.n)-1);
         //TODO modificar knn, para não precisar realizar as copias
-        knn_full(L2, pq.centroids.n / pq.centroids.d , (v.n/v.d), pq.ds, 100, vsub,
-                pq.centroids.mat , NULL, assigns, dis);
+        knn_full(2, vsub.n, pq.centroidsn, 1, 1 ,
+                 pq.centroids[i], vsub.mat, NULL , assigns, dis);
 
         ivec_print(assigns, v.n);
         ivec_concat(code.mat, code.n, assigns, v.n);
         code.n += v.n;
     }
 
-    free(vsub);
+    free(vsub.mat);
     free(assigns);
 
     printf("code entght  = %d\n", code.n);
