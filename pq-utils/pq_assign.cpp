@@ -29,7 +29,7 @@ matI pq_assign (pqtipo pq, mat v){
 
     for (int i = 0; i < pq.nsq ; i++) {
         printf("ds = %d\n", i);
-        copySubVectors(vsub, v, pq.ds, 0, v.n-1);
+        copySubVectors(vsub, v, pq.ds,i, 0, v.n-1);
         //TODO modificar knn, para não precisar realizar as copias
         knn_full(L2, pq.centroids.n / pq.centroids.d , (v.n/v.d), pq.ds, 100, vsub,
                 pq.centroids.mat , NULL, assigns, dis);

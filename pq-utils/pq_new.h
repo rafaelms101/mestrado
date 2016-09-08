@@ -45,6 +45,6 @@ void fvec_concat(float* vinout, int vinout_n, float* vin, int vin_n);
 
 void ivec_concat(int* vinout, int vinout_n, int* vin, int vin_n);
 
-void copySubVectors(float *vout, mat vin, int ds, int n1, int n2);
+void copySubVectors(float *vout, mat vin, int ds, int inicio ,int n1, int n2);
 
 #endif
