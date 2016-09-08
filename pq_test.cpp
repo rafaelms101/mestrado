@@ -2,6 +2,7 @@
 #include <math.h>
 #include "pq-utils/pq_assign.h"
 #include "pq-utils/pq_new.h"
+#include "pq-utils/pq_search.h"
 extern "C" {
 #include "yael/vector.h"
 #include "yael/kmeans.h"

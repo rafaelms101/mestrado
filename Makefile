@@ -7,7 +7,7 @@ CXX=g++
 PQ_UTILS_DIR = ./pq-utils
 OBJDIR=./obj
 
-all: pq_test_load_vectors.o pq_new.o pq_assign.o pq_test.o pq_test
+all: pq_test_load_vectors.o pq_new.o pq_assign.o pq_search.o pq_test.o pq_test
 
 ifeq "$(USEARPACK)" "yes"
   EXTRAYAELLDFLAG=$(ARPACKLDFLAGS)
@@ -39,11 +39,15 @@ pq_test_load_vectors.o:
 $(OBJDIR)/pq_test_load_vectors.o: $(PQ_UTILS_DIR)/pq_test_load_vectors.cpp $(PQ_UTILS_DIR)/pq_test_load_vectors.h yael/matrix.h
 		$(CXX) $(cflags) -c $< -o $@ $(flags) $(extracflags) $(yaelcflags)
 
+pq_search.o:
+$(OBJDIR)/pq_search.o: $(PQ_UTILS_DIR)/pq_search.cpp $(PQ_UTILS_DIR)/pq_search.h $(PQ_UTILS_DIR)/pq_test_load_vectors.h $(PQ_UTILS_DIR)/pq_new.h yael/matrix.h yael/kmeans.h yael/vector.h yael/nn.h
+				$(CXX) $(cflags) -c $< -o $@ $(flags) $(extracflags) $(yaelcflags)
+
 pq_test.o:
 $(OBJDIR)/pq_test.o: pq_test.cpp yael/vector.h yael/kmeans.h yael/ivf.h $(PQ_UTILS_DIR)/pq_assign.h $(PQ_UTILS_DIR)/pq_new.h $(PQ_UTILS_DIR)/pq_test_load_vectors.h
 		$(CXX) $(cflags) -c $< -o $@ $(flags) $(extracflags) $(yaelcflags)
 
-pq_test: $(OBJDIR)/pq_test.o $(OBJDIR)/pq_assign.o $(PQ_UTILS_DIR)/pq_assign.h  $(OBJDIR)/pq_new.o $(PQ_UTILS_DIR)/pq_new.h $(OBJDIR)/pq_test_load_vectors.o $(PQ_UTILS_DIR)/pq_test_load_vectors.h
+pq_test: $(OBJDIR)/pq_test.o $(OBJDIR)/pq_assign.o $(PQ_UTILS_DIR)/pq_assign.h  $(OBJDIR)/pq_new.o $(PQ_UTILS_DIR)/pq_new.h $(OBJDIR)/pq_test_load_vectors.o $(PQ_UTILS_DIR)/pq_test_load_vectors.h $(OBJDIR)/pq_search.o $(PQ_UTILS_DIR)/pq_search.h
 	$(CXX) -o $@ $^ $(LDFLAGS) $(LAPACKLDFLAGS) $(THREADLDFLAGS) $(EXTRAYAELLDFLAG) $(YAELLDFLAGS)
 
 # Dependencies
