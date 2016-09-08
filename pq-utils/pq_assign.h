@@ -32,8 +32,7 @@ void check_assign();
 	ini : inicio do indice de cada subvetor
 	fim : indice do final de cada subvetor
 */
-void copySubVectors(float *vout, mat vin, int ini, int fim);
-matI pq_assign (pqtipo, mat);
 
+matI pq_assign (pqtipo, mat);
 
 #endif

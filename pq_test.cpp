@@ -11,7 +11,7 @@ extern "C" {
 int main(){
 	int nsq=8;
 	matI codebook;
-	data base;
+	data v;
 	pqtipo pq;
 
 	check_new();
@@ -33,25 +33,23 @@ int main(){
 	free(vec);
 	free(vec2);
 
-	base = pq_test_load_vectors();
+	v = pq_test_load_vectors();
 
 	mat BASE;
-	BASE.mat = (float*)malloc(sizeof(float)*base.base.n);
-	BASE.n = base.base.n;
-	BASE.d = base.base.d;
-	memcpy(BASE.mat, base.base.mat, sizeof(float)*BASE.n);
+	BASE.mat = (float*)malloc(sizeof(float)*v.base.n*v.base.d);
+	BASE.n = v.base.n;
+	BASE.d = v.base.d;
+	memcpy(BASE.mat, v.base.mat, sizeof(float)*BASE.n*BASE.d);
 
-	pq = pq_new(nsq, base.train);
-
-
+	pq = pq_new(nsq, v.train);
 
 	//fvec_print(pq.centroids.mat, pq.centroids.n);
 
-	//fvec_print(base.base.mat, base.base.n);
+	//fvec_print(BASE.mat, BASE.n*BASE.d);
 	codebook = pq_assign(pq, BASE);
 
-	free(pq.centroids.mat);
-	free(codebook.mat);
+	//free(pq.centroids.mat);
+	//free(codebook.mat);
 	//free(base.base.mat);
 	//free(base.query.mat);
 	//free(base.train.mat);

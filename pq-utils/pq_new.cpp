@@ -51,7 +51,7 @@ pqtipo pq_new(int nsq, mat vtrain){
 	vs=fmat_new (ds, vtrain.n);
 
 	for(i=0;i<nsq;i++){
-		memcpy(vs,vtrain.mat+vtrain.n*ds*i, sizeof(float)*vtrain.n*ds);
+		copySubVectors(vs,vtrain,ds,0,vtrain.n-1);
 		kmeans(ds, vtrain.n, ks, 100, vs, flags, seed, 1, centroids_tmp , dis, assign, NULL);
 		fvec_concat(pq.centroids.mat, pq.centroids.n, centroids_tmp, ks);
 		pq.centroids.n += ks;
@@ -86,4 +86,12 @@ void ivec_concat(int* vinout, int vinout_n, int* vin, int vin_n){
 		ivec_resize(vinout, vinout_n + vin_n);
 		memcpy(vinout + vinout_n, vin, sizeof(int)*vin_n);
 	}
+}
+
+
+void copySubVectors(float *vout, mat vin, int ds, int n1, int n2) {
+    
+    for (int i = n1; i <= n2 ; i++) {
+        memcpy(vout +(i-n1)*ds, vin.mat+vin.d*i, sizeof(float)*(ds));
+    }
 }

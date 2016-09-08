@@ -32,6 +32,7 @@ typedef struct pqtipo{
 } pqtipo;
 
 pqtipo pq_new(int, mat);
+
 void check_new();
 
 /* Concatena dois vetores, caso um não exista ele é criado exatamente igual ao vin
@@ -43,5 +44,7 @@ void check_new();
 void fvec_concat(float* vinout, int vinout_n, float* vin, int vin_n);
 
 void ivec_concat(int* vinout, int vinout_n, int* vin, int vin_n);
+
+void copySubVectors(float *vout, mat vin, int ds, int n1, int n2);
 
 #endif

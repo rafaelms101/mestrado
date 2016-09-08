@@ -23,17 +23,17 @@ data pq_test_load_vectors(){
 
     ///inicializa com valores aleatórios
 
-    for(i=1;i<=d;i++){
-    	for(j=0;j<v.train.n;j++){
-    		v.train.mat[i*j]= (float) rand()/RAND_MAX;
-    	}
-    	for(j=0;j<v.base.n;j++){
-    		v.base.mat[i*j]= (float) rand()/RAND_MAX;
-    	}
-    	for(j=0;j<v.query.n;j++){
-    		v.query.mat[i*j]= (float) rand()/RAND_MAX;
-    	}
-    }
+    load_random(v.train.mat, v.train.n, v.train.d);
+    load_random(v.base.mat, v.base.n, v.base.d);
+    load_random(v.query.mat, v.query.n, v.query.d);
 
     return v;
+}
+
+void load_random (float *v, int n, int d){
+    int i;
+
+    for(i=0;i<n*d;i++){
+        v[i]= (float) rand()/RAND_MAX;
+    }
 }
