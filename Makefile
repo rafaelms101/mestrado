@@ -2,8 +2,8 @@
 
 include makefile.inc
 
-CC=gcc
-CXX=g++
+CC=gcc -g
+CXX=g++ -g
 PQ_UTILS_DIR = ./pq-utils
 OBJDIR=./obj
 
@@ -22,7 +22,7 @@ endif
 # Various
 
 .c.o:
-	$(cc) $(cflags) -c $< -o $@ $(flags) $(extracflags) $(yaelcflags)
+	$(cc) $(CFLAGS) -c $< -o $@ $(flags) $(extracflags) $(yaelcflags)
 
 .cpp.o:
 	$(CXX) $(cflags) -c $< -o $@ $(flags) $(extracflags) $(yaelcflags)
@@ -48,7 +48,7 @@ $(OBJDIR)/pq_test.o: pq_test.cpp yael/vector.h yael/kmeans.h yael/ivf.h $(PQ_UTI
 		$(CXX) $(cflags) -c $< -o $@ $(flags) $(extracflags) $(yaelcflags)
 
 pq_test: $(OBJDIR)/pq_test.o $(OBJDIR)/pq_assign.o $(PQ_UTILS_DIR)/pq_assign.h  $(OBJDIR)/pq_new.o $(PQ_UTILS_DIR)/pq_new.h $(OBJDIR)/pq_test_load_vectors.o $(PQ_UTILS_DIR)/pq_test_load_vectors.h $(OBJDIR)/pq_search.o $(PQ_UTILS_DIR)/pq_search.h
-	$(CXX) -o $@ $^ $(LDFLAGS) $(LAPACKLDFLAGS) $(THREADLDFLAGS) $(EXTRAYAELLDFLAG) $(YAELLDFLAGS)
+	$(CXX) $(cflags) -o $@ $^ $(LDFLAGS) $(LAPACKLDFLAGS) $(THREADLDFLAGS) $(EXTRAYAELLDFLAG) $(YAELLDFLAGS)
 
 # Dependencies
 

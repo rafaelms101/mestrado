@@ -16,7 +16,7 @@ matI pq_assign (pqtipo pq, mat v){
 
     mat vsub;
 
-    //aloca um vetor de varios subvetores de dimencao ds
+    //aloca um vetor de varios subvetores de dimensao ds
     vsub.mat = (float*)malloc(sizeof(float)*(pq.ds)*(v.n));
     vsub.d=pq.ds;
     vsub.n=v.n;
@@ -25,26 +25,24 @@ matI pq_assign (pqtipo pq, mat v){
 
     //codebook a ser gerado
     static matI code;
-    code.mat = NULL;
-    code.n = 0;
+    code.mat = (int*)malloc(sizeof(int)*v.n*pq.nsq);
+    code.n = v.n;
     code.d = pq.nsq;
 
     for (int i = 0; i < pq.nsq ; i++) {
         printf("ds = %d\n", i);
         copySubVectors(vsub.mat, v, pq.ds,i, 0, (v.n)-1);
         //TODO modificar knn, para não precisar realizar as copias
-        knn_full(2, vsub.n, pq.centroidsn, 1, 1 ,
+        knn_full(2, vsub.n, pq.ks, pq.ds, 1 ,
                  pq.centroids[i], vsub.mat, NULL , assigns, dis);
-
         ivec_print(assigns, v.n);
-        ivec_concat(code.mat, code.n, assigns, v.n);
-        code.n += v.n;
+        ivec_concat(code.mat, i*code.n, assigns, v.n);
     }
 
     free(vsub.mat);
     free(assigns);
 
-    printf("code entght  = %d\n", code.n);
+    printf("code entght  = %d\n", code.n*code.d);
 
     return code;
 }
