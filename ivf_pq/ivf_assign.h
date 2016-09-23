@@ -13,7 +13,7 @@
   #include "myIVF.h"
   #include "ivf_new.h"
 
-  ivf* ivf_assign(ivfpq_t ivfpq, mat vbase);
+  ivf* ivfpq_assign(ivfpq_t ivfpq, mat vbase);
 
 
 

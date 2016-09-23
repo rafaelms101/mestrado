@@ -1,6 +1,6 @@
 #include "ivf_assign.h"
 
-ivf* ivf_assign(ivfpq_t ivfpq, mat vbase){
+ivf* ivfpq_assign(ivfpq_t ivfpq, mat vbase){
   int k = 1;
   int* codebook;
 
@@ -25,7 +25,6 @@ ivf* ivf_assign(ivfpq_t ivfpq, mat vbase){
    //TODO
    // -- Sort on assign, new codebook with sorted ids as identifiers for codebook
 
-   
    int pos = 0, nextpos;
    for (int i = 0; i < ivfpq.coarsek; i++) {
      ivf[i].ids = (int*)malloc(sizeof(int)*hist[i]);
