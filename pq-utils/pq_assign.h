@@ -8,19 +8,12 @@ extern "C" {
 #include "../yael/nn.h"
 }
 
-#include "pq_assign.h"
 #include "pq_new.h"
 #include "pq_test_load_vectors.h"
 
 using namespace std;
 
 #define L2 2
-
-typedef struct{
-	int *mat;
-	int n,
-		d;
-}matI;
 
 void check_assign();
 

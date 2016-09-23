@@ -27,22 +27,19 @@ matI pq_assign (pqtipo pq, mat v){
     static matI code;
     code.mat = (int*)malloc(sizeof(int)*v.n*pq.nsq);
     code.n = v.n;
-    code.d = pq.nsq;
+    code.d = 0;
 
     for (int i = 0; i < pq.nsq ; i++) {
-        printf("ds = %d\n", i);
         copySubVectors(vsub.mat, v, pq.ds,i, 0, (v.n)-1);
         //TODO modificar knn, para não precisar realizar as copias
         knn_full(2, vsub.n, pq.ks, pq.ds, 1 ,
                  pq.centroids[i], vsub.mat, NULL , assigns, dis);
-        ivec_print(assigns, v.n);
-        ivec_concat(code.mat, i*code.n, assigns, v.n);
+        ivec_concat_transp(code,assigns,pq.nsq);
+        code.d++;  
     }
 
     free(vsub.mat);
     free(assigns);
-
-    printf("code entght  = %d\n", code.n*code.d);
 
     return code;
 }

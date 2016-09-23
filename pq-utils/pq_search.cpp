@@ -12,15 +12,15 @@ void pq_search(pqtipo pq, matI codebook, mat vquery, int k, float *dis, int *ids
 		distab,
 		disquerybase;
 
-	vsub.mat= (float*)malloc(sizeof(float)*pq.ds*vquery.n);
-	vsub.n=vquery.n;
+	vsub.mat= (float*)malloc(sizeof(float)*pq.ds);
+	vsub.n=1;
 	vsub.d=pq.ds;	
 
-	distab.mat = (float*)malloc(sizeof(float)*vquery.n*pq.ks*pq.nsq);
+	distab.mat = (float*)malloc(sizeof(float)*pq.ks*pq.nsq);
 	distab.n = pq.nsq;
-	distab.d = vquery.n*pq.ks;
+	distab.d = pq.ks;
 
-	distab_temp = (float*)malloc(sizeof(float)*vquery.n*pq.ks);
+	distab_temp = (float*)malloc(sizeof(float)*pq.ks);
 
 	disquerybase.mat= (float*)malloc(sizeof(float)*codebook.n);
 	disquerybase.n=codebook.n;
