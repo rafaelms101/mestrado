@@ -59,10 +59,10 @@ $(OBJDIR)/myIVF.o:  $(IVF_DIR)/myIVF.cpp $(PQ_UTILS_DIR)/pq_assign.h $(PQ_UTILS_
 $(OBJDIR)/ivf_new.o: $(IVF_DIR)/ivf_new.cpp $(IVF_DIR)/ivf_new.h $(IVF_DIR)/myIVF.h  $(PQ_UTILS_DIR)/pq_assign.h $(PQ_UTILS_DIR)/pq_new.h $(PQ_UTILS_DIR)/pq_test_load_vectors.h yael/kmeans.h yael/vector.h yael/nn.h
 	$(CXX) $(cflags) -c $< -o $@ $(flags) $(extracflags) $(yaelcflags)
 
-ivfpq_test.o: ivf_test.cpp $(OBJDIR)/ivf_new.o $(IVF_DIR)/ivf_new.h $(OBJDIR)/myIVF.o $(IVF_DIR)/myIVF.h $(PQ_UTILS_DIR)/pq_test_load_vectors.h
+ivfpq_test.o: ivf_test.cpp $(OBJDIR)/myIVF.o $(OBJDIR)/ivf_new.o $(IVF_DIR)/ivf_new.h $(IVF_DIR)/myIVF.h $(OBJDIR)/pq_test_load_vectors.o $(PQ_UTILS_DIR)/pq_test_load_vectors.h $(OBJDIR)/pq_new.o $(PQ_UTILS_DIR)/pq_new.h
 	$(CXX) $(cflags) -c $< -o $@ $(flags) $(extracflags) $(yaelcflags)
 
-ivfpq_test: ivfpq_test.o $(OBJDIR)/myIVF.o $(OBJDIR)/ivf_new.o $(IVF_DIR)/ivf_new.h $(IVF_DIR)/myIVF.h $(PQ_UTILS_DIR)/pq_test_load_vectors.h
+ivfpq_test: ivfpq_test.o $(OBJDIR)/myIVF.o $(OBJDIR)/ivf_new.o $(IVF_DIR)/ivf_new.h $(IVF_DIR)/myIVF.h $(OBJDIR)/pq_test_load_vectors.o $(PQ_UTILS_DIR)/pq_test_load_vectors.h $(OBJDIR)/pq_new.o $(PQ_UTILS_DIR)/pq_new.h
 		$(CXX) $(cflags) -o $@ $^ $(LDFLAGS) $(LAPACKLDFLAGS) $(THREADLDFLAGS) $(EXTRAYAELLDFLAG) $(YAELLDFLAGS)
 
 clean:

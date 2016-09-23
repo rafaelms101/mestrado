@@ -11,13 +11,14 @@
 #include "ivf_pq/ivf_new.h"
 //#include "ivf_pq/ivf_search.h"
 
-int main(){
+int main(int argv, char **argc){
   int coarsek = 256;
   int nsq = 8;
+  char* dataset = argc[1];
 
   data v;
 
-  v = pq_test_load_vectors();
+  v = pq_test_load_vectors(dataset);
 
   ivfpq_t ivfpq = ivfpq_new(coarsek, nsq, v.train);
 
