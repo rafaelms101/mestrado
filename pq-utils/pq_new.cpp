@@ -95,11 +95,17 @@ void ivec_concat(int* vinout, int vinout_n, int* vin, int vin_n){
 }
 
 // Função que copia um intervalo de um vetor, criando um subvetor
+// vout : vetor de saída
+// vin : estrutura com o vetor de entrada
+// ds: subdimensão
+// n1row : numero do subvetor a ser copiado (ex: v1[16] -> 8 vetores v2[2]. n1row= i variando de 0 a 7)
+// n1col : coluna inicial a ser copiada
+// n2col : coluna final a ser copiada
 
-void copySubVectors(float *vout, mat vin, int ds, int n1col, int n1row, int n2row) {
+void copySubVectors(float *vout, mat vin, int ds, int n1row, int n1col, int n2col) {
     
-    for (int i = n1row; i <= n2row ; i++) {
-        memcpy(vout +(i-n1row)*ds, vin.mat+vin.d*i+n1col*ds, sizeof(float)*(ds));
+    for (int i = n1col; i <= n2col ; i++) {
+        memcpy(vout +(i-n1col)*ds, vin.mat+vin.d*i+n1row*ds, sizeof(float)*(ds));
     }
 }
 
