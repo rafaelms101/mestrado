@@ -14,7 +14,7 @@ ivfpq_t ivfpq_new(int coarsek, int nsq, mat vtrain){
   int flags = flags & KMEANS_INIT_RANDOM;
   int* assign = (int*)malloc(sizeof(int)*ivfpq.coa_centroidsn*ivfpq.coa_centroidsd);
 
-  kmeans(vtrain.d, vtrain.n, coarsek, 1, vtrain.mat, flags, 1, 1, ivfpq.coa_centroids, NULL, NULL, NULL);
+  kmeans(vtrain.d, vtrain.n, coarsek, 50, vtrain.mat, flags, 1, 1, ivfpq.coa_centroids, NULL, NULL, NULL);
 
   //calculo do vetores residuais
   knn_full(L2, ivfpq.coa_centroidsn, vtrain.n, ivfpq.coa_centroidsd, 1, vtrain.mat, ivfpq.coa_centroids, NULL, assign, dis);

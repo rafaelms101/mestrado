@@ -24,4 +24,6 @@ void ivfpq_search(ivfpq_t ivfpq, ivf_t ivf, mat vquery, int k, int w, int* ids, 
     memcpy(qcoaidx, coaidx + i*d*nq, sizeof(int)*d);
   }
 
+
+
 }
