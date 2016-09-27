@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <sys/time.h>
 #include "pq-utils/pq_assign.h"
 #include "pq-utils/pq_new.h"
 #include "pq-utils/pq_search.h"
@@ -12,8 +13,11 @@ extern "C" {
 }
 
 int main(int argv, char** argc){
+	struct timeval inicio, final;
+
 	int nsq,
 		k,
+		tmili,
 		*ids;
 
 	float* dis;
@@ -30,47 +34,39 @@ int main(int argv, char** argc){
 
 	dataset=argc[1];
 
-	check_new();
-	check_assign();
-
+	gettimeofday(&inicio, NULL);
 	v = pq_test_load_vectors(dataset);
-
-	//for(int l=0; l<3200000; l++){
-	//	if(l%128==0)printf("\ncoluna  %d", l/100);;
-	//	printf("%g ", v.train.mat[l]);
-	//}
+	gettimeofday(&final, NULL);
+	tmili = (int) (1000 * (final.tv_sec - inicio.tv_sec) + (final.tv_usec - inicio.tv_usec) / 1000);
+	printf("Tempo load vectors: %d\n", tmili);
 	
 	nsq=8;
 	k=100;
 	dis = (float*)malloc(sizeof(float)*v.query.n*k);
 	ids = (int*)malloc(sizeof(int)*v.query.n*k);
 
+	gettimeofday(&inicio, NULL);
 	pq = pq_new(nsq, v.train);
+	gettimeofday(&final, NULL);
+	tmili = (int) (1000 * (final.tv_sec - inicio.tv_sec) + (final.tv_usec - inicio.tv_usec) / 1000);
+	printf("Tempo new: %d\n", tmili);
 
-	//for(int j=0; j<8; j++){
-	//	printf("\nsubdimensao    %d", j);
-	//	for(int i=0; i<4096; i++){
-	//		if(i%256==0)printf("\ncoluna  %d", i/256);;
-	//		printf("%g ", pq.centroids[j][i]);
-	//	}
-	//}
-
+	gettimeofday(&inicio, NULL);
 	codebook = pq_assign(pq, v.base);
+	gettimeofday(&final, NULL);
+	tmili = (int) (1000 * (final.tv_sec - inicio.tv_sec) + (final.tv_usec - inicio.tv_usec) / 1000);
+	printf("Tempo assign: %d\n", tmili);
 
-	//for(int k=0; k<80000; k++){
-	//	if(k%8==0)printf("\ncoluna%d 	", k/8);;
-	//	printf("%d ", codebook.mat[k]);
-	//}
-
+	gettimeofday(&inicio, NULL);
 	pq_search(pq, codebook, v.query, k, dis , ids);
+	gettimeofday(&final, NULL);
+	tmili = (int) (1000 * (final.tv_sec - inicio.tv_sec) + (final.tv_usec - inicio.tv_usec) / 1000);
+	printf("Tempo search: %d\n", tmili);
 
-	//fvec_print(dis,v.query.n*k);
-	//ivec_print(ids,v.query.n*k);
-
-	for(int k=0; k<10000; k++){
+	/*for(int k=0; k<10000; k++){
 		if(k%100==0)printf("\ncoluna%d 	", k/100);;
 		printf("%d ", ids[k]);
-	}
+	}*/
 
 	free(dis);
 	free(ids);

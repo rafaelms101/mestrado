@@ -1,23 +1,19 @@
 #include "pq_new.h"
 
-/*
-* nsq: numero de subquantizadores (m no paper)
-* vtrain: estrutura de vetores, contendo os dados de treinamento
-*/
+// nsq: numero de subquantizadores (m no paper)
+// vtrain: estrutura de vetores, contendo os dados de treinamento
 
 pqtipo pq_new(int nsq, mat vtrain){
 
-	/*
-	*ds: dimensao dos subvetores
-	*ks: numero de centroides por subquantizador
-	*flags: modo de inicializacao do kmeans
-	*assign: vetor que guarda os indices dos centroides
-	*seed: semente do kmeans
-	*centroids_tmp: vetor que guarda temporariamente os centroides de um subvetor
-	*dis: vetor que guarda as distancias entre um centroide e o vetor assinalado por ele
-	*vs: vetor que guarda temporariamente cada subvetor
-	*pq: estrutura do quantizador
-	*/
+	// ds: dimensao dos subvetores
+	// ks: numero de centroides por subquantizador
+	// flags: modo de inicializacao do kmeans
+	// assign: vetor que guarda os indices dos centroides
+	// seed: semente do kmeans (qualquer valor diferente de 0)
+	// centroids_tmp: vetor que guarda temporariamente os centroides de um subvetor
+	// dis: vetor que guarda as distancias entre um centroide e o vetor assinalado por ele
+	// vs: vetor que guarda temporariamente cada subvetor
+	// pq: estrutura do quantizador
 
 	int	i,
 		ds,
@@ -32,12 +28,11 @@ pqtipo pq_new(int nsq, mat vtrain){
 
 	pqtipo pq;
 
-	//definicao de variaveis
+	// definicao de variaveis
 
 	flags = flags | KMEANS_INIT_RANDOM;
 	flags |= 1;
 	flags |= KMEANS_QUIET;
-
 	ds=vtrain.d/nsq;
 	ks=pow(2,nsq);
 	pq.nsq = nsq;
@@ -50,12 +45,14 @@ pqtipo pq_new(int nsq, mat vtrain){
 		pq.centroids[i]=(float *) malloc(sizeof(float)*ks*ds);
 	}
 
-	//alocacao de memoria
+	// alocacao de memoria
 
 	centroids_tmp= fvec_new(ks*ds);
 	dis = fvec_new(vtrain.n);
 	assign= ivec_new(vtrain.n);
 	vs=fmat_new (ds, vtrain.n);
+
+	// criacao dos centroides
 
 	for(i=0;i<nsq;i++){
 		copySubVectors(vs,vtrain,ds,i,0,vtrain.n-1);
@@ -69,6 +66,8 @@ void check_new(){
   cout << ":::PQ_NEW OK:::" << endl;
 }
 
+// Função que concatena dois vetores de numeros reais
+
 void fvec_concat(float* vinout, int vinout_n, float* vin, int vin_n){
 	if (vinout == NULL) {
 		vinout = (float*)malloc(sizeof(float)*vin_n);
@@ -80,6 +79,8 @@ void fvec_concat(float* vinout, int vinout_n, float* vin, int vin_n){
 		memcpy(vinout + vinout_n, vin, sizeof(float)*vin_n);
 	}
 }
+
+// Função que concatena dois vetores de numeros inteiros
 
 void ivec_concat(int* vinout, int vinout_n, int* vin, int vin_n){
 	if (vinout == NULL) {
@@ -93,12 +94,16 @@ void ivec_concat(int* vinout, int vinout_n, int* vin, int vin_n){
 	}
 }
 
+// Função que copia um intervalo de um vetor, criando um subvetor
+
 void copySubVectors(float *vout, mat vin, int ds, int n1col, int n1row, int n2row) {
     
     for (int i = n1row; i <= n2row ; i++) {
         memcpy(vout +(i-n1row)*ds, vin.mat+vin.d*i+n1col*ds, sizeof(float)*(ds));
     }
 }
+
+// Função que concatena vetores em uma matriz transposta
 
 void ivec_concat_transp(matI vinout, int* vin, int nsq){
 	for(int i=0; i<vinout.n; i++){

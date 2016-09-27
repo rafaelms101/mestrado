@@ -444,20 +444,11 @@ static void nn_single_full (int distance_type,
       /* update mins */
 
       for(j1=0;j1<m1;j1++) {
-        float *dline=dists+j1*m2;
-        
-        int imin=vw[i1+j1];
-        float dmin=vwdis[i1+j1];
-
         for(j2=0;j2<m2;j2++) 
-          if(dline[j2]<dmin) {
-            imin=j2+i2;
-            dmin=dline[j2];
-          }
-          
-        vw[i1+j1]=imin;
-        vwdis[i1+j1]=dmin;
-
+          if(dists[j1*m2+j2]<vwdis[i1+j1]) {
+            vw[i1+j1]=j2+i2;
+            vwdis[i1+j1]=dists[j1*m2+j2];
+          }        
       }      
 
     }  
@@ -493,7 +484,7 @@ void knn_full (int distance_type,int n1, int n2, int d, int k,
 
   char *minbuf = malloc (oneh * step1);
 
-#define MINS(i) ((fbinheap_t*)(minbuf + oneh * i))
+  #define MINS(i) ((fbinheap_t*)(minbuf + oneh * i))
   
   long i1,i2,j1,j2;
   for (i1 = 0; i1 < n1; i1 += step1) {  
