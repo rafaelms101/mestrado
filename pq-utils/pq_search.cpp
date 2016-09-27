@@ -1,6 +1,21 @@
 #include "pq_search.h"
 
+// pq : estrutura do quantizador
+// codebook : estrutura que armazena o codebook
+// vquery : estrutura que contem os vetores da query
+// k : numero de vetores proximos a serem retornados
+// dis : vetor que vai receber as distancias entre os vetores
+// ids : vetor que vai receber os indices
+
 void pq_search(pqtipo pq, matI codebook, mat vquery, int k, float *dis, int *ids){
+	
+	// ids1 : vetor que armazena temporariamente o indice dos vetores mais proximos 
+	// dis1 : vetor que armazena temporariamente a distancia entre os vetores mais proximos e o vetor da fila
+	// distab_temp : vetor que recebe temporariamente a tabela de distancias de um subespaco
+	// vsub : estrutura que recebe um subvetor temporariamente 
+	// distab : estrutura que recebe todas as distancias tabeladas
+	// disquerybase : estrutura que recebe as distancias entre os vetores da fila e os vetores mais proximos 
+
 	int i,
 		j,
 		*ids1;
@@ -11,6 +26,8 @@ void pq_search(pqtipo pq, matI codebook, mat vquery, int k, float *dis, int *ids
 	mat vsub,
 		distab,
 		disquerybase;
+
+	//definicao de variaveis
 
 	vsub.mat= (float*)malloc(sizeof(float)*pq.ds);
 	vsub.n=1;
@@ -29,9 +46,7 @@ void pq_search(pqtipo pq, matI codebook, mat vquery, int k, float *dis, int *ids
 	dis1= (float*)malloc(sizeof(float)*k);
 	ids1= (int*)malloc(sizeof(int)*k);
 
-
 	for (i=0;i<vquery.n;i++){
-
 		for (j=0;j<pq.nsq;j++){
 			copySubVectors(vsub.mat,vquery ,pq.ds,j,i,i);
 			compute_cross_distances (vsub.d, vsub.n, pq.ks, vsub.mat, pq.centroids[j], distab_temp);
