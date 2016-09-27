@@ -16,7 +16,7 @@ ivf* ivfpq_assign(ivfpq_t ivfpq, mat vbase){
   knn_full(L2, vbase.n, ivfpq.coa_centroidsn, ivfpq.coa_centroidsd, k,
            ivfpq.coa_centroids, vbase.mat, NULL, assign, dis);
 
-  ivec_print(assign, vbase.n);
+  //ivec_print(assign, vbase.n);
 
   //residuos
   subtract(vbase, ivfpq.coa_centroids, assign);
@@ -25,10 +25,6 @@ ivf* ivfpq_assign(ivfpq_t ivfpq, mat vbase){
 
    static ivf_t* ivf = (ivf_t*)malloc(sizeof(ivf_t)*ivfpq.coarsek);
 
-  //  float *assignf = (float*)malloc(sizeof(float)*vbase.n);
-  //  ivec_to_fvec(assign, assignf, vbase.n);
-
-  //  int* hist = fvec_new_histogram_clip (-1.0 , 1.0 , ivfpq.coarsek , assignf, vbase.n);
   int* hist =  ivec_new_histogram(256, assign, vbase.n);
    ivec_print(hist, vbase.n);
 
