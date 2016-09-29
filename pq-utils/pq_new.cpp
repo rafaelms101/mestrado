@@ -30,7 +30,7 @@ pqtipo pq_new(int nsq, mat vtrain){
 
 	// definicao de variaveis
 
-	flags = flags | KMEANS_INIT_RANDOM;
+	flags = flags | KMEANS_INIT_BERKELEY;
 	flags |= 1;
 	flags |= KMEANS_QUIET;
 	ds=vtrain.d/nsq;
@@ -115,4 +115,4 @@ void ivec_concat_transp(matI vinout, int* vin, int nsq){
 	for(int i=0; i<vinout.n; i++){
 		memcpy(vinout.mat + vinout.d+nsq*i, vin+i, sizeof(int));
 	}
-}	
+}		

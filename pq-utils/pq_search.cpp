@@ -55,8 +55,12 @@ void pq_search(pqtipo pq, matI codebook, mat vquery, int k, float *dis, int *ids
 		disquerybase.mat = sumidxtab(distab, codebook);
 		k_min(disquerybase, k, dis1, ids1);
 
-		memcpy(dis+i*k, dis1, sizeof(float)*k);
-		memcpy(ids+i*k, ids1, sizeof(int)*k);
+		for(int l=0; l<k; l++){
+			memcpy(dis + k*l+i, dis1+l, sizeof(float));
+		}
+		for(int l=0; l<k; l++){
+			memcpy(ids + k*l+i, ids1+l, sizeof(int));
+		}
 	}
 }
 
