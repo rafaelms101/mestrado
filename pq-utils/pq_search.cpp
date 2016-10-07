@@ -56,10 +56,10 @@ void pq_search(pqtipo pq, matI codebook, mat vquery, int k, float *dis, int *ids
 		k_min(disquerybase, k, dis1, ids1);
 
 		for(int l=0; l<k; l++){
-			memcpy(dis + k*l+i, dis1+l, sizeof(float));
+			memcpy(dis + vquery.n*l+i, dis1+l, sizeof(float));
 		}
 		for(int l=0; l<k; l++){
-			memcpy(ids + k*l+i, ids1+l, sizeof(int));
+			memcpy(ids + vquery.n*l+i, ids1+l, sizeof(int));
 		}
 	}
 }
