@@ -12,9 +12,11 @@
   #include "../pq-utils/pq_new.h"
   #include "../pq-utils/pq_search.h"
   #include "myIVF.h"
+  #include "ivf_new.h"
 
-  void ivfpq_search(ivfpq_t ivfpq, ivf_t ivf, mat vquery, int k, int w, int* ids, int* dis);
-  float* bsxfunMINUS(float* vin, float* vin2, int dim, int nq, int nqcoaidx);
+  int min(int a, int b);
+  mat bsxfunMINUS(mat vin, float* vin2, int dim, int nq, int* qcoaidx, int ncoaidx);
+  void ivfpq_search(ivfpq_t ivfpq, ivf_t *ivf, mat vquery, int k, int w, int* ids, float* dis);
 
 
 #endif

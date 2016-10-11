@@ -22,7 +22,8 @@ extern "C" {
 
   typedef struct ivf{
     int* ids;
-    int* codes;
+    int idstam;
+    matI codes;
   }ivf_t;
 
 

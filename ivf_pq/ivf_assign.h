@@ -15,6 +15,6 @@
 
   ivf* ivfpq_assign(ivfpq_t ivfpq, mat vbase);
 
-
+  int* histogram(const int* vec, int n, int range);
 
 #endif

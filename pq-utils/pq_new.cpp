@@ -30,7 +30,7 @@ pqtipo pq_new(int nsq, mat vtrain){
 
 	// definicao de variaveis
 
-	flags = flags | KMEANS_INIT_RANDOM;
+	flags = flags | KMEANS_INIT_BERKELEY;
 	flags |= 1;
 	flags |= KMEANS_QUIET;
 	ds=vtrain.d/nsq;
@@ -103,7 +103,7 @@ void ivec_concat(int* vinout, int vinout_n, int* vin, int vin_n){
 // n2col : coluna final a ser copiada
 
 void copySubVectors(float *vout, mat vin, int ds, int n1row, int n1col, int n2col) {
-    
+
     for (int i = n1col; i <= n2col ; i++) {
         memcpy(vout +(i-n1col)*ds, vin.mat+vin.d*i+n1row*ds, sizeof(float)*(ds));
     }
@@ -115,4 +115,4 @@ void ivec_concat_transp(matI vinout, int* vin, int nsq){
 	for(int i=0; i<vinout.n; i++){
 		memcpy(vinout.mat + vinout.d+nsq*i, vin+i, sizeof(int));
 	}
-}	
+}

@@ -12,8 +12,12 @@
   #include "../pq-utils/pq_new.h"
   #include "myIVF.h"
 
-  void subtract(mat v, float* v2, int* idx);
+  void subtract(mat v, float* v2, int* idx, int c_d);
   ivfpq_t ivfpq_new(int coarsek, int nsq, mat vtrain);
+  void printMat(float* mat, int n, int d);
+  void printMatI(int* mat, int n, int d);
+  void copySubVectorsI(int* qcoaidx, int* coaidx, int query, int nq,int w);
+  void copySubVectors2(float* vout, float* vin, int dim, int nvec, int subn);
 
 
 #endif
