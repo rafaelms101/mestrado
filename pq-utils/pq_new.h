@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
-#include <vector>
 #include <math.h>
 #include "pq_test_load_vectors.h"
 extern "C" {

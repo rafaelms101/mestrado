@@ -115,4 +115,5 @@ void ivec_concat_transp(matI vinout, int* vin, int nsq){
 	for(int i=0; i<vinout.n; i++){
 		memcpy(vinout.mat + vinout.d+nsq*i, vin+i, sizeof(int));
 	}
+
 }

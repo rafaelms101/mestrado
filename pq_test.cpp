@@ -6,6 +6,7 @@
 #include "pq-utils/pq_assign.h"
 #include "pq-utils/pq_new.h"
 #include "pq-utils/pq_search.h"
+#include "pq-utils/pq_test_compute_stats.h"
 extern "C" {
 #include "yael/vector.h"
 #include "yael/kmeans.h"
@@ -51,11 +52,21 @@ int main(int argv, char** argc){
 	tmili = (int) (1000 * (final.tv_sec - inicio.tv_sec) + (final.tv_usec - inicio.tv_usec) / 1000);
 	printf("Tempo new: %d\n", tmili);
 
+	//for(int k=0; k<256*16; k++){
+	//	if(k%16==0)printf("\ncoluna%d 	", k/16);;
+	//	printf("%g ", pq.centroids[1][k]);
+	//}
+
 	gettimeofday(&inicio, NULL);
 	codebook = pq_assign(pq, v.base);
 	gettimeofday(&final, NULL);
 	tmili = (int) (1000 * (final.tv_sec - inicio.tv_sec) + (final.tv_usec - inicio.tv_usec) / 1000);
 	printf("Tempo assign: %d\n", tmili);
+
+	//for(int k=0; k<8000000; k++){
+	//	if(k%8==0)printf("\ncoluna%d 	", k/8);;
+	//	printf("%d ", codebook.mat[k]);
+	//}
 
 	gettimeofday(&inicio, NULL);
 	pq_search(pq, codebook, v.query, k, dis , ids);
@@ -63,10 +74,12 @@ int main(int argv, char** argc){
 	tmili = (int) (1000 * (final.tv_sec - inicio.tv_sec) + (final.tv_usec - inicio.tv_usec) / 1000);
 	printf("Tempo search: %d\n", tmili);
 
-	/*for(int k=0; k<10000; k++){
-		if(k%100==0)printf("\ncoluna%d 	", k/100);;
-		printf("%d ", ids[k]);
-	}*/
+	//for(int k=0; k<100000; k++){
+	//	if(k%100==0)printf("\ncoluna%d 	", k/100);;
+	//	printf("%d ", ids[k]);
+	//}
+
+	pq_test_compute_stats (ids, v.ids_gnd,k);
 
 	free(dis);
 	free(ids);

@@ -2,7 +2,8 @@
 
 data pq_test_load_vectors(char* dataset){
 
-	data v;    
+	data v;
+	int *ids_gnd;    
 
 	if(strcmp(dataset, "random")==0){
 
@@ -19,7 +20,7 @@ data pq_test_load_vectors(char* dataset){
 		v.train.mat= fmat_new (v.train.d, v.train.n);
 
 		v.ids_gnd.n=1000;
-		v.ids_gnd.d=100;
+		v.ids_gnd.d=1;
 		v.ids_gnd.mat= ivec_new (v.ids_gnd.d*v.ids_gnd.n);
 		float *dis_gnd= fmat_new (v.ids_gnd.d,v.ids_gnd.n);
 
@@ -37,10 +38,10 @@ data pq_test_load_vectors(char* dataset){
 	else {
 		namefile f;
 
-		f.base= (char*)malloc(sizeof(char)*30);
-		f.query= (char*) malloc(sizeof(char)*30);
-		f.train= (char*) malloc(sizeof(char)*30);
-		f.groundtruth= (char*) malloc(sizeof(char)*30);
+		f.base= (char*)malloc(sizeof(char)*40);
+		f.query= (char*) malloc(sizeof(char)*40);
+		f.train= (char*) malloc(sizeof(char)*40);
+		f.groundtruth= (char*) malloc(sizeof(char)*40);
 
 		if(strcmp(dataset, "siftsmall")==0){
 			strcpy (f.base,"./siftsmall/siftsmall_base.fvecs");
@@ -57,8 +58,8 @@ data pq_test_load_vectors(char* dataset){
 			v.train.mat= fmat_new (v.train.d, v.train.n);
 			strcpy (f.groundtruth,"./siftsmall/siftsmall_groundtruth.ivecs");
 			v.ids_gnd.n=100;
-			v.ids_gnd.d=100;
-			v.ids_gnd.mat= ivec_new (v.ids_gnd.d*v.ids_gnd.n);
+			v.ids_gnd.d=1;
+			ids_gnd= ivec_new (v.ids_gnd.n*100);
 		}
 		else if(strcmp(dataset, "sift")==0){
 			strcpy (f.base,"./sift/sift_base.fvecs");
@@ -75,8 +76,8 @@ data pq_test_load_vectors(char* dataset){
 			v.train.mat= fmat_new (v.train.d, v.train.n);
 			strcpy (f.groundtruth,"./sift/sift_groundtruth.ivecs");
 			v.ids_gnd.n=10000;
-			v.ids_gnd.d=100;
-			v.ids_gnd.mat= ivec_new (v.ids_gnd.d*v.ids_gnd.n);
+			v.ids_gnd.d=1;
+			ids_gnd= ivec_new (v.ids_gnd.n*100);
 		}
 		else if(strcmp(dataset, "gist")==0){
 			strcpy (f.base,"./gist/gist_base.fvecs");
@@ -93,13 +94,18 @@ data pq_test_load_vectors(char* dataset){
 			v.train.mat= fmat_new (v.train.d, v.train.n);
 			strcpy (f.groundtruth,"./gist/gist_groundtruth.ivecs");
 			v.ids_gnd.n=1000;
-			v.ids_gnd.d=100;
-			v.ids_gnd.mat= ivec_new (v.ids_gnd.d*v.ids_gnd.n);
+			v.ids_gnd.d=1;
+			ids_gnd= ivec_new (v.ids_gnd.n*100);
 		}
 		fvecs_read (f.base, v.base.d, v.base.n, v.base.mat);
 		fvecs_read (f.query, v.query.d, v.query.n, v.query.mat);
 		fvecs_read (f.train, v.train.d, v.train.n, v.train.mat);
-		ivecs_read (f.groundtruth, v.ids_gnd.d, v.ids_gnd.n, v.ids_gnd.mat);
+		ivecs_read (f.groundtruth, 100 , v.ids_gnd.n, ids_gnd);
+
+		v.ids_gnd.mat= ivec_new (v.ids_gnd.n);
+		for(int i=0; i<v.ids_gnd.n;i++){
+			v.ids_gnd.mat[i]=ids_gnd[i*100];
+		}
 	}	
 	return v;
 }
@@ -128,20 +134,20 @@ int ivecs_read (const char *fname, int d, int n, int *a){
 		if (fread (&new_d, sizeof (int), 1, f) != 1) {
 			if (feof (f))break;
 			else {
-				perror ("fvecs_read error 1");
+				perror ("ivecs_read error 1");
 				fclose(f);
 				return -1;
 			}
 		}
 
 		if (new_d != d) {
-			fprintf (stderr, "fvecs_read error 2: unexpected vector dimension\n");
+			fprintf (stderr, "ivecs_read error 2: unexpected vector dimension\n");
 			fclose(f);
 			return -1;
 		}
 
 		if (fread (a + d * (long) i, sizeof (int), d, f) != d) {
-			fprintf (stderr, "fvecs_read error 3\n");
+			fprintf (stderr, "ivecs_read error 3\n");
 			fclose(f);
 			return -1;
 		}
