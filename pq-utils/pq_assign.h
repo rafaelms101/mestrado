@@ -4,8 +4,8 @@
 #include <iostream>
 #include <math.h>
 extern "C" {
-#include "../yael/vector.h"
-#include "../yael/nn.h"
+#include "../yael_needs/vector.h"
+#include "../yael_needs/nn.h"
 }
 
 #include "pq_new.h"

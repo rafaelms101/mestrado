@@ -6,9 +6,9 @@
 #include <iostream>
 #include <time.h>
 extern "C" {
-#include "../yael/matrix.h"
-#include "../yael/vector.h"	
-#include "../yael/nn.h"		
+#include "../yael_needs/matrix.h"
+#include "../yael_needs/vector.h"	
+#include "../yael_needs/nn.h"		
 }
 
 using namespace std;

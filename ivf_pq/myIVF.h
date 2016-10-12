@@ -7,8 +7,8 @@
 #include "../pq-utils/pq_new.h"
 #include "../pq-utils/pq_search.h"
 extern "C" {
-  #include "../yael/vector.h"
-  #include "../yael/kmeans.h"
+  #include "../yael_needs/vector.h"
+  #include "../yael_needs/kmeans.h"
 }
 
 

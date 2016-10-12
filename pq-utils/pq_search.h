@@ -10,11 +10,11 @@
 #include "pq_new.h"
 #include "pq_assign.h"
 extern "C" {
-#include "../yael/kmeans.h"
-#include "../yael/nn.h"
-#include "../yael/vector.h"
-#include "../yael/matrix.h"
-#include "../yael/sorting.h"	
+#include "../yael_needs/kmeans.h"
+#include "../yael_needs/nn.h"
+#include "../yael_needs/vector.h"
+#include "../yael_needs/matrix.h"
+#include "../yael_needs/sorting.h"	
 }
 
 

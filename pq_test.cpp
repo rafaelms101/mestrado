@@ -7,11 +7,6 @@
 #include "pq-utils/pq_new.h"
 #include "pq-utils/pq_search.h"
 #include "pq-utils/pq_test_compute_stats.h"
-extern "C" {
-#include "yael/vector.h"
-#include "yael/kmeans.h"
-#include "yael/ivf.h"
-}
 
 int main(int argv, char** argc){
 	struct timeval inicio, final;

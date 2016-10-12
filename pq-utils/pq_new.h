@@ -7,9 +7,9 @@
 #include <math.h>
 #include "pq_test_load_vectors.h"
 extern "C" {
-#include "../yael/kmeans.h"
-#include "../yael/vector.h"
-#include "../yael/matrix.h"
+#include "../yael_needs/kmeans.h"
+#include "../yael_needs/vector.h"
+#include "../yael_needs/matrix.h"
 }
 
 /* flags para o kmeans */
