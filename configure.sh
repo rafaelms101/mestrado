@@ -60,7 +60,7 @@ if [ $conf == mac64 ]; then
   wrapldflags="-Wl,-F. -bundle -undefined dynamic_lookup"
   sharedext=dylib
   sharedflags="-dynamiclib"
-  yaelsharedflags="$sharedflags -install_name $yaelprefix/yael/libyael.dylib"
+  yaelsharedflags="$sharedflags -install_name $yaelprefix/yael_needs/libyael.dylib"
 else
   wrapldflags="-shared"
   sharedflags="-shared"
@@ -160,7 +160,7 @@ if [ $conf == mac64 ]; then
     ldflags="$ldflags -m64"
 fi
 
-yaellib=${yaelprefix}/yael
+yaellib=${yaelprefix}/yael_needs
 yaelinc=${yaelprefix}
 
 

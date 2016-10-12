@@ -74,9 +74,6 @@ void knn_full_thread (int distance_type,
                       int *assign, float *dis,
                       int n_thread);
 
-
-
-
 /* next functions are simplified calls of the previous */
 
 
@@ -85,80 +82,9 @@ double nn (int n, int nb, int d,
          const float *b, const float *v,
          int *assign);
 
-/*! single NN, multithread */
-double nn_thread (int n, int nb, int d, 
-                const float *b, const float *v,
-                int *assign,    
-                int n_thread);
 
+/* next functions are simplified calls of the previous */
 
-/*! also returns distances to centroids (alloc'ed with malloc) */
-float* knn (int n, int nb, int d, int k,
-            const float *b, const float *v,
-            int *assign);
-
-
-float* knn_thread (int nq, int nb, int d, int k,
-                   const float *b, const float *v,
-                   int *assign,    
-                   int n_thread);
-
-
-/*! Re-order a short-list based on exact distances 
- * 
- * @param n             nb of query vectors
- * @param nb            nb of database vectors
- * @param d             dimension of vectors
- * @param k             nb of nearest-neighbors per query vector
- * @param b(d,nb)       database vector matrix
- * @param v(d,nb)       query vector matrix
- * @param idx(k,nq)     - input: idx(:,q) is the
- *                         array of nearest neighbor indices to rerank
- *                      - output: idx(:,q) is a permutation of
- *                         the input array, such that the NNs are
- *                         ordered by increasing exact distance
- * @param dis(k,nq)     on output, dis(i,j) contains the 
- *                      exact squared L2 distance to the i^th NN of query j.
- */
-void knn_reorder_shortlist(int n, int nb, int d, int k,
-                           const float *b, const float *v,
-                           int *idx, float *dis);
-
-
-/*! same as knn_reorder_shortlist for a partial base matrix
- *   (eg. because b does not fit in memory)
- *
- * @param label0        label of b(:,0) in the idx array
- * @param idx(k,nq)     idx(i, q) is the index of the i^th neighbor of
- *                      query j. The array is sorted: 
- *                      
- *                        idx(0, q) < idx(1, q) < ... < idx(k-1, q)
- * 
- * 			all distances for i st. 
- *                       
- *			   label0 <= idx(i,q) < label0 + nb
- *			
- * 		        will be recomputed. 
- * @param kp(nq)        index array of labels for which the distance must be recomputed. 
- *                      - input: kp[q] is the smallest i st. label0 <= idx(i,q)
- *                      - output: kp[q] is the smallest i st. label0 + nb <= idx(i,q)
- */
-void knn_recompute_exact_dists(int n, int nb, int d, int k,
-			       const float *b, const float *v,
-			       int label0, int *kp,
-			       const int *idx, float *dis);
-
-
-/*! Computes all distances between 2 sets of vectors 
- *
- * @param a(d, na)       set of vectors  
- * @param b(d, nb)       set of vectors
- * @param dist2(na, nb)  distances between all vectors of a and b. On output, 
- *
- *       dist2(i, j) = || a(:, i) - b(:, j) ||^2 = dist2[ i + na * j ]
- *
- * where 0 <= i < na and 0 <= j < nb
- */
 void compute_cross_distances (int d, int na, int nb,
                               const float *a,
                               const float *b, float *dist2);
@@ -173,13 +99,6 @@ void compute_cross_distances_nonpacked (int d, int na, int nb,
                                         const float *a, int lda,
                                         const float *b, int ldb, 
                                         float *dist2, int ldd);
-/*! compute_cross_distances with threads */
-void compute_cross_distances_thread (int d, int na, int nb,
-                                     const float *a,
-                                     const float *b, float *dist2,
-                                     int nt);
-
-
 
 /*! Like compute_cross_distances with alternative distances. 
  *
@@ -201,15 +120,6 @@ void compute_cross_distances_alt_nonpacked (int distance_type, int d, int na, in
                                             const float *a, int lda,
                                             const float *b, int ldb,
                                             float *dist2, int ldd);
-
-
-
-
-void compute_cross_distances_alt_thread (int distance_type,int d, int na, int nb,
-                                         const float *a,
-                                         const float *b, float *dist2,
-                                         int nt);
-
 
 /*! version of compute_cross_distances where na==1 */
 void compute_distances_1 (int d, int nb,
@@ -233,9 +143,6 @@ void compute_distances_1_nonpacked_thread (int d, int nb,
                                            const float *b, int ldb, 
                                            float *dist2,
                                            int n_thread);
-
-
-
 
 /*! @} */
 

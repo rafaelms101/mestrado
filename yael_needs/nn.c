@@ -24,6 +24,7 @@ This file is part of Yael.
 #include <assert.h>
 #include <math.h>
 #include <string.h>
+#include <sys/time.h>
 
 #include "machinedeps.h"
 #include "vector.h"
@@ -78,7 +79,6 @@ static void add_matmul (FINTEGER d, FINTEGER na, FINTEGER nb,
                         float *dist2, FINTEGER ldd)
 {
   /* ldd >= na */
-
   float minus_two = -2;
   float one = 1;
 
@@ -537,88 +537,13 @@ void knn_full (int distance_type,int n1, int n2, int d, int k,
 }
 
 
-void knn_reorder_shortlist(int n, int nb, int d, int k,
-                           const float *b, const float *v,
-                           int *assign,
-                           float *dists) 
-{
-  float *subb=fvec_new(k*d);
-  float *diststmp=fvec_new(k);
-  int *perm=ivec_new(k);
-  int *assigntmp=ivec_new(k);  
-  int i,j;
-
-  for(i=0;i<n;i++) {
-    int *assigni=assign+i*k;
-    float *disti=dists+i*k;
-
-    int ki  ;
-    if(1) {
-
-      for(j=0;j<k;j++) {
-        if(assigni[j]<0) break;
-        memcpy(subb+j*d,b+assigni[j]*(long) d,sizeof(*subb)*d);
-      }
-
-      ki=j;
-
-    } else {
-      for(j=0;j<k;j++) 
-        if(assigni[j]<0) break;
-      ki=j;
-      ivec_sort(assigni,ki); /* to improve access locality */
-      for(j=0;j<ki;j++) {
-        memcpy(subb+j*d,b+assigni[j]*(long) d,sizeof(*subb)*d);
-      } 
-    }
-
-
-    compute_distances_1(d,ki,v+i*d,subb,diststmp);
-    
-    fvec_sort_index(diststmp,ki,perm);
-
-    memcpy(assigntmp,assigni,sizeof(*assigni)*ki);
-    
-    for(j=0;j<ki;j++) {
-      disti[j]=diststmp[perm[j]];
-      assigni[j]=assigntmp[perm[j]];
-    }
-    
-  }
-  free(assigntmp);
-  free(diststmp);
-  free(subb);
-  free(perm);
-}
-
-
-void knn_recompute_exact_dists(int nq, int nb, int d, int k,
-			       const float *b, const float *v,
-			       int label0, int *kp,
-			       const int *idx, float *dis) 
-{
-  long q, i;
-
-  for(q = 0; q < nq; q++) {
-    const float * vq = v + d * q;
-    for(i = kp[q]; i < k; i++) {
-      long j = idx[q * k + i] - label0;
-      assert(j >= 0); 
-      if(j >= nb) break;      
-      dis[q * k + i] = fvec_distance_L2sqr(vq, b + j * d, d);
-    }
-    kp[q] = i;
-  }
-}
-
-
 /**********************************************************************************
  * Simple call versions
  */
 
 
 double nn (int npt, int nclust, int d,
-	 const float *codebook, const float *coords, int *vw) 
+   const float *codebook, const float *coords, int *vw) 
 {
   
   /* The distances to centroids that will be returned */
@@ -631,19 +556,6 @@ double nn (int npt, int nclust, int d,
 
   return toterr;
 }
-
-
-float *knn (int npt, int nclust, int d, int k,
-	    const float *codebook, const float *coords, int *vw)
-{
-  /* The distances to centroids that will be returned */
-  float *vwdis = fvec_new(npt * k);
-
-  knn_full (2, npt, nclust, d, k, codebook, coords, NULL, vw, vwdis);
-  return vwdis;
-}
-
-
 
 /**********************************************************************************
  * Threaded versions
@@ -672,8 +584,6 @@ typedef struct {
   int n_thread;
 } nn_input_t;
 
-
-
 static void nn_task (void *arg, int tid, int i)
 {
   nn_input_t *t = arg;
@@ -682,8 +592,8 @@ static void nn_task (void *arg, int tid, int i)
   long n1 = t->npt * (long)(i + 1) / t->n_thread;
 
   knn_full (t->distance_type, n1 - n0, t->nclust, t->d, t->k, t->codebook,
-			  t->points + n0 * t->d, t->vw_weights,
-			  t->vw + n0 * t->k, t->vwdis + n0 * t->k);
+        t->points + n0 * t->d, t->vw_weights,
+        t->vw + n0 * t->k, t->vwdis + n0 * t->k);
 }
 
 /********** frontends */
@@ -710,118 +620,16 @@ void knn_full_thread (int distance_type, int npt, int nclust, int d, int k,
 
 }
 
-
 /***************** simplified calls */
 
 float *knn_thread (int npt, int nclust, int d, int k,
-		   const float *codebook, const float *coords,
-		   int *vw, int n_thread) 
+       const float *codebook, const float *coords,
+       int *vw, int n_thread) 
 {
   float *vwdis2=fvec_new(k*npt);
   knn_full_thread (2, npt, nclust, d, k, codebook, coords, NULL, vw, vwdis2, n_thread);
   return vwdis2;
 }
-
-
-
-double nn_thread (int npt, int nclust, int d,
-		  const float *codebook, const float *coords,
-		  int *vw, int n_thread)
-{
-  float *vwdis2=fvec_new(npt);
-  knn_full_thread (2, npt, nclust, d, 1, codebook, coords, NULL, vw, vwdis2, n_thread);
-   
-  double toterr = fvec_sum(vwdis2, npt); 
-
-  free(vwdis2);
-  return toterr;
-}
-
-
-/***************** cross distances */
-
-typedef struct {
-  int distance_type; /* <0 mreans optimized L2 distance */
-  int d, na, nb;
-  const float *a,*b;
-  float *dist2;
-  int nt;
-  int split_a;  
-} cross_distances_params_t;
-
-
-/*Core funcs*/
-void compute_cross_distances_task (void *arg, int tid, int i) 
-{
-  cross_distances_params_t *t=arg;
-  if(t->split_a) {
-    long i0 = t->na*(long)i/t->nt;
-    long i1 = t->na*(long)(i+1)/t->nt;
-    if(t->distance_type<0) 
-      compute_cross_distances_nonpacked (t->d,i1-i0,t->nb,
-                                         t->a+i0*t->d,t->d,
-                                         t->b,t->d,
-                                         t->dist2+i0,t->na);
-    else 
-      compute_cross_distances_alt_nonpacked (t->distance_type,t->d,i1-i0,t->nb,
-                                             t->a+i0*t->d,t->d,
-                                             t->b,t->d,
-                                             t->dist2+i0,t->na);
-  } else {
-    long i0 = t->nb*(long)i/t->nt;
-    long i1 = t->nb*(long)(i+1)/t->nt;
-    if(t->distance_type<0) 
-      compute_cross_distances_nonpacked (t->d,t->na,i1-i0,
-                                         t->a,t->d,
-                                         t->b+i0*t->d,t->d,
-                                         t->dist2+i0*t->na,t->na);   
-    else 
-      compute_cross_distances_alt_nonpacked (t->distance_type,
-                                             t->d,t->na,i1-i0,
-                                             t->a,t->d,
-                                             t->b+i0*t->d,t->d,
-                                             t->dist2+i0*t->na,t->na);         
-  }  
-}
-
-/*main funcs*/
-
-void compute_cross_distances_thread (int d, int na, int nb,
-                                     const float *a,
-                                     const float *b, float *dist2,
-                                     int nt) 
-{
-  cross_distances_params_t t={-1,d,na,nb,a,b,dist2,nt};
-  
-  int n=MAX(na,nb);
-  
-  if(n<nt) /* too small, no threads */
-    compute_cross_distances(d,na,nb,a,b,dist2);
-  else { 
-    t.split_a=na>nb;    
-    compute_tasks(nt,nt,&compute_cross_distances_task,&t);
-  } 
-}
-
-
-void compute_cross_distances_alt_thread (int distance_type,int d, int na, int nb,
-                                         const float *a,
-                                         const float *b, float *dist2,
-                                         int nt) 
-{
-  cross_distances_params_t t = {distance_type,d,na,nb,a,b,dist2,nt};
-  
-  int n=MAX(na,nb);
-  
-  if(n<nt) /* too small, no threads */
-    compute_cross_distances_alt (distance_type,d,na,nb,a,b,dist2);
-  else { 
-    t.split_a=na>nb;    
-    compute_tasks(nt,nt,&compute_cross_distances_task,&t);
-  } 
-}
-
-
 
 #ifdef _OPENMP
 

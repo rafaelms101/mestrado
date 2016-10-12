@@ -1,32 +1,5 @@
-/*
-Copyright © INRIA 2009-2014.
-Authors: Matthijs Douze & Herve Jegou
-Contact: matthijs.douze@inria.fr  herve.jegou@inria.fr
-
-This file is part of Yael.
-
-    Yael is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    Yael is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with Yael.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
 #ifndef KMEANS_H_INCLUDED
 #define KMEANS_H_INCLUDED
-
-
-/*---------------------------------------------------------------------------*/
-/*! @addtogroup clustering
- *  @{  */
-
 
 /* flags for kmeans */
 #define KMEANS_QUIET                    0x10000
@@ -64,28 +37,4 @@ float kmeans (int d, int n, int k, int niter,
 	      float * centroids, float * dis, 
 	      int * assign, int * nassign);
 
-/*--- Following functions are for forward compatibility (and may be removed in the future) ---*/
-
-/*! simplified call */
-float* clustering_kmeans (int n, int d,
-                          const float *points, int k, int nb_iter_max, 
-                          double normalize);
-
-/*! Same as kmeans, but generate in addition the assignment
- *  performed on the input set
- */
-float* clustering_kmeans_assign (int n, int d,
-				 const float *points, int k, int nb_iter_max, 
-				 double normalize, 
-				 int ** clust_assign_out);
-
-
-
-float* clustering_kmeans_assign_with_score (int n, int d,
-                                            const float *points, int k, int nb_iter_max,
-                                            double normalize, int n_thread, double *score_out,
-                                            int ** clust_assign_out);
-
-
-/*! @} */
 #endif
