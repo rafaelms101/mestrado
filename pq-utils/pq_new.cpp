@@ -19,11 +19,9 @@ pqtipo pq_new(int nsq, mat vtrain){
 		ds,
 		ks,
 		flags=0,
-		*assign,
 		seed=2;
 
 	float	*centroids_tmp,
-			*dis,
 			*vs;
 
 	pqtipo pq;
@@ -48,15 +46,13 @@ pqtipo pq_new(int nsq, mat vtrain){
 	// alocacao de memoria
 
 	centroids_tmp= fvec_new(ks*ds);
-	dis = fvec_new(vtrain.n);
-	assign= ivec_new(vtrain.n);
 	vs=fmat_new (ds, vtrain.n);
 
 	// criacao dos centroides
 
 	for(i=0;i<nsq;i++){
 		copySubVectors(vs,vtrain,ds,i,0,vtrain.n-1);
-		kmeans(ds, vtrain.n, ks, 100, vs, flags, seed, 1, centroids_tmp , dis, assign, NULL);
+		kmeans(ds, vtrain.n, ks, 100, vs, flags, seed, 1, centroids_tmp , NULL, NULL, NULL);
 		memcpy(pq.centroids[i], centroids_tmp, sizeof(float)*ks*ds);
 	}
 	return pq;

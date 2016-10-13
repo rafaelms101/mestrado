@@ -73,8 +73,8 @@ float* sumidxtab(mat distab, matI codebook){
 	//soma as distancias para cada vetor
 	for (i = 0; i < codebook.n ; i++) {
 		dis_tmp = 0;
-		for(j=0; j<distab.n*distab.d; j+=distab.d){
-			dis_tmp += distab.mat[*(codebook.mat++) + j];
+		for(j=0; j<distab.n; j++){
+			dis_tmp += distab.mat[codebook.mat[j+i*distab.n] + j*distab.d];
 		}
 		dis[i]=dis_tmp;
 	}
