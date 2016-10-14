@@ -14,7 +14,7 @@ extern "C" {
 #include "../yael_needs/nn.h"
 #include "../yael_needs/vector.h"
 #include "../yael_needs/matrix.h"
-#include "../yael_needs/sorting.h"	
+#include "../yael_needs/sorting.h"
 }
 
 

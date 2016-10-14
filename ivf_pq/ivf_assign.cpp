@@ -2,7 +2,7 @@
 
 ivf_t* ivfpq_assign(ivfpq_t ivfpq, mat vbase){
 	int k = 1;
-	
+
 
 	int *assign = (int*)malloc(sizeof(int)*vbase.n);
 	float *dis = (float*)malloc(sizeof(float)*vbase.n);
@@ -40,16 +40,22 @@ ivf_t* ivfpq_assign(ivfpq_t ivfpq, mat vbase){
 
 		nextpos = pos+hist[i];
 		memcpy(ivf[i].ids, ids+pos, sizeof(int)*hist[i]);
-		
+
 		for (int p = pos; p < nextpos; p++) {
-			copySubVectorsI(ivf[i].codes.mat, codebook.mat, p, 0, ivf[i].codes.d);
+			memcpy(ivf[i].codes.mat + (p-pos)*ivf[i].codes.d , codebook.mat + (p-pos)*ivf[i].codes.d,
+			 			 sizeof(int)*ivf[i].codes.d);
 		}
 		pos += hist[i];
-		//printMatI(ivf[i].codes.mat, ivf[i].codes.n, ivf[i].codes.d);
+		// printMatI(ivf[i].codes.mat, ivf[i].codes.n, ivf[i].codes.d);
+		// getchar();
 
 	}
 
 	free(hist);
+	free(codebook.mat);
+	free(ids);
+	free(assign);
+	free(dis);
 	return ivf;
 }
 

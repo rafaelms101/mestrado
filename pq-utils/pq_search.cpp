@@ -8,13 +8,13 @@
 // ids : vetor que vai receber os indices
 
 void pq_search(pqtipo pq, matI codebook, mat vquery, int k, float *dis, int *ids){
-	
-	// ids1 : vetor que armazena temporariamente o indice dos vetores mais proximos 
+
+	// ids1 : vetor que armazena temporariamente o indice dos vetores mais proximos
 	// dis1 : vetor que armazena temporariamente a distancia entre os vetores mais proximos e o vetor da fila
 	// distab_temp : vetor que recebe temporariamente a tabela de distancias de um subespaco
-	// vsub : estrutura que recebe um subvetor temporariamente 
+	// vsub : estrutura que recebe um subvetor temporariamente
 	// distab : estrutura que recebe todas as distancias tabeladas
-	// disquerybase : estrutura que recebe as distancias entre os vetores da fila e os vetores mais proximos 
+	// disquerybase : estrutura que recebe as distancias entre os vetores da fila e os vetores mais proximos
 
 	int i,
 		j,
@@ -31,7 +31,7 @@ void pq_search(pqtipo pq, matI codebook, mat vquery, int k, float *dis, int *ids
 
 	vsub.mat= (float*)malloc(sizeof(float)*pq.ds);
 	vsub.n=1;
-	vsub.d=pq.ds;	
+	vsub.d=pq.ds;
 
 	distab.mat = (float*)malloc(sizeof(float)*pq.ks*pq.nsq);
 	distab.n = pq.nsq;
@@ -62,11 +62,14 @@ void pq_search(pqtipo pq, matI codebook, mat vquery, int k, float *dis, int *ids
 			memcpy(ids + vquery.n*l+i, ids1+l, sizeof(int));
 		}
 	}
+
+	free(distab_temp);
+	free(disquerybase.mat);
 }
 
 float* sumidxtab(mat distab, matI codebook){
 	//aloca o vetor a ser retornado
-	static float *dis = (float*)malloc(sizeof(float)*codebook.n);
+	float *dis = (float*)malloc(sizeof(float)*codebook.n);
 	float dis_tmp = 0;
 	int i, j;
 
@@ -91,7 +94,7 @@ void k_min (mat disquerybase, int k, float *dis, int *ids){
 	if(disquerybase.d==1 && disquerybase.n>1){
 		d=disquerybase.n;
 		n=1;
-	}	
+	}
 
 
 	for (i=0; i<n; i++){

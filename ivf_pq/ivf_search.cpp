@@ -2,8 +2,10 @@
 
 #define L2 2
 
+float * sumidxtab2(mat D, matI ids, int offset);
+
 void ivfpq_search(ivfpq_t ivfpq, ivf_t *ivf, mat vquery, int k, int w, int* ids, float* dis){
-	
+
 	int nq, d,ds, ks, nsq, nextdis, nextidx;
 	nq = vquery.n;
 	d = vquery.d;
@@ -54,14 +56,16 @@ void ivfpq_search(ivfpq_t ivfpq, ivf_t *ivf, mat vquery, int k, int w, int* ids,
 
 	for (int query = 0; query < nq; query++) {
 			copySubVectorsI(qcoaidx, coaidx, query, nq, w);
-			// ivec_print(qcoaidx, w);
-			// getchar();
+			//printf("qcoaidx = \n");
+			//ivec_print(qcoaidx, w);
+			//getchar();
 
 			//compute the w residual vectors
 			v = bsxfunMINUS(vquery, ivfpq.coa_centroids, vquery.d, query, qcoaidx, w);
 
-			//printMat(v.mat, v.n, v.d);
-			//getchar();
+			// printf("V = \n");
+			// printMat(v.mat, v.n, v.d);
+			// getchar();
 
 			nextidx = 0;
 			nextdis = 0;
@@ -83,17 +87,22 @@ void ivfpq_search(ivfpq_t ivfpq, ivf_t *ivf, mat vquery, int k, int w, int* ids,
 				for (int q = 0; q < nsq; q++) {
 					//printf("q = %d\n", q);
 					copySubVectors2(vsub.mat, v.mat, ds, j, q);
+					//printf("vsub =\n");
+					//fvec_print(vsub.mat, vsub.d);
 					compute_cross_distances(vsub.d, vsub.n, ks, vsub.mat, ivfpq.pq.centroids[q], distab_temp);
 					//fvec_print(distab_temp, ks);
 					memcpy(distab.mat+q*ks, distab_temp, sizeof(float)*ks);
 				}
 				//printMat(distab.mat, distab.n, distab.d);
+				//getchar();
 				//qidx.mat = (int*)realloc(qidx.mat, qidx.n + ivf[qcoaidx[j]].idstam);
 				//qdis.mat = (float*)realloc(qdis.mat, qdis.n + ivf[qcoaidx[j]].codes.n);
 
 
 				AUXSUMIDX = sumidxtab(distab, ivf[qcoaidx[j]].codes);
-				fvec_print(AUXSUMIDX, ivf[qcoaidx[j]].codes.n);
+				//printf("A=SUMIDXTAB = \n");
+				//fvec_print(AUXSUMIDX, ivf[qcoaidx[j]].codes.n);
+				//getchar();
 				memcpy(qidx.mat + nextidx, ivf[qcoaidx[j]].ids,  sizeof(int)*ivf[qcoaidx[j]].idstam);
 				memcpy(qdis.mat + nextdis, AUXSUMIDX, sizeof(float)*ivf[qcoaidx[j]].codes.n);
 
@@ -102,6 +111,10 @@ void ivfpq_search(ivfpq_t ivfpq, ivf_t *ivf, mat vquery, int k, int w, int* ids,
 
 				//free(AUXSUMIDX);
 			}
+		 
+			// printf("qdis = \n");
+			// fvec_print(qdis.mat, qdis.n);
+			// getchar();
 
 			int ktmp = min(qidx.n, k);
 			k_min(qdis, ktmp, dis1, ids1);
@@ -144,4 +157,22 @@ int min(int a, int b){
 	}
 	else
 		return a;
+}
+
+float * sumidxtab2(mat D, matI ids, int offset){
+	//aloca o vetor a ser retornado
+	float *dis = (float*)malloc(sizeof(float)*ids.n);
+	float dis_tmp = 0;
+	int i, j, idsN = 0;
+
+	//soma as distancias para cada vetor
+	for (i = 0; i < ids.n ; i++) {
+		dis_tmp = 0;
+		for(j=0; j<D.n; j++){
+			dis_tmp += D.mat[ids.mat[i*ids.d + j] + j*D.d];
+		}
+		dis[i]=dis_tmp;
+	}
+
+	return dis;
 }
