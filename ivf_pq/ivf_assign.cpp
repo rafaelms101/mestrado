@@ -42,14 +42,16 @@ ivf_t* ivfpq_assign(ivfpq_t ivfpq, mat vbase){
 		memcpy(ivf[i].ids, ids+pos, sizeof(int)*hist[i]);
 
 		for (int p = pos; p < nextpos; p++) {
-			memcpy(ivf[i].codes.mat + (p-pos)*ivf[i].codes.d , codebook.mat + (p-pos)*ivf[i].codes.d,
-			 			 sizeof(int)*ivf[i].codes.d);
+			// memcpy(ivf[i].codes.mat + (p-pos)*ivf[i].codes.d , codebook.mat + pos + (p-pos)*codebook.d,
+			//  			 sizeof(int)*ivf[i].codes.d);
+			copySubVectorsI(ivf[i].codes.mat + (p-pos)*ivf[i].codes.d, codebook.mat, p, 0,  ivf[i].codes.d);
 		}
 		pos += hist[i];
-		// printMatI(ivf[i].codes.mat, ivf[i].codes.n, ivf[i].codes.d);
-		// getchar();
+
 
 	}
+	getchar();
+
 
 	free(hist);
 	free(codebook.mat);

@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <math.h>
+#include <time.h>
+#include <sys/time.h>
 #include "pq-utils/pq_new.h"
 #include "pq-utils/pq_test_load_vectors.h"
 
@@ -8,6 +10,7 @@
 #include "ivf_pq/ivf_search.h"
 
 int main(int argv, char **argc){
+  struct timeval start, end;
   	int k,
   		nsq,
   		coarsek,
@@ -23,23 +26,37 @@ int main(int argv, char **argc){
 
 	dataset = argc[1];
 
-  	v = pq_test_load_vectors(dataset);
-
   	k = 100;
   	nsq = 8;
   	coarsek = 256;
   	w = 4;
 
-  	ivfpq_t ivfpq = ivfpq_new(coarsek, nsq, v.train);
+
+  gettimeofday(&start, NULL);
+  v = pq_test_load_vectors(dataset);
+  gettimeofday(&end, NULL);
+	printf("Loading vectors %lfs\n", difftime(end.tv_sec, start.tv_sec)+ (double) (end.tv_usec - start.tv_usec)/1000000);
+
+  gettimeofday(&start, NULL);
+  ivfpq_t ivfpq = ivfpq_new(coarsek, nsq, v.train);
+  gettimeofday(&end, NULL);
+	printf("Learnig %lfs\n", difftime(end.tv_sec, start.tv_sec)+ (double) (end.tv_usec - start.tv_usec)/1000000);
 
 
-	ivf_t *ivf = ivfpq_assign(ivfpq, v.base);
+  gettimeofday(&start, NULL);
+  ivf_t *ivf = ivfpq_assign(ivfpq, v.base);
+  gettimeofday(&end, NULL);
+	printf("Encoding %lfs\n", difftime(end.tv_sec, start.tv_sec)+ (double) (end.tv_usec - start.tv_usec)/1000000);
 
-	int *ids = (int*)malloc(sizeof(int)*v.query.n*k);
+  int *ids = (int*)malloc(sizeof(int)*v.query.n*k);
 	float *dis = (float*)malloc(sizeof(float)*v.query.n*k);
 
-	ivfpq_search(ivfpq, ivf, v.query, k, w, ids, dis);
+  gettimeofday(&start, NULL);
+  ivfpq_search(ivfpq, ivf, v.query, k, w, ids, dis);
+  gettimeofday(&end, NULL);
+  printf("Searching %lfs\n", difftime(end.tv_sec, start.tv_sec)+ (double) (end.tv_usec - start.tv_usec)/1000000);
 
+  printMatI(ids, 100, 100);
 
   return 0;
 }

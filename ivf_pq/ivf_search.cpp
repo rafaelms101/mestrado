@@ -93,25 +93,27 @@ void ivfpq_search(ivfpq_t ivfpq, ivf_t *ivf, mat vquery, int k, int w, int* ids,
 					//fvec_print(distab_temp, ks);
 					memcpy(distab.mat+q*ks, distab_temp, sizeof(float)*ks);
 				}
-				//printMat(distab.mat, distab.n, distab.d);
-				//getchar();
+				// printMat(distab.mat, distab.n, distab.d);
+				// getchar();
 				//qidx.mat = (int*)realloc(qidx.mat, qidx.n + ivf[qcoaidx[j]].idstam);
 				//qdis.mat = (float*)realloc(qdis.mat, qdis.n + ivf[qcoaidx[j]].codes.n);
 
 
-				AUXSUMIDX = sumidxtab(distab, ivf[qcoaidx[j]].codes);
-				//printf("A=SUMIDXTAB = \n");
-				//fvec_print(AUXSUMIDX, ivf[qcoaidx[j]].codes.n);
-				//getchar();
+				printMatI(ivf[qcoaidx[j]].codes.mat, ivf[qcoaidx[j]].codes.n, ivf[qcoaidx[j]].codes.d);
+
+				AUXSUMIDX = sumidxtab2(distab, ivf[qcoaidx[j]].codes, 0);
+				// printf("A=SUMIDXTAB = \n");
+				// fvec_print(AUXSUMIDX, ivf[qcoaidx[j]].codes.n);
+				// getchar();
 				memcpy(qidx.mat + nextidx, ivf[qcoaidx[j]].ids,  sizeof(int)*ivf[qcoaidx[j]].idstam);
 				memcpy(qdis.mat + nextdis, AUXSUMIDX, sizeof(float)*ivf[qcoaidx[j]].codes.n);
 
 				nextidx += ivf[qcoaidx[j]].idstam;
 				nextdis += ivf[qcoaidx[j]].codes.n;
 
-				//free(AUXSUMIDX);
+				free(AUXSUMIDX);
 			}
-		 
+
 			// printf("qdis = \n");
 			// fvec_print(qdis.mat, qdis.n);
 			// getchar();
@@ -169,7 +171,10 @@ float * sumidxtab2(mat D, matI ids, int offset){
 	for (i = 0; i < ids.n ; i++) {
 		dis_tmp = 0;
 		for(j=0; j<D.n; j++){
-			dis_tmp += D.mat[ids.mat[i*ids.d + j] + j*D.d];
+			// printf("i = %d   j = %d\n", i, j);
+			// printf("ids = %d\n", ids.mat[i*ids.d+j]);
+			// printf("D.mat = %f\n", D.mat[ids.mat[i*ids.d+j]+ offset + j*D.d]);
+			dis_tmp += D.mat[ids.mat[i*ids.d+j]+ offset + j*D.d];
 		}
 		dis[i]=dis_tmp;
 	}
