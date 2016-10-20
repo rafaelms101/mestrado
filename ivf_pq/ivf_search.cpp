@@ -99,7 +99,7 @@ void ivfpq_search(ivfpq_t ivfpq, ivf_t *ivf, mat vquery, int k, int w, int* ids,
 				//qdis.mat = (float*)realloc(qdis.mat, qdis.n + ivf[qcoaidx[j]].codes.n);
 
 
-				printMatI(ivf[qcoaidx[j]].codes.mat, ivf[qcoaidx[j]].codes.n, ivf[qcoaidx[j]].codes.d);
+				//printMatI(ivf[qcoaidx[j]].codes.mat, ivf[qcoaidx[j]].codes.n, ivf[qcoaidx[j]].codes.d);
 
 				AUXSUMIDX = sumidxtab2(distab, ivf[qcoaidx[j]].codes, 0);
 				// printf("A=SUMIDXTAB = \n");
@@ -120,6 +120,8 @@ void ivfpq_search(ivfpq_t ivfpq, ivf_t *ivf, mat vquery, int k, int w, int* ids,
 
 			int ktmp = min(qidx.n, k);
 			k_min(qdis, ktmp, dis1, ids1);
+
+			//printMatI(ids1, 1 ,k);
 
 			memcpy(dis + query*k, dis1, sizeof(float)*k);
 			memcpy(ids + query*k, ids1, sizeof(int)*k);

@@ -26,6 +26,7 @@ ivf_t* ivfpq_assign(ivfpq_t ivfpq, mat vbase){
 	// -- Sort on assign, new codebook with sorted ids as identifiers for codebook
 	int* ids = (int*)malloc(sizeof(int)*vbase.n);
 	ivec_sort_index(assign, vbase.n, ids);
+
 	for(int i=0; i<codebook.n; i++){
 		memcpy(codebook.mat+i*codebook.d, codeaux+codebook.d*ids[i], sizeof(int)*codebook.d);
 	}
@@ -47,14 +48,13 @@ ivf_t* ivfpq_assign(ivfpq_t ivfpq, mat vbase){
 			copySubVectorsI(ivf[i].codes.mat + (p-pos)*ivf[i].codes.d, codebook.mat, p, 0,  ivf[i].codes.d);
 		}
 		pos += hist[i];
-
+		//printfMatI(ivf[i].codes, ivf[i].codes.n, ivf[i].codes.d);
 
 	}
-	getchar();
-
 
 	free(hist);
 	free(codebook.mat);
+	free(codeaux.mat);
 	free(ids);
 	free(assign);
 	free(dis);
