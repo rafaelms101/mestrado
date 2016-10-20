@@ -26,11 +26,6 @@ void ivfpq_search(ivfpq_t ivfpq, ivf_t *ivf, mat vquery, int k, int w, int* ids,
 	int* coaidx = (int*)malloc(sizeof(int)*vquery.n*w);
 	float* coadis = (float*)malloc(sizeof(float)*vquery.n*w);
 
-	mat vsub;
-	vsub.mat = (float*)malloc(sizeof(float)*ds);
-	vsub.n = 1;
-	vsub.d = ds;
-
 	float* distab_temp = (float*)malloc(sizeof(float)*ks);
 
 	int* qcoaidx = (int*)malloc(sizeof(int)*w);
@@ -85,16 +80,13 @@ void ivfpq_search(ivfpq_t ivfpq, ivf_t *ivf, mat vquery, int k, int w, int* ids,
 			for (int j = 0; j < w; j++) {
 				//printf("j = %d\n", j);
 				for (int q = 0; q < nsq; q++) {
-					//printf("q = %d\n", q);
-					copySubVectors2(vsub.mat, v.mat, ds, j, q);
-					//printf("vsub =\n");
-					//fvec_print(vsub.mat, vsub.d);
-					compute_cross_distances(vsub.d, vsub.n, ks, vsub.mat, ivfpq.pq.centroids[q], distab_temp);
+					compute_cross_distances(ds, 1, ks, v.mat + j*v.d + q*ds, ivfpq.pq.centroids[q], distab_temp);
 					//fvec_print(distab_temp, ks);
+					//getchar();
 					memcpy(distab.mat+q*ks, distab_temp, sizeof(float)*ks);
 				}
-				// printMat(distab.mat, distab.n, distab.d);
-				// getchar();
+				printMat(distab.mat, distab.n, distab.d);
+				getchar();
 				//qidx.mat = (int*)realloc(qidx.mat, qidx.n + ivf[qcoaidx[j]].idstam);
 				//qdis.mat = (float*)realloc(qdis.mat, qdis.n + ivf[qcoaidx[j]].codes.n);
 
