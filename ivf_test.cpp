@@ -4,6 +4,7 @@
 #include <sys/time.h>
 #include "pq-utils/pq_new.h"
 #include "pq-utils/pq_test_load_vectors.h"
+#include "pq-utils/pq_test_compute_stats.h"
 
 #include "ivf_pq/ivf_assign.h"
 #include "ivf_pq/ivf_new.h"
@@ -42,7 +43,6 @@ int main(int argv, char **argc){
   gettimeofday(&end, NULL);
 	printf("Learnig %lfs\n", difftime(end.tv_sec, start.tv_sec)+ (double) (end.tv_usec - start.tv_usec)/1000000);
 
-
   gettimeofday(&start, NULL);
   ivf_t *ivf = ivfpq_assign(ivfpq, v.base);
   gettimeofday(&end, NULL);
@@ -56,7 +56,29 @@ int main(int argv, char **argc){
   gettimeofday(&end, NULL);
   printf("Searching %lfs\n", difftime(end.tv_sec, start.tv_sec)+ (double) (end.tv_usec - start.tv_usec)/1000000);
 
-  printMatI(ids, 100, 100);
+  //printMatI(ids, 100, 100);
+
+  //setting th indexes to matlab
+  // for (size_t i = 0; i < v.query.n*k; i++) {
+  //   ids[i]= ids[i] + 1;
+  // }
+
+  int *ids_tr = imat_new_transp (ids, v.query.n, k);
+  //printMatI(ids_tr, 100, 100);
+
+
+  pq_test_compute_stats (ids_tr, v.ids_gnd,k);
+
+  free(dis);
+  free(ids);
+  free(ivfpq.pq.centroids);
+  free(ivfpq.coa_centroids);
+  free(ivf->codes.mat);
+  free(ivf->ids);
+  free(ids_tr);
+  free(v.base.mat);
+  free(v.query.mat);
+  free(v.train.mat);
 
   return 0;
 }

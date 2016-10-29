@@ -2,8 +2,6 @@
 
 #define L2 2
 
-float * sumidxtab2(mat D, matI ids, int offset);
-
 void ivfpq_search(ivfpq_t ivfpq, ivf_t *ivf, mat vquery, int k, int w, int* ids, float* dis){
 
 	int nq, d,ds, ks, nsq, nextdis, nextidx;
@@ -20,8 +18,8 @@ void ivfpq_search(ivfpq_t ivfpq, ivf_t *ivf, mat vquery, int k, int w, int* ids,
 	distab.n = nsq;
 	distab.d = ks;
 
-	dis = (float*)malloc(sizeof(float)*nq*k);
-	ids = (int*)malloc(sizeof(int)*nq*k);
+	// dis = (float*)malloc(sizeof(float)*nq*k);
+	// ids = (int*)malloc(sizeof(int)*nq*k);
 
 	int* coaidx = (int*)malloc(sizeof(int)*vquery.n*w);
 	float* coadis = (float*)malloc(sizeof(float)*vquery.n*w);
@@ -85,8 +83,8 @@ void ivfpq_search(ivfpq_t ivfpq, ivf_t *ivf, mat vquery, int k, int w, int* ids,
 					//getchar();
 					memcpy(distab.mat+q*ks, distab_temp, sizeof(float)*ks);
 				}
-				printMat(distab.mat, distab.n, distab.d);
-				getchar();
+				// printMat(distab.mat, distab.n, distab.d);
+				// getchar();
 				//qidx.mat = (int*)realloc(qidx.mat, qidx.n + ivf[qcoaidx[j]].idstam);
 				//qdis.mat = (float*)realloc(qdis.mat, qdis.n + ivf[qcoaidx[j]].codes.n);
 
@@ -109,14 +107,25 @@ void ivfpq_search(ivfpq_t ivfpq, ivf_t *ivf, mat vquery, int k, int w, int* ids,
 			// printf("qdis = \n");
 			// fvec_print(qdis.mat, qdis.n);
 			// getchar();
+			// printf("QIDX = \n");
+			// ivec_print(qidx.mat, qidx.n);
 
 			int ktmp = min(qidx.n, k);
 			k_min(qdis, ktmp, dis1, ids1);
 
-			//printMatI(ids1, 1 ,k);
+			// printf("IDS1 = \n");
+			// printMatI(ids1, 1 ,k);
+			// printf("DIS = \n");
+			// printMat(dis1, 1, k);
 
 			memcpy(dis + query*k, dis1, sizeof(float)*k);
-			memcpy(ids + query*k, ids1, sizeof(int)*k);
+			for(int b = 0; b < k ; b++){
+				//memcpy(ids + query*k + b, qidx.mat + (ids1[b]-1)*qidx.d, sizeof(int));
+				ids[query*k + b] = qidx.mat[ids1[b]-1];
+			}
+			// printf("IDS = \n");
+			// printMatI(ids, 1+(query), k);
+			// getchar();
 
 	}
 	free(qcoaidx);
@@ -174,4 +183,16 @@ float * sumidxtab2(mat D, matI ids, int offset){
 	}
 
 	return dis;
+}
+
+int* imat_new_transp (const int *a, int ncol, int nrow)
+{
+  int i,j;
+  int *vt=(int*)malloc(sizeof(int)*ncol*nrow);
+
+  for(i=0;i<ncol;i++)
+    for(j=0;j<nrow;j++)
+      vt[i*nrow+j]=a[j*ncol+i];
+
+  return vt;
 }
