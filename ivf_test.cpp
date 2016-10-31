@@ -64,21 +64,23 @@ int main(int argv, char **argc){
   // }
 
   int *ids_tr = imat_new_transp (ids, v.query.n, k);
-  //printMatI(ids_tr, 100, 100);
+  printMatI(ids_tr, 100, 100);
 
 
-  pq_test_compute_stats (ids_tr, v.ids_gnd,k);
+  pq_test_compute_stats2 (ids_tr, v.ids_gnd,k);
 
   free(dis);
   free(ids);
   free(ivfpq.pq.centroids);
   free(ivfpq.coa_centroids);
-  free(ivf->codes.mat);
-  free(ivf->ids);
   free(ids_tr);
   free(v.base.mat);
   free(v.query.mat);
   free(v.train.mat);
+  for (int i = 0; i < ivfpq.coarsek ; i++) {
+    free(ivf[i].codes.mat);
+    free(ivf[i].ids);
+  }
 
   return 0;
 }

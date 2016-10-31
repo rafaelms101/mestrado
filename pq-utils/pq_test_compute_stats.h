@@ -1,7 +1,7 @@
 #ifndef H_STATS
 #define H_STATS
 
-#include <algorithm> 
+#include <algorithm>
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
