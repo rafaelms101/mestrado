@@ -56,18 +56,9 @@ int main(int argv, char **argc){
   gettimeofday(&end, NULL);
   printf("Searching %lfs\n", difftime(end.tv_sec, start.tv_sec)+ (double) (end.tv_usec - start.tv_usec)/1000000);
 
-  //printMatI(ids, 100, 100);
-
-  //setting th indexes to matlab
-  // for (size_t i = 0; i < v.query.n*k; i++) {
-  //   ids[i]= ids[i] + 1;
-  // }
-
   int *ids_tr = imat_new_transp (ids, v.query.n, k);
-  printMatI(ids_tr, 100, 100);
 
-
-  pq_test_compute_stats2 (ids_tr, v.ids_gnd,k);
+  pq_test_compute_stats2(ids_tr, v.ids_gnd,k);
 
   free(dis);
   free(ids);
