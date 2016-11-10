@@ -47,6 +47,10 @@ int main(int argv, char** argc){
 	tmili = (int) (1000 * (final.tv_sec - inicio.tv_sec) + (final.tv_usec - inicio.tv_usec) / 1000);
 	printf("Tempo new: %d\n", tmili);
 
+	for(int i=0; i<(pq.centroidsn*pq.centroidsd/4); i++){
+		printf("%g ", pq.centroids[i]);
+	}
+
 	//for(int k=0; k<256*16; k++){
 	//	if(k%16==0)printf("\ncoluna%d 	", k/16);;
 	//	printf("%g ", pq.centroids[1][k]);
@@ -58,7 +62,7 @@ int main(int argv, char** argc){
 	tmili = (int) (1000 * (final.tv_sec - inicio.tv_sec) + (final.tv_usec - inicio.tv_usec) / 1000);
 	printf("Tempo assign: %d\n", tmili);
 
-	//for(int k=0; k<8000000; k++){
+	//for(int k=0; k<80000; k++){
 	//	if(k%8==0)printf("\ncoluna%d 	", k/8);;
 	//	printf("%d ", codebook.mat[k]);
 	//}

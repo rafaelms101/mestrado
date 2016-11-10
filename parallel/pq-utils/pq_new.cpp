@@ -38,10 +38,7 @@ pqtipo pq_new(int nsq, mat vtrain){
 	pq.ds = ds;
 	pq.centroidsn=ks*ds;
 	pq.centroidsd=nsq;
-	pq.centroids=(float **) malloc(sizeof(float*)*nsq);
-	for (i=0; i<nsq; i++){
-		pq.centroids[i]=(float *) malloc(sizeof(float)*ks*ds);
-	}
+	pq.centroids=(float *) malloc(sizeof(float*)*nsq*ks*ds);
 
 	// alocacao de memoria
 
@@ -53,7 +50,7 @@ pqtipo pq_new(int nsq, mat vtrain){
 	for(i=0;i<nsq;i++){
 		copySubVectors(vs,vtrain,ds,i,0,vtrain.n-1);
 		kmeans(ds, vtrain.n, ks, 100, vs, flags, seed, 1, centroids_tmp , NULL, NULL, NULL);
-		memcpy(pq.centroids[i], centroids_tmp, sizeof(float)*ks*ds);
+		memcpy(pq.centroids+i*ks*ds, centroids_tmp, sizeof(float)*ks*ds);
 	}
 	return pq;
 }

@@ -49,7 +49,7 @@ void pq_search(pqtipo pq, matI codebook, mat vquery, int k, float *dis, int *ids
 	for (i=0;i<vquery.n;i++){
 		for (j=0;j<pq.nsq;j++){
 			copySubVectors(vsub.mat,vquery ,pq.ds,j,i,i);
-			compute_cross_distances (vsub.d, vsub.n, pq.ks, vsub.mat, pq.centroids[j], distab_temp);
+			compute_cross_distances (vsub.d, vsub.n, pq.ks, vsub.mat, &pq.centroids[j*pq.centroidsn], distab_temp);
 			memcpy(distab.mat+j*pq.ks*vsub.n, distab_temp, sizeof(float)*pq.ks*vsub.n);
 		}
 		disquerybase.mat = sumidxtab(distab, codebook);
@@ -95,6 +95,7 @@ void k_min (mat disquerybase, int k, float *dis, int *ids){
 		d=disquerybase.n;
 		n=1;
 	}
+
 	for (i=0; i<n; i++){
 		fvec_k_min(disquerybase.mat, d, ids, k);
 		for(j=0; j<k; j++){

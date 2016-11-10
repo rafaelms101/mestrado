@@ -14,11 +14,14 @@
 	#include "myIVF.h"
 	#include "ivf_new.h"
 
-	int min(int a, int b);
-	float * sumidxtab2(mat D, matI ids, int offset);
-	mat bsxfunMINUS(mat vin, float* vin2, int dim, int nq, int* qcoaidx, int ncoaidx);
-	void ivfpq_search(ivfpq_t ivfpq, ivf_t *ivf, mat vquery, int k, int w, int* ids, float* dis);
-	int* imat_new_transp (const int *a, int ncol, int nrow);
+	typedef struct {
+	mat dis;
+	matI idx;
+	}dis_t;
 
+	int min(int a, int b);
+	void bsxfunMINUS(mat mout, mat vin, float* vin2, int nq, int* qcoaidx, int ncoaidx);
+	dis_t ivfpq_search(ivf_t *ivf, mat residual, pqtipo pq, int centroid_idx);
+	int* imat_new_transp (const int *a, int ncol, int nrow);
 
 #endif

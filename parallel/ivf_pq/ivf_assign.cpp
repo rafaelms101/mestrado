@@ -16,6 +16,9 @@ ivf_t* ivfpq_assign(ivfpq_t ivfpq, mat vbase){
 
 	matI codebook = pq_assign(ivfpq.pq, vbase);
 
+	int *codeaux = (int*)malloc(sizeof(int)*codebook.d*codebook.n);
+	memcpy(codeaux, codebook.mat, sizeof(int)*codebook.n*codebook.d);
+
 	static ivf_t* ivf = (ivf_t*)malloc(sizeof(ivf_t)*ivfpq.coarsek);
 
 	int* hist =  histogram(assign, vbase.n ,ivfpq.coarsek);
@@ -23,6 +26,9 @@ ivf_t* ivfpq_assign(ivfpq_t ivfpq, mat vbase){
 	// -- Sort on assign, new codebook with sorted ids as identifiers for codebook
 	int* ids = (int*)malloc(sizeof(int)*vbase.n);
 	ivec_sort_index(assign, vbase.n, ids);
+	for(int i=0; i<codebook.n; i++){
+		memcpy(codebook.mat+i*codebook.d, codeaux+codebook.d*ids[i], sizeof(int)*codebook.d);
+	}
 
 	int pos = 0, nextpos;
 	for (int i = 0; i < ivfpq.coarsek; i++) {
@@ -36,11 +42,9 @@ ivf_t* ivfpq_assign(ivfpq_t ivfpq, mat vbase){
 		memcpy(ivf[i].ids, ids+pos, sizeof(int)*hist[i]);
 
 		for (int p = pos; p < nextpos; p++) {
-			copySubVectorsI(ivf[i].codes.mat + (p-pos)*ivf[i].codes.d, codebook.mat + ids[p]*codebook.d, 0, 0,  ivf[i].codes.d);
+			copySubVectorsI(ivf[i].codes.mat + (p-pos)*ivf[i].codes.d, codebook.mat, p, 0,  ivf[i].codes.d);
 		}
 		pos += hist[i];
-		// printMatI(ivf[i].codes.mat, ivf[i].codes.n, ivf[i].codes.d);
-		// getchar();
 	}
 
 	free(hist);
