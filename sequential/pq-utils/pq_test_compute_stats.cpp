@@ -85,10 +85,12 @@ void pq_test_compute_stats2 (int *ids, matI ids_gnd, int k){
 	for (int i=0; i<ids_gnd.n; i++){
 		nn_ranks_pqc[i]=k+1;
 		for(int j=0; j<k; j++){
-			if(ids[j*ids_gnd.n+i]==ids_gnd.mat[i]){
+			if(ids[i*k + j]==ids_gnd.mat[i]){
 				nn_ranks_pqc[i]=j;
 			}
 		}
+
+		//printf("\n");
 	}
 	sort(nn_ranks_pqc, nn_ranks_pqc+ids_gnd.n);
 
