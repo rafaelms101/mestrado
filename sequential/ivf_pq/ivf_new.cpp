@@ -8,7 +8,7 @@ ivfpq_t ivfpq_new(int coarsek, int nsq, mat vtrain){
 	ivfpq.coa_centroidsd = vtrain.d;
 	ivfpq.coa_centroids = (float*)malloc(sizeof(float)*ivfpq.coa_centroidsn*ivfpq.coa_centroidsd);
 
-	float * dis = (float*)malloc(sizeof(float)*ivfpq.coa_centroidsn*ivfpq.coa_centroidsd);
+	float * dis = (float*)malloc(sizeof(float)*vtrain.n);
 
 	//definicao de variaveis
 	int flags = 0;
@@ -37,6 +37,14 @@ void subtract(mat v, float* v2, int* idx, int c_d){
 	for (int i = 0; i < v.d; i++) {
 		for (int j = 0; j < v.n; j++) {
 			v.mat[j*v.d + i] = v.mat[j*v.d + i] - v2[idx[j]*c_d + i];
+		}
+	}
+}
+
+void subtract2(mat v, float* v2, int* idx, int c_d, float* vout){
+	for (int i = 0; i < v.d; i++) {
+		for (int j = 0; j < v.n; j++) {
+			vout[j*v.d + i] = v.mat[j*v.d + i] - v2[idx[j]*c_d + i];
 		}
 	}
 }

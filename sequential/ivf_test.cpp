@@ -52,7 +52,7 @@ int main(int argv, char **argc){
 	float *dis = (float*)malloc(sizeof(float)*v.query.n*k);
 
   gettimeofday(&start, NULL);
-  ivfpq_search(ivfpq, ivf, v.query, k, w, ids, dis);
+  ivfpq_search(ivfpq, ivf, v.query, k, w, ids, dis, v.base);
   gettimeofday(&end, NULL);
   printf("Searching %lfs\n", difftime(end.tv_sec, start.tv_sec)+ (double) (end.tv_usec - start.tv_usec)/1000000);
 
