@@ -56,15 +56,12 @@ int main(int argv, char **argc){
   gettimeofday(&end, NULL);
   printf("Searching %lfs\n", difftime(end.tv_sec, start.tv_sec)+ (double) (end.tv_usec - start.tv_usec)/1000000);
 
-  int *ids_tr = imat_new_transp (ids, v.query.n, k);
-
-  pq_test_compute_stats2(ids_tr, v.ids_gnd,k);
+  pq_test_compute_stats2(ids, v.ids_gnd,k);
 
   free(dis);
   free(ids);
   free(ivfpq.pq.centroids);
   free(ivfpq.coa_centroids);
-  free(ids_tr);
   free(v.base.mat);
   free(v.query.mat);
   free(v.train.mat);

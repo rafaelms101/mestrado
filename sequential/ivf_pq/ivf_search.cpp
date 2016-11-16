@@ -87,7 +87,7 @@ void ivfpq_search(ivfpq_t ivfpq, ivf_t *ivf, mat vquery, int k, int w, int* ids,
 				for (int q = 0; q < nsq; q++) {
 					compute_cross_distances(ds, 1, ks, v.mat + j*v.d + q*ds, ivfpq.pq.centroids[q], distab_temp);
 
-					memcpy(distab.mat+q*ks, distab_temp, sizeof(float)*ks);
+					memcpy(distab.mat + q*ks, distab_temp, sizeof(float)*ks);
 				}
 
 				AUXSUMIDX = sumidxtab2(distab, ivf[qcoaidx[j]].codes, 0);
