@@ -122,6 +122,9 @@ void parallel_search (int nsq, int last_search, int my_rank, int last_aggregator
 	finish = 'n';
 	residual.n=1;
 
+	double start=0, end=0;
+	start = MPI_Wtime();
+
 	MPI_Irecv(&finish, 1, MPI_CHAR, MPI_ANY_SOURCE, FINISH, MPI_COMM_WORLD, &request2);
 	while(1){	
 		MPI_Irecv(&coaidx, 1, MPI_INT, MPI_ANY_SOURCE, ASSIGN, MPI_COMM_WORLD, &request);
@@ -141,6 +144,8 @@ void parallel_search (int nsq, int last_search, int my_rank, int last_aggregator
 		MPI_Send(&q.idx.mat[0], q.idx.d*q.idx.n, MPI_INT, last_search+1+(coaidx%(last_aggregator-last_search)), SEARCH, MPI_COMM_WORLD);
 		MPI_Send(&q.dis.mat[0], q.dis.d*q.dis.n, MPI_FLOAT, last_search+1+(coaidx%(last_aggregator-last_search)), SEARCH, MPI_COMM_WORLD);
 	}
+	end = MPI_Wtime();
+	printf("search time %g\n", end*1000-start*1000);
 }
 
 void parallel_aggregator(int k, int w, int my_rank, int last_aggregator, int last_search, int last_assign){
