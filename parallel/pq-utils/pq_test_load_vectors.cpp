@@ -110,6 +110,51 @@ data pq_test_load_vectors(char* dataset){
 	return v;
 }
 
+mat pq_test_load_query(char* dataset){
+
+	mat vquery;
+	int *ids_gnd;    
+
+	if(strcmp(dataset, "random")==0){
+
+		vquery.n=1000;
+		vquery.d=16;
+		vquery.mat= fmat_new (vquery.d, vquery.n);
+
+		srand (time(NULL));
+
+		///inicializa com valores aleatórios
+
+		load_random(vquery.mat, vquery.n, vquery.d);
+	}
+	else {
+		char *fquery;
+
+		fquery= (char*) malloc(sizeof(char)*40);
+
+		if(strcmp(dataset, "siftsmall")==0){
+			strcpy (fquery,"./siftsmall/siftsmall_query.fvecs");
+			vquery.n=100;
+			vquery.d=128;
+			vquery.mat= fmat_new (vquery.d, vquery.n);
+		}
+		else if(strcmp(dataset, "sift")==0){
+			strcpy (fquery,"./sift/sift_query.fvecs");
+			vquery.n=10000;
+			vquery.d=128;
+			vquery.mat= fmat_new (vquery.d, vquery.n);
+		}
+		else if(strcmp(dataset, "gist")==0){
+			strcpy (fquery,"./gist/gist_query.fvecs");
+			vquery.n=1000;
+			vquery.d=960;
+			vquery.mat= fmat_new (vquery.d, vquery.n);
+		}
+		fvecs_read (fquery, vquery.d, vquery.n, vquery.mat);	
+	}
+	return vquery;
+}
+
 void load_random (float *v, int n, int d){
 	int i;
 

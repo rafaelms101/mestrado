@@ -8,7 +8,7 @@ ivfpq_t ivfpq_new(int coarsek, int nsq, mat vtrain){
 	ivfpq.coa_centroidsd = vtrain.d;
 	ivfpq.coa_centroids = (float*)malloc(sizeof(float)*ivfpq.coa_centroidsn*ivfpq.coa_centroidsd);
 
-	float * dis = (float*)malloc(sizeof(float)*ivfpq.coa_centroidsn*ivfpq.coa_centroidsd);
+	float * dis = (float*)malloc(sizeof(float)*vtrain.n);
 
 	//definicao de variaveis
 	int flags = 0;
