@@ -18,7 +18,7 @@ int main(int argv, char **argc){
 		return -1;
 	}
 
-	int k,
+	int 	k,
 		nsq,
 		coarsek,
 		w,
@@ -35,7 +35,7 @@ int main(int argv, char **argc){
 	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
 	dataset = argc[1];
-	k = 100;
+	k = 1000;
 	nsq = 8;
 	coarsek = 256;
 	w = 4;
