@@ -94,17 +94,19 @@ void parallel_assign (char *dataset, int last_search, int last_assign, int w, in
 	}
 }
 
-void parallel_search (int nsq, int last_search, int my_rank, int last_aggregator, int k, int last_assign){
+void parallel_search (int nsq, int last_search, int my_rank, int last_aggregator, int k, int last_assign, char* arquivo){
 
 	ivfpq_t ivfpq;
 	ivf_t *ivf;
-	int tam, flag, flag2, l=2, coaidx, centroid_idx, rank_source, *ids, *ids2;
+	int tam, flag, flag2, l=2, coaidx, centroid_idx, rank_source, *ids, *ids2, entrou = 0, pontos = 0;
 	float *dis2;
 	char finish;
 	MPI_Status status, status2;
 	MPI_Request request, request2;
 	mat residual;
 	dis_t q;
+	FILE *fp;
+	double start=0, end=0, time =0;
 
 	dis2 = (float*)malloc(sizeof(float)*k);
 	ids2 = (int*)malloc(sizeof(int)*k);
@@ -132,10 +134,8 @@ void parallel_search (int nsq, int last_search, int my_rank, int last_aggregator
 	//Recebe o resíduo de um vetor da query
 	finish = 'n';
 	residual.n=1;
-
-	double start=0, end=0;
-	double time = 0;
-	int entrou = 0, pontos = 0;
+	
+	fp = fopen(arquivo, "a");
 
 	MPI_Irecv(&finish, 1, MPI_CHAR, MPI_ANY_SOURCE, FINISH, MPI_COMM_WORLD, &request2);
 	while(1){	
@@ -157,7 +157,7 @@ void parallel_search (int nsq, int last_search, int my_rank, int last_aggregator
 		//Faz a busca no vetor assinalado e envia o resultado ao agregador
 
 		q=ivfpq_search(ivf, residual, ivfpq.pq, centroid_idx);
-/*
+		/*
 		int ktmp = min(q.idx.n, k);
 		
 		dis2 = (float*)realloc(dis2,sizeof(float)*ktmp);
@@ -168,7 +168,7 @@ void parallel_search (int nsq, int last_search, int my_rank, int last_aggregator
 		for(int b = 0; b < ktmp ; b++){
 			ids[b] = q.idx.mat[ids2[b]-1];
 		}
-	*/
+		*/
 		end = MPI_Wtime();
 		time+= end*1000-start*1000;
 		entrou++;
@@ -179,7 +179,8 @@ void parallel_search (int nsq, int last_search, int my_rank, int last_aggregator
 		MPI_Send(&q.dis.mat[0], q.idx.n, MPI_FLOAT, last_search+1+(coaidx%(last_aggregator-last_search)), SEARCH, MPI_COMM_WORLD);
 		
 	}
-	printf("my_rank%d entrou%d time%g pontos%d\n\n",my_rank,entrou,time, pontos);	
+	fprintf(fp,"my_rank: %d, entrou: %d, time: %g, pontos: %d\n",my_rank,entrou,time, pontos);
+	fclose(fp);	
 }
 
 void parallel_aggregator(int k, int w, int my_rank, int last_aggregator, int last_search, int last_assign){
