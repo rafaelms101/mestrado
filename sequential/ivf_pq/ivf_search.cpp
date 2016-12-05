@@ -138,23 +138,20 @@ void ivfpq_search(ivfpq_t ivfpq, ivf_t *ivf, mat vquery, int k, int kl ,int w, i
           //printf("ids2[b] = %d ids1[ids2[b]]-1 = %d\n", ids2[b], ids1[ids2[b]]);
           ids[query*kl + b] = qidx.mat[ids1[ids2[b]]-1];
           //printf("qidx.mat[ids1[b]-1] = %d\n", qidx.mat[ids1[b]-1]);
+	       }
       }
 
       //RE-RANKING END
 
 			// memcpy(dis + query*k, dis1, sizeof(float)*k);
 			// for(int b = 0; b < k ; b++){
-			// 	//memcpy(ids + query*k + b, qidx.mat + (ids1[b]-1)*qidx.d, sizeof(int));
 			// 	if(b >= ktmp){
 			// 		ids[query*k + b] = -1;
 			// 	}
 			// 	else{
-			// 		//printf("ids2[b] = %d ids1[ids2[b]]-1 = %d\n", ids2[b], ids1[ids2[b]]);
-			// 		ids[query*k + b] = qidx.mat[ids1[ids2[b]]-1];
-			// 		//printf("qidx.mat[ids1[b]-1] = %d\n", qidx.mat[ids1[b]-1]);
+			// 		ids[query*k + b] = qidx.mat[ids1[b]]-1];
 			// 	}
 			// }
-			}
 	}
 	free(qcoaidx);
 	free(qidx.mat);
