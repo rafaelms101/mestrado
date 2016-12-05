@@ -12,7 +12,7 @@
 
 int main(int argv, char **argc){
   struct timeval start, end;
-  	int k,
+  	int k, kl,
   		nsq,
   		coarsek,
   		w;
@@ -27,7 +27,8 @@ int main(int argv, char **argc){
 
 	dataset = argc[1];
 
-  	k = 100;
+  	k = 200;
+    kl = 100;
   	nsq = 8;
   	coarsek = 256;
   	w = 4;
@@ -48,15 +49,15 @@ int main(int argv, char **argc){
   gettimeofday(&end, NULL);
 	printf("Encoding %lfs\n", difftime(end.tv_sec, start.tv_sec)+ (double) (end.tv_usec - start.tv_usec)/1000000);
 
-  int *ids = (int*)malloc(sizeof(int)*v.query.n*k);
-	float *dis = (float*)malloc(sizeof(float)*v.query.n*k);
+  int *ids = (int*)malloc(sizeof(int)*v.query.n*kl);
+	float *dis = (float*)malloc(sizeof(float)*v.query.n*kl);
 
   gettimeofday(&start, NULL);
-  ivfpq_search(ivfpq, ivf, v.query, k, w, ids, dis, v.base);
+  ivfpq_search(ivfpq, ivf, v.query, k, kl, w, ids, dis, v.base);
   gettimeofday(&end, NULL);
   printf("Searching %lfs\n", difftime(end.tv_sec, start.tv_sec)+ (double) (end.tv_usec - start.tv_usec)/1000000);
 
-  pq_test_compute_stats2(ids, v.ids_gnd,k);
+  pq_test_compute_stats2(ids, v.ids_gnd, kl);
 
   free(dis);
   free(ids);

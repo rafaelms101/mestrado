@@ -17,11 +17,8 @@
 	int min(int a, int b);
 	float * sumidxtab2(mat D, matI ids, int offset);
 	mat bsxfunMINUS(mat vin, float* vin2, int dim, int nq, int* qcoaidx, int ncoaidx);
-	void ivfpq_search(ivfpq_t ivfpq, ivf_t *ivf, mat vquery, int k, int w, int* ids, float* dis, mat vbase);
+	void ivfpq_search(ivfpq_t ivfpq, ivf_t *ivf, mat vquery, int k, int kl, int w, int* ids, float* dis, mat vbase);
 	int* imat_new_transp (const int *a, int ncol, int nrow);
-	void fillY(float** y, int ids, float* v , ivfpq_t ivfpq, ivf_t *ivf, int k);
-	void L2_distance(float* vin, float* vin2, int n, float* dis);
-	void myKnn_single(float* v, float *base, int basen, int ds ,int *idxsaida);
 
 
 #endif
