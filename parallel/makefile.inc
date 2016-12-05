@@ -6,7 +6,7 @@ CC=gcc
 CFLAGS=-fPIC -Wall -g -O3 
 LDFLAGS=-g -fPIC 
 
-PYTHONCFLAGS = -I/usr/include/python2.x
+PYTHONCFLAGS = -I/usr/include/python2.7
 
 YAELCONF=linux64
 YAELCFLAGS=-I/home/andreff/pqnns-unb/parallel

@@ -11,6 +11,7 @@ extern "C"{
 #include "ivf_search.h"
 #include "myIVF.h"
 
-void parallel_training (char *dataset, int coarsek, int nsq, int last_search, int k, float *dis, int *ids, int w, int last_agregator);
-void parallel_search(int nsq, int last_search, int my_rank, int last_agregator);
-void parallel_agregator(int k, int w, int my_rank, int last_agregator, int last_search);
+void parallel_training (char *dataset, int coarsek, int nsq, int last_search, int last_aggregator, int last_assign);
+void parallel_assign (char *dataset, int last_search, int last_assign, int w, int last_aggregator);
+void parallel_search (int nsq, int last_search, int my_rank, int last_aggregator, int k, int last_assign, char *arquivo);
+void parallel_aggregator(int k, int w, int my_rank, int last_aggregator, int last_search, int last_assign);
