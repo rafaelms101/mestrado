@@ -127,6 +127,9 @@ long ivec_count_occurrences(const int * v, long n, int val);
 /* I/O of a single vector is supported only if it is smaller than 2^31       */
 /*---------------------------------------------------------------------------*/
 
+static long xvecs_fsize(long unitsize, const char * fname, int *d_out, int *n_out);
+long bvecs_fsize (const char * fname, int *d_out, int *n_out);
+
 /*!  write a vector into an open file */
 int ivec_fwrite(FILE *f, const int *v, int d);
 int fvec_fwrite(FILE *f, const float *v, int d);
@@ -138,11 +141,17 @@ int fvec_fwrite(FILE *f, const float *v, int d);
  */
 int fvecs_read (const char *fname, int d, int n, float *v);
 
+int b2fvecs_read (const char *fname, int d, int n, float *v);
+
 /*!  load float vectors from an open file. Return the dimension */
 int fvec_fread (FILE * f, float * v, int d_alloc);
 
 /*!  read an integer vector file from an open file and return the dimension */
 int ivec_fread (FILE *f, int * v, int d_alloc);
+
+long b2fvecs_fread (FILE * f, float * v, long n);
+
+int b2fvec_fread (FILE * f, float * v);
 
 /*!  display a float vector */
 void fvec_print (const float * v, int n);

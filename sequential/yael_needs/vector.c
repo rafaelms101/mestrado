@@ -253,6 +253,45 @@ long fvec_count_occurrences(const float * v, long n, float val) {
 /* Input functions                                                           */
 /*---------------------------------------------------------------------------*/
 
+static long xvecs_fsize(long unitsize, const char * fname, int *d_out, int *n_out)
+{
+  int d, ret; 
+  long nbytes;
+
+  *d_out = -1;
+  *n_out = -1;
+
+  FILE * f = fopen (fname, "r");
+  
+  if(!f) {
+    fprintf(stderr, "xvecs_fsize %s: %s\n", fname, strerror(errno));
+    return -1;
+  }
+  /* read the dimension from the first vector */
+  ret = fread (&d, sizeof (d), 1, f);
+  if (ret == 0) { /* empty file */
+    *n_out = 0;
+    return ret;
+  }
+  
+  fseek (f, 0, SEEK_END);
+  nbytes = ftell (f);
+  fclose (f);
+  
+  if(nbytes % (unitsize * d + 4) != 0) {
+    fprintf(stderr, "xvecs_size %s: weird file size %ld for vectors of dimension %d\n", fname, nbytes, d);
+    return -1;
+  }
+
+  *d_out = d;
+  *n_out = nbytes / (unitsize * d + 4);
+  return nbytes;
+}
+
+long bvecs_fsize (const char * fname, int *d_out, int *n_out)
+{
+  return xvecs_fsize (sizeof(unsigned char), fname, d_out, n_out);
+}
 
 int fvecs_read (const char *fname, int d, int n, float *a)
 {
@@ -294,6 +333,22 @@ int fvecs_read (const char *fname, int d, int n, float *a)
   return i;
 }
 
+int b2fvecs_read (const char *fname, int d, int n, float *v)
+{
+  int n_new; 
+  int d_new;
+  bvecs_fsize (fname, &d_new, &n_new);	
+
+  assert (d_new == d);
+  assert (n <= n_new);
+
+  FILE * f = fopen (fname, "r");
+  assert (f || "b2fvecs_read: Unable to open the file");
+  b2fvecs_fread (f, v, n);
+  fclose (f);
+  return n;
+}
+
 static int xvec_fread (long unit_size, FILE * f, void * v, int d_alloc)
 {
   int d;
@@ -329,6 +384,56 @@ int fvec_fread (FILE * f, float * v, int d_alloc)
 int ivec_fread (FILE * f, int * v, int d_alloc)
 {
   return xvec_fread(sizeof(int), f, v, d_alloc);
+}
+
+long b2fvecs_fread (FILE * f, float * v, long n)
+{
+  long i = 0, d = -1, ret;
+  for (i = 0 ; i < n ; i++) {
+    if (feof (f))
+      break;
+
+    ret = b2fvec_fread (f, v + i * d);
+    if (ret == 0)  /* eof */
+      break;
+
+    if (ret == -1)
+      return 0;
+
+    if (i == 0)
+      d = ret;
+
+    if (d != ret) {
+      perror ("# b2fvecs_fread: dimension of the vectors is not consistent\n");
+      return 0;
+    }
+  }
+  return i;
+}
+
+int b2fvec_fread (FILE * f, float * v)
+{
+  int d, j;
+  int ret = fread (&d, sizeof (int), 1, f);
+  if (feof (f))
+    return 0;
+
+  if (ret != 1) {
+    perror ("# bvec_fread error 1");
+    return -1;
+  }
+
+  unsigned char * vb = (unsigned char *) malloc (sizeof (*vb) * d);
+
+  ret = fread (vb, sizeof (*vb), d, f);
+  if (ret != d) {
+    perror ("# bvec_fread error 2");
+    return -1;
+  }
+  for (j = 0 ; j < d ; j++)
+    v[j] = vb[j];
+  free (vb);
+  return d;
 }
 
 /*---------------------------------------------------------------------------*/
