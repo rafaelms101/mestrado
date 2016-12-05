@@ -110,48 +110,48 @@ void ivfpq_search(ivfpq_t ivfpq, ivf_t *ivf, mat vquery, int k, int kl ,int w, i
       // printMat(dis1, ktmp, 1);
 
       //RE-RANKING
-			ids2 = (int*)realloc(ids2, sizeof(int)*kl);
-			float distance;
-      float dis2[ktmp];
-			for (int i = 0; i < ktmp; i++) {
-
-				Y(ivfpq, ivf, ds, ivfpq.coa_centroids + qcoaidx[0]*d, d, nsq, qcoaidx, ids1[i]-1, w, y);
-				compute_cross_distances(d, 1, 1, vquery.mat + query*vquery.d,
-																y, &distance);
-				dis2[i] = distance;
-			}
-
-			fvec_k_min(dis2, ktmp, ids2, kl);
-
-      // printf("IDS2 = \n");
-      // printMatI(ids2, kl, 1);
-      // printf("DIS2 == \n");
-      // printMat(dis2, ktmp, 1);
-
-      memcpy(dis + query*kl, dis1, sizeof(float)*kl);
-      for(int b = 0; b < kl ; b++){
-        //memcpy(ids + query*kl + b, qidx.mat + (ids1[b]-1)*qidx.d, sizeof(int));
-        if(b >= kl){
-          ids[query*kl + b] = -1;
-        }
-        else{
-          //printf("ids2[b] = %d ids1[ids2[b]]-1 = %d\n", ids2[b], ids1[ids2[b]]);
-          ids[query*kl + b] = qidx.mat[ids1[ids2[b]]-1];
-          //printf("qidx.mat[ids1[b]-1] = %d\n", qidx.mat[ids1[b]-1]);
-	       }
-      }
+			// ids2 = (int*)realloc(ids2, sizeof(int)*kl);
+			// float distance;
+      // float dis2[ktmp];
+			// for (int i = 0; i < ktmp; i++) {
+      //
+			// 	Y(ivfpq, ivf, ds, ivfpq.coa_centroids + qcoaidx[0]*d, d, nsq, qcoaidx, ids1[i]-1, w, y);
+			// 	compute_cross_distances(d, 1, 1, vquery.mat + query*vquery.d,
+			// 													y, &distance);
+			// 	dis2[i] = distance;
+			// }
+      //
+			// fvec_k_min(dis2, ktmp, ids2, kl);
+      //
+      // // printf("IDS2 = \n");
+      // // printMatI(ids2, kl, 1);
+      // // printf("DIS2 == \n");
+      // // printMat(dis2, ktmp, 1);
+      //
+      // memcpy(dis + query*kl, dis1, sizeof(float)*kl);
+      // for(int b = 0; b < kl ; b++){
+      //   //memcpy(ids + query*kl + b, qidx.mat + (ids1[b]-1)*qidx.d, sizeof(int));
+      //   if(b >= kl){
+      //     ids[query*kl + b] = -1;
+      //   }
+      //   else{
+      //     //printf("ids2[b] = %d ids1[ids2[b]]-1 = %d\n", ids2[b], ids1[ids2[b]]);
+      //     ids[query*kl + b] = qidx.mat[ids1[ids2[b]]-1];
+      //     //printf("qidx.mat[ids1[b]-1] = %d\n", qidx.mat[ids1[b]-1]);
+	    //    }
+      // }
 
       //RE-RANKING END
 
-			// memcpy(dis + query*k, dis1, sizeof(float)*k);
-			// for(int b = 0; b < k ; b++){
-			// 	if(b >= ktmp){
-			// 		ids[query*k + b] = -1;
-			// 	}
-			// 	else{
-			// 		ids[query*k + b] = qidx.mat[ids1[b]]-1];
-			// 	}
-			// }
+			memcpy(dis + query*k, dis1, sizeof(float)*k);
+			for(int b = 0; b < k ; b++){
+				if(b >= ktmp){
+					ids[query*k + b] = -1;
+				}
+				else{
+					ids[query*k + b] = qidx.mat[ids1[b]-1];
+				}
+			}
 	}
 	free(qcoaidx);
 	free(qidx.mat);
