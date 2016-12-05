@@ -4,7 +4,7 @@ include makefile.inc
 
 CC=gcc -g
 CXX=g++ -g
-MPICXX = mpicxx -g
+MPICXX = mpic++.mpich2 -g
 PQ_UTILS_DIR = ./pq-utils
 OBJDIR=./obj
 IVF_DIR = ./ivf_pq

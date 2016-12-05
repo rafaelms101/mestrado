@@ -38,10 +38,10 @@ data pq_test_load_vectors(char* dataset){
 	else {
 		namefile f;
 
-		f.base= (char*)malloc(sizeof(char)*40);
-		f.query= (char*) malloc(sizeof(char)*40);
-		f.train= (char*) malloc(sizeof(char)*40);
-		f.groundtruth= (char*) malloc(sizeof(char)*40);
+		f.base= (char*)malloc(sizeof(char)*45);
+		f.query= (char*) malloc(sizeof(char)*45);
+		f.train= (char*) malloc(sizeof(char)*45);
+		f.groundtruth= (char*) malloc(sizeof(char)*45);
 
 		if(strcmp(dataset, "siftsmall")==0){
 			strcpy (f.base,"./siftsmall/siftsmall_base.fvecs");
@@ -79,7 +79,7 @@ data pq_test_load_vectors(char* dataset){
 			v.ids_gnd.d=100;
 			ids_gnd= ivec_new (v.ids_gnd.n*v.ids_gnd.d);
 		}
-		else if(strcmp(dataset, "siftbig1M")==0 || strcmp(dataset, "siftbig2M")==0 || strcmp(dataset, "siftbig5M")==0 || strcmp(dataset, "siftbig10M")==0 || strcmp(dataset, "siftbig100M")==0 || strcmp(dataset, "siftbig1B")==0){
+		else if(strcmp(dataset, "siftbig1M")==0 || strcmp(dataset, "siftbig2M")==0 || strcmp(dataset, "siftbig5M")==0 || strcmp(dataset, "siftbig10M")==0 || strcmp(dataset, "siftbig20M")==0 || strcmp(dataset, "siftbig1B")==0){
 			strcpy (f.base,"./siftbig/siftbig_base.bvecs");
 			if(strcmp(dataset, "siftbig1M")==0){
 				v.base.n=1000000;
@@ -97,9 +97,9 @@ data pq_test_load_vectors(char* dataset){
 				v.base.n=10000000;
 				strcpy (f.groundtruth,"./siftbig/siftbig_groundtruth_10M.ivecs");
 			}
-			else if(strcmp(dataset, "siftbig100M")==0){
-				v.base.n=100000000;
-				strcpy (f.groundtruth,"./siftbig/siftbig_groundtruth_100M.ivecs");
+			else if(strcmp(dataset, "siftbig20M")==0){
+				v.base.n=20000000;
+				strcpy (f.groundtruth,"./siftbig/siftbig_groundtruth_20M.ivecs");
 			}
 			else{
 				strcpy (f.groundtruth,"./siftbig/siftbig_groundtruth_1B.ivecs");
@@ -137,7 +137,7 @@ data pq_test_load_vectors(char* dataset){
 			v.ids_gnd.d=100;
 			ids_gnd= ivec_new (v.ids_gnd.n*v.ids_gnd.d);
 		}
-		if(strcmp(dataset, "siftbig1M")!=0 && strcmp(dataset, "siftbig2M")!=0 && strcmp(dataset, "siftbig5M")!=0 && strcmp(dataset, "siftbig10M")!=0 && strcmp(dataset, "siftbig100M")!=0 && strcmp(dataset, "siftbig1B")!=0){
+		if(strcmp(dataset, "siftbig1M")!=0 && strcmp(dataset, "siftbig2M")!=0 && strcmp(dataset, "siftbig5M")!=0 && strcmp(dataset, "siftbig10M")!=0 && strcmp(dataset, "siftbig20M")!=0 && strcmp(dataset, "siftbig1B")!=0){
 			fvecs_read (f.base, v.base.d, v.base.n, v.base.mat);
 			fvecs_read (f.query, v.query.d, v.query.n, v.query.mat);
 			fvecs_read (f.train, v.train.d, v.train.n, v.train.mat);
@@ -193,7 +193,7 @@ mat pq_test_load_query(char* dataset){
 			vquery.d=128;
 			vquery.mat= fmat_new (vquery.d, vquery.n);
 		}
-		else if(strcmp(dataset, "siftbig1M")==0 || strcmp(dataset, "siftbig2M")==0 || strcmp(dataset, "siftbig5M")==0 || strcmp(dataset, "siftbig10M")==0 || strcmp(dataset, "siftbig100M")==0 || strcmp(dataset, "siftbig1B")==0){
+		else if(strcmp(dataset, "siftbig1M")==0 || strcmp(dataset, "siftbig2M")==0 || strcmp(dataset, "siftbig5M")==0 || strcmp(dataset, "siftbig10M")==0 || strcmp(dataset, "siftbig20M")==0 || strcmp(dataset, "siftbig1B")==0){
 			strcpy (fquery,"./siftbig/siftbig_query.bvecs");
 			vquery.n=10000;
 			vquery.d=128;
@@ -205,7 +205,7 @@ mat pq_test_load_query(char* dataset){
 			vquery.d=960;
 			vquery.mat= fmat_new (vquery.d, vquery.n);
 		}
-		if(strcmp(dataset, "siftbig1M")!=0 && strcmp(dataset, "siftbig2M")!=0 && strcmp(dataset, "siftbig5M")!=0 && strcmp(dataset, "siftbig10M")!=0 && strcmp(dataset, "siftbig100M")!=0 && strcmp(dataset, "siftbig1B")!=0){
+		if(strcmp(dataset, "siftbig1M")!=0 && strcmp(dataset, "siftbig2M")!=0 && strcmp(dataset, "siftbig5M")!=0 && strcmp(dataset, "siftbig10M")!=0 && strcmp(dataset, "siftbig20M")!=0 && strcmp(dataset, "siftbig1B")!=0){
 			fvecs_read (fquery, vquery.d, vquery.n, vquery.mat);	
 		}
 		else{
