@@ -38,10 +38,10 @@ data pq_test_load_vectors(char* dataset){
 	else {
 		namefile f;
 
-		f.base= (char*)malloc(sizeof(char)*45);
-		f.query= (char*) malloc(sizeof(char)*45);
-		f.train= (char*) malloc(sizeof(char)*45);
-		f.groundtruth= (char*) malloc(sizeof(char)*45);
+		f.base= (char*)malloc(sizeof(char)*40);
+		f.query= (char*) malloc(sizeof(char)*40);
+		f.train= (char*) malloc(sizeof(char)*40);
+		f.groundtruth= (char*) malloc(sizeof(char)*40);
 
 		if(strcmp(dataset, "siftsmall")==0){
 			strcpy (f.base,"./siftsmall/siftsmall_base.fvecs");
