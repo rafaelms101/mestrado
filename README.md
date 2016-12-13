@@ -14,7 +14,7 @@
   $ cd yael
   $ make
   $ cd ..
-  $ make
+  $ make or "make MF=-DRERANK" for using rerank
 ```
 
 
