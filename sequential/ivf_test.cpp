@@ -12,7 +12,7 @@
 
 int main(int argv, char **argc){
   struct timeval start, end;
-  	int k, kl,
+  	int k, kl=0,
   		nsq,
   		coarsek,
   		w;
@@ -20,19 +20,22 @@ int main(int argv, char **argc){
 
   	data v;
 
-	if(argv < 2){
-		cout << "Usage: ./pq_test <dataset>" << endl;
+	if(argv < 3 && argv > 4){
+		cout << "Usage: ./pq_test <dataset>  <k>  <kl>" << endl;
 		return -1;
 	}
 
 	dataset = argc[1];
 
-  	k = 200;
-    kl = 100;
+  	k = atoi(argc[2]);
   	nsq = 8;
   	coarsek = 256;
   	w = 4;
 
+    #ifdef RERANK
+      printf("RE-RANKING ==== ON\n");
+      kl = atoi(argc[3]);
+    #endif
 
   gettimeofday(&start, NULL);
   v = pq_test_load_vectors(dataset);
@@ -49,15 +52,25 @@ int main(int argv, char **argc){
   gettimeofday(&end, NULL);
 	printf("Encoding %lfs\n", difftime(end.tv_sec, start.tv_sec)+ (double) (end.tv_usec - start.tv_usec)/1000000);
 
-  int *ids = (int*)malloc(sizeof(int)*v.query.n*k);
-	float *dis = (float*)malloc(sizeof(float)*v.query.n*k);
+  #ifdef RERANK
+    int *ids = (int*)malloc(sizeof(int)*v.query.n*kl);
+    float *dis = (float*)malloc(sizeof(float)*v.query.n*kl);
+  #else
+    int *ids = (int*)malloc(sizeof(int)*v.query.n*k);
+    float *dis = (float*)malloc(sizeof(float)*v.query.n*k);
+  #endif
 
   gettimeofday(&start, NULL);
-  ivfpq_search(ivfpq, ivf, v.query, k, k, w, ids, dis, v.base);
+  ivfpq_search(ivfpq, ivf, v.query, k, kl, w, ids, dis, v.base);
   gettimeofday(&end, NULL);
   printf("Searching %lfs\n", difftime(end.tv_sec, start.tv_sec)+ (double) (end.tv_usec - start.tv_usec)/1000000);
 
-  pq_test_compute_stats2(ids, v.ids_gnd, k);
+
+  #ifdef RERANK
+    pq_test_compute_stats2(ids, v.ids_gnd, kl);
+  #else
+    pq_test_compute_stats2(ids, v.ids_gnd, k);
+  #endif
 
   free(dis);
   free(ids);
