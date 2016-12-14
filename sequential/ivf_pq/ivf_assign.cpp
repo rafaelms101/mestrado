@@ -25,6 +25,8 @@ ivf_t* ivfpq_assign(ivfpq_t ivfpq, mat vbase){
 	ivec_sort_index(assign, vbase.n, ids);
 
 	int pos = 0, nextpos;
+	//for each index that will be present in ivf
+	//we assign codes and the respective id to ivf
 	for (int i = 0; i < ivfpq.coarsek; i++) {
 		ivf[i].ids = (int*)malloc(sizeof(int)*hist[i]);
 		ivf[i].idstam = hist[i];
@@ -39,8 +41,6 @@ ivf_t* ivfpq_assign(ivfpq_t ivfpq, mat vbase){
 			copySubVectorsI(ivf[i].codes.mat + (p-pos)*ivf[i].codes.d, codebook.mat + ids[p]*codebook.d, 0, 0,  ivf[i].codes.d);
 		}
 		pos += hist[i];
-		// printMatI(ivf[i].codes.mat, ivf[i].codes.n, ivf[i].codes.d);
-		// getchar();
 	}
 
 	free(hist);
@@ -51,6 +51,7 @@ ivf_t* ivfpq_assign(ivfpq_t ivfpq, mat vbase){
 	return ivf;
 }
 
+//compute the histogram for a vector
 int* histogram(const int* vec, int n, int range){
 	static int * hist = (int*) malloc(sizeof(int)*range);
 
