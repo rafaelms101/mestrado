@@ -64,7 +64,7 @@ int main(int argv, char **argc){
 		parallel_search (nsq, last_search, my_rank, last_aggregator, k, last_assign, arquivo);
 	}
 	else{
-		parallel_aggregator(k, w, my_rank, last_aggregator, last_search, last_assign);
+		parallel_aggregator(k, w, my_rank, last_aggregator, last_search, last_assign,arquivo);
 		double finish = MPI_Wtime();
 		MPI_Send(&finish, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
 	}
