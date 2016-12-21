@@ -40,7 +40,7 @@ typedef struct{
 			*groundtruth;
 }namefile;
 
-data pq_test_load_vectors(char *);
+data pq_test_load_vectors(char * dataset, int tam);
 mat pq_test_load_query(char* dataset);
 void load_random (float *v, int n, int d);
 int ivecs_read (const char *fname, int d, int n, int *a);

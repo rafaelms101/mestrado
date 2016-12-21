@@ -6,16 +6,16 @@
 
 #include "ivf_parallel.h"
 
-void parallel_training (char *dataset, int coarsek, int nsq, int last_search, int last_aggregator, int last_assign){
+void parallel_training (char *dataset, int coarsek, int nsq, int last_search, int last_aggregator, int last_assign, int tam){
 	data v;
 	ivfpq_t ivfpq;
 	ivf_t *ivf;
 	int dest;
 
 	//Le os vetores
-	v = pq_test_load_vectors(dataset);
+	v = pq_test_load_vectors(dataset, tam);
 
-	free(v.query.mat);
+	//free(v.query.mat);
 
 	//Cria centroides a partir dos vetores de treinamento
 	ivfpq = ivfpq_new(coarsek, nsq, v.train);
@@ -179,16 +179,14 @@ void parallel_search (int nsq, int last_search, int my_rank, int last_aggregator
 		q[i]=ivfpq_search(ivf, residual[i], ivfpq.pq, centroid_idx);
 
 		ktmp[i] = min(q[i].idx.n, k);
-
 		dis[i] = (float*)malloc(sizeof(float)*ktmp[i]);
 		ids[i] = (int*)malloc(sizeof(int)*ktmp[i]);
 		k_min(q[i].dis, ktmp[i], dis[i], ids[i]);
-
 		for(int b = 0; b < ktmp[i] ; b++){
 			ids[i][b] = q[i].idx.mat[ids[i][b]-1];
 		}
 		pontos+=q[i].idx.n;
-		free(residual[i].mat);
+		//free(residual[i].mat);
 	}
 
 	end= MPI_Wtime();

@@ -22,6 +22,7 @@ int main(int argv, char **argc){
 		nsq,
 		coarsek,
 		w,
+		tam=0,
 		comm_sz,
 		my_rank,
 		last_aggregator,
@@ -36,6 +37,7 @@ int main(int argv, char **argc){
 	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
 	dataset = argc[1];
+	if(argv==3)tam  = atoi(argc[2]);
 	k = 1000;
 	nsq = 8;
 	coarsek = 256;
@@ -48,10 +50,11 @@ int main(int argv, char **argc){
 		double start=0, finish=0;
 		FILE *fp;
 		fp = fopen(arquivo, "a");
-		fprintf(fp,"Teste com a base %s, coarsek=%d,  w=%d\n\n", dataset, coarsek, w);
+		fprintf(fp,"Teste com a base %s, coarsek=%d, w=%d, ", dataset, coarsek, w);
+		if(tam!=0)fprintf(fp,"tamanho%d\n\n", tam);
 		fclose(fp);
 		start = MPI_Wtime();
-		parallel_training (dataset, coarsek, nsq, last_search, last_aggregator, last_assign);
+		parallel_training (dataset, coarsek, nsq, last_search, last_aggregator, last_assign,tam);
 		MPI_Recv(&finish, 1, MPI_DOUBLE, last_aggregator, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		fp = fopen(arquivo, "a");
 		fprintf(fp,"Tempo total: %g milissegundos\n\n", finish*1000-start*1000);

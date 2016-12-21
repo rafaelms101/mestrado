@@ -22,6 +22,7 @@ int main(int argv, char** argc){
 	matI codebook;
 	data v;
 	pqtipo pq;
+	int tam;
 
 	if(argv < 2){
 		cout << "Usage: ./pq_test <dataset>" << endl;
@@ -29,9 +30,10 @@ int main(int argv, char** argc){
 	}
 
 	dataset=argc[1];
+	tam=atoi(argc[2]);
 
 	gettimeofday(&inicio, NULL);
-	v = pq_test_load_vectors(dataset);
+	v = pq_test_load_vectors(dataset,tam);
 	gettimeofday(&final, NULL);
 	tmili = (int) (1000 * (final.tv_sec - inicio.tv_sec) + (final.tv_usec - inicio.tv_usec) / 1000);
 	printf("Tempo load vectors: %d\n", tmili);
