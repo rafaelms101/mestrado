@@ -14,7 +14,7 @@
 int main(int argv, char **argc){
 
 	if(argv < 3){
-		cout << "Usage: ./ivfpq_test <dataset> <Search--Threads>" << endl;
+		cout << "Usage: ./ivfpq_test <dataset> <Search--Threads> <tam>" << endl;
 		return -1;
 	}
 
@@ -38,7 +38,7 @@ int main(int argv, char **argc){
 	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
 	dataset = argc[1];
-	if(argv==3)tam  = atoi(argc[2]);
+	if(argv==4)tam  = atoi(argc[3]);
 	k = 1000;
 	nsq = 8;
 	coarsek = 256;
@@ -46,7 +46,8 @@ int main(int argv, char **argc){
 	last_assign=1;
 	last_search=comm_sz-2;
 	last_aggregator=comm_sz-1;
-	threads = atoi(argc[3]);
+	printf("OI from %d\n", my_rank);
+	threads = atoi(argc[2]);
 
 	if (my_rank==0){
 		double start=0, finish=0;
