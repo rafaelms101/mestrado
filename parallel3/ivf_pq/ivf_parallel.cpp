@@ -14,7 +14,7 @@ typedef struct args_t{
 	mat *residual;   //ok
 	dis_t *q;      //ok
 	float **dis;   //ok
-	int **ids, *ktmp, i, *pontos;  //ok  // ok   //ok  //ok
+	int **ids, *ktmp, i, pontos, k;  //ok  // ok   //ok  //ok
 } args_t;
 
 void* threadsSearch(void * arguments);
@@ -200,7 +200,8 @@ void parallel_search (int nsq, int last_search, int my_rank, int last_aggregator
 	arguments.ivf = ivf;
 	arguments.residual = residual;
 	arguments.ktmp = ktmp;
-	arguments.pontos = &pontos;
+	arguments.pontos = 0;
+	arguments.k = k;
 
 	for(int i=0; i<entrou; i+=threads){
 		arguments.i = i;
@@ -212,6 +213,7 @@ void parallel_search (int nsq, int last_search, int my_rank, int last_aggregator
 				arguments.centroid_idx = centroid_idx;
 				arguments.thread = thread;
 				pthread_create(&thread_handles[thread] ,NULL, threadsSearch, (void*) &arguments);
+				pontos =+ arguments.pontos;
 			}
 		}
 		//free(residual[i].mat);
@@ -326,13 +328,13 @@ void *threadsSearch(void * arguments){
 
 	args_t *arg = (args_t*) arguments;
 
-	arg->q[i + thread]=ivfpq_search(arg->ivf, arg->residual[i + thread], arg->ivfpq.pq, arg->centroid_idx);
-	arg->ktmp[i + thread] = min(arg->q[i + thread].idx.n, k);
-	arg->dis[i + thread] = (float*)malloc(sizeof(float)*arg->ktmp[i + thread]);
-	arg->ids[i + thread] = (int*)malloc(sizeof(int)*arg->ktmp[i + thread]);
-	k_min(arg->q[i + thread].dis, arg->ktmp[i + thread], arg->dis[i + thread], arg->ids[i + thread]);
+	arg->q[arg->i + arg->thread]=ivfpq_search(arg->ivf, arg->residual[arg->i + arg->thread], arg->ivfpq.pq, arg->centroid_idx);
+	arg->ktmp[arg->i + arg->thread] = min(arg->q[arg->i + arg->thread].idx.n, arg->k);
+	arg->dis[arg->i + arg->thread] = (float*)malloc(sizeof(float)*arg->ktmp[arg->i + arg->thread]);
+	arg->ids[arg->i + arg->thread] = (int*)malloc(sizeof(int)*arg->ktmp[arg->i + arg->thread]);
+	k_min(arg->q[arg->i + arg->thread].dis, arg->ktmp[arg->i + arg->thread], arg->dis[arg->i + arg->thread], arg->ids[arg->i + arg->thread]);
 	for(int b = 0; b < arg->ktmp[arg->i + arg->thread] ; b++){
-		ids[arg->i + arg->thread][b] = arg->q[arg->i + arg->thread].idx.mat[arg->ids[arg->i + arg->thread][b]-1];
+		arg->ids[arg->i + arg->thread][b] = arg->q[arg->i + arg->thread].idx.mat[arg->ids[arg->i + arg->thread][b]-1];
 	}
-	arg->(*pontos) += arg->q[arg->i + arg->thread].idx.n;
+	arg->pontos += arg->q[arg->i + arg->thread].idx.n;
 }
