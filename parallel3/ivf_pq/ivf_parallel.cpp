@@ -183,7 +183,7 @@ void parallel_search (int nsq, int last_search, int my_rank, int last_aggregator
 	start= MPI_Wtime();
 
 	//Criacao das Threads ...
-	long thread;
+	int thread;
 	pthread_t *thread_handles;
 	thread_handles= (pthread_t*) malloc(threads*sizeof(pthread_t));
 
@@ -206,11 +206,13 @@ void parallel_search (int nsq, int last_search, int my_rank, int last_aggregator
 		arguments.i = i;
 		//Faz a busca no vetor assinalado e envia o resultado ao agregador
 		for (thread= 0; thread < threads; thread++){
-			centroid_idx = coaidx[i + thread]/(last_search-last_assign);
+			if(i + thread < entrou){
+				centroid_idx = coaidx[i + thread]/(last_search-last_assign);
 
-			arguments.centroid_idx = centroid_idx;
-			arguments.thread = thread;
-			pthread_create(&thread_handles[thread] ,NULL, threadsSearch, (void*) &arguments);
+				arguments.centroid_idx = centroid_idx;
+				arguments.thread = thread;
+				pthread_create(&thread_handles[thread] ,NULL, threadsSearch, (void*) &arguments);
+			}
 		}
 		//free(residual[i].mat);
 	}
