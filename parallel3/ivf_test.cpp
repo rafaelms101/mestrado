@@ -13,8 +13,8 @@
 
 int main(int argv, char **argc){
 
-	if(argv < 2){
-		cout << "Usage: ./ivfpq_test <dataset>" << endl;
+	if(argv < 3){
+		cout << "Usage: ./ivfpq_test <dataset> <Search--Threads>" << endl;
 		return -1;
 	}
 
@@ -27,7 +27,8 @@ int main(int argv, char **argc){
 		my_rank,
 		last_aggregator,
 		last_search,
-		last_assign;
+		last_assign,
+		threads;
 
 	char* dataset;
 	char arquivo[] = "testes.txt";
@@ -45,6 +46,7 @@ int main(int argv, char **argc){
 	last_assign=1;
 	last_search=comm_sz-2;
 	last_aggregator=comm_sz-1;
+	threads = atoi(argc[3]);
 
 	if (my_rank==0){
 		double start=0, finish=0;
@@ -64,7 +66,7 @@ int main(int argv, char **argc){
 		parallel_assign (dataset, last_search, last_assign, w, last_aggregator);
 	}
 	else if(my_rank<=last_search){
-		parallel_search (nsq, last_search, my_rank, last_aggregator, k, last_assign, arquivo);
+		parallel_search (nsq, last_search, my_rank, last_aggregator, k, last_assign, arquivo, threads);
 	}
 	else{
 		parallel_aggregator(k, w, my_rank, last_aggregator, last_search, last_assign, arquivo);

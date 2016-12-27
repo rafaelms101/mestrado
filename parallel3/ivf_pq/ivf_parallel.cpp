@@ -320,7 +320,7 @@ void parallel_aggregator(int k, int w, int my_rank, int last_aggregator, int las
 	free(ids_gnd.mat);
 }
 
-void* threadsSearch(void * arguments){
+void *threadsSearch(void * arguments){
 
 	args_t *arg = (args_t*) arguments;
 
