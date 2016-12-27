@@ -6,6 +6,19 @@
 
 #include "ivf_parallel.h"
 
+typedef struct args_t{
+	long thread;     //ok
+	ivfpq_t ivfpq;   //ok
+	ivf_t *ivf;     //ok
+	int centroid_idx; //ok
+	mat *residual;   //ok
+	dis_t *q;      //ok
+	float **dis;   //ok
+	int **ids, *ktmp, i, *pontos;  //ok  // ok   //ok  //ok
+} args_t;
+
+void* threadsSearch(void * arguments);
+
 void parallel_training (char *dataset, int coarsek, int nsq, int last_search, int last_aggregator, int last_assign, int tam){
 	data v;
 	ivfpq_t ivfpq;
@@ -109,7 +122,8 @@ void parallel_assign (char *dataset, int last_search, int last_assign, int w, in
 	free(ivfpq.coa_centroids);
 }
 
-void parallel_search (int nsq, int last_search, int my_rank, int last_aggregator, int k, int last_assign, char* arquivo){
+//Rodar varias queries ao memso tempo, no lugar de paralelizar para uma so query
+void parallel_search (int nsq, int last_search, int my_rank, int last_aggregator, int k, int last_assign, char* arquivo, int threads){
 
 	ivfpq_t ivfpq;
 	ivf_t *ivf;
@@ -122,6 +136,7 @@ void parallel_search (int nsq, int last_search, int my_rank, int last_aggregator
 	dis_t *q;
 	FILE *fp;
 	double start=0, end=0, time =0;
+	args_t arguments;
 
 	//Recebe os centroides
 	MPI_Recv(&ivfpq, sizeof(ivfpq_t), MPI_BYTE, 0, TRAINER, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -167,29 +182,41 @@ void parallel_search (int nsq, int last_search, int my_rank, int last_aggregator
 	}
 	start= MPI_Wtime();
 
-	//Rodar varias queries ao memso tempo, no lugar de paralelizar para uma so query
+	//Criacao das Threads ...
+	long thread;
+	pthread_t *thread_handles;
+	thread_handles= (pthread_t*) malloc(threads*sizeof(pthread_t));
 
 	q = (dis_t*)malloc(sizeof(dis_t)*entrou);
 	dis = (float**)malloc(sizeof(float*)*entrou);
 	ids = (int**)malloc(sizeof(int*)*entrou);
 	ktmp = (int*)malloc(sizeof(int)*entrou);
-	
-	for(int i=0; i<entrou;i++){
-		centroid_idx = coaidx[i]/(last_search-last_assign);
 
+	//associando os argumentos
+	arguments.q = q;
+	arguments.dis = dis;
+	arguments.ids = ids;
+	arguments.ivfpq = ivfpq;
+	arguments.ivf = ivf;
+	arguments.residual = residual;
+	arguments.ktmp = ktmp;
+	arguments.pontos = &pontos;
+
+	for(int i=0; i<entrou; i+=threads){
+		arguments.i = i;
 		//Faz a busca no vetor assinalado e envia o resultado ao agregador
+		for (thread= 0; thread < threads; thread++){
+			centroid_idx = coaidx[i + thread]/(last_search-last_assign);
 
-		q[i]=ivfpq_search(ivf, residual[i], ivfpq.pq, centroid_idx);
-
-		ktmp[i] = min(q[i].idx.n, k);
-		dis[i] = (float*)malloc(sizeof(float)*ktmp[i]);
-		ids[i] = (int*)malloc(sizeof(int)*ktmp[i]);
-		k_min(q[i].dis, ktmp[i], dis[i], ids[i]);
-		for(int b = 0; b < ktmp[i] ; b++){
-			ids[i][b] = q[i].idx.mat[ids[i][b]-1];
+			arguments.centroid_idx = centroid_idx;
+			arguments.thread = thread;
+			pthread_create(&thread_handles[thread] ,NULL, threadsSearch, (void*) &arguments);
 		}
-		pontos+=q[i].idx.n;
 		//free(residual[i].mat);
+	}
+
+	for (thread= 0; thread < threads; thread++){
+		pthread_join(thread_handles[thread], NULL);
 	}
 
 	end= MPI_Wtime();
@@ -291,4 +318,19 @@ void parallel_aggregator(int k, int w, int my_rank, int last_aggregator, int las
 	pq_test_compute_stats2(ids, ids_gnd,k);
 
 	free(ids_gnd.mat);
+}
+
+void* threadsSearch(void * arguments){
+
+	args_t *arg = (args_t*) arguments;
+
+	arg->q[i + thread]=ivfpq_search(arg->ivf, arg->residual[i + thread], arg->ivfpq.pq, arg->centroid_idx);
+	arg->ktmp[i + thread] = min(arg->q[i + thread].idx.n, k);
+	arg->dis[i + thread] = (float*)malloc(sizeof(float)*arg->ktmp[i + thread]);
+	arg->ids[i + thread] = (int*)malloc(sizeof(int)*arg->ktmp[i + thread]);
+	k_min(arg->q[i + thread].dis, arg->ktmp[i + thread], arg->dis[i + thread], arg->ids[i + thread]);
+	for(int b = 0; b < arg->ktmp[arg->i + arg->thread] ; b++){
+		ids[arg->i + arg->thread][b] = arg->q[arg->i + arg->thread].idx.mat[arg->ids[arg->i + arg->thread][b]-1];
+	}
+	arg->(*pontos) += arg->q[arg->i + arg->thread].idx.n;
 }
