@@ -27,7 +27,8 @@ int main(int argv, char **argc){
 		my_rank,
 		last_aggregator,
 		last_search,
-		last_assign;
+		last_assign,
+		threads;
 
 	char* dataset;
 	char arquivo[] = "testes.txt";
@@ -37,8 +38,9 @@ int main(int argv, char **argc){
 	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
 	dataset = argc[1];
-	if(argv==3)tam  = atoi(argc[2]);
-	k = 1000;
+	threads  = atoi(argc[2]);
+	if(argv==4)tam  = atoi(argc[3]);
+	k = 100;
 	nsq = 8;
 	coarsek = 256;
 	w = 4;
@@ -64,7 +66,7 @@ int main(int argv, char **argc){
 		parallel_assign (dataset, last_search, last_assign, w, last_aggregator);
 	}
 	else if(my_rank<=last_search){
-		parallel_search (nsq, last_search, my_rank, last_aggregator, k, last_assign, arquivo);
+		parallel_search (nsq, last_search, my_rank, last_aggregator, k, last_assign, arquivo, threads);
 	}
 	else{
 		parallel_aggregator(k, w, my_rank, last_aggregator, last_search, last_assign, arquivo);

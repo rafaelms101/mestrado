@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <mpi.h>
+#include <omp.h>
 extern "C"{
 	#include "../yael_needs/nn.h"
 }	
@@ -13,5 +14,5 @@ extern "C"{
 
 void parallel_training (char *dataset, int coarsek, int nsq, int last_search, int last_aggregator, int last_assign, int tam);
 void parallel_assign (char *dataset, int last_search, int last_assign, int w, int last_aggregator);
-void parallel_search (int nsq, int last_search, int my_rank, int last_aggregator, int k, int last_assign, char *arquivo);
+void parallel_search (int nsq, int last_search, int my_rank, int last_aggregator, int k, int last_assign, char *arquivo, int threads);
 void parallel_aggregator(int k, int w, int my_rank, int last_aggregator, int last_search, int last_assign, char *arquivo);

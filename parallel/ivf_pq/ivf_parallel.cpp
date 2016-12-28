@@ -109,17 +109,17 @@ void parallel_assign (char *dataset, int last_search, int last_assign, int w, in
 	free(ivfpq.coa_centroids);
 }
 
-void parallel_search (int nsq, int last_search, int my_rank, int last_aggregator, int k, int last_assign, char* arquivo){
+void parallel_search (int nsq, int last_search, int my_rank, int last_aggregator, int k, int last_assign, char* arquivo, int threads){
 
 	ivfpq_t ivfpq;
 	ivf_t *ivf;
-	int tam, *ktmp, flag, flag2, l=2, *coaidx=(int*)malloc(sizeof(int)), centroid_idx, rank_source, **ids, entrou = 0, pontos = 0;
+	int tam, *ktmp, flag, flag2, l=2, *coaidx=(int*)malloc(sizeof(int)), centroid_idx, rank_source, **ids, entrou = 0, pontos = 0, thread;
 	float **dis;
 	char finish;
 	MPI_Status status, status2;
 	MPI_Request request, request2;
 	mat *residual=(mat*)malloc(sizeof(mat));
-	dis_t *q;
+	dis_t q;
 	FILE *fp;
 	double start=0, end=0, time =0;
 
@@ -169,28 +169,35 @@ void parallel_search (int nsq, int last_search, int my_rank, int last_aggregator
 
 	//Rodar varias queries ao memso tempo, no lugar de paralelizar para uma so query
 
-	q = (dis_t*)malloc(sizeof(dis_t)*entrou);
+	//q = (dis_t*)malloc(sizeof(dis_t)*entrou);
 	dis = (float**)malloc(sizeof(float*)*entrou);
 	ids = (int**)malloc(sizeof(int*)*entrou);
 	ktmp = (int*)malloc(sizeof(int)*entrou);
+
+	omp_set_dynamic(0);
+
+	#pragma omp parallel for num_threads(threads) private(centroid_idx, q) reduction(+:pontos) schedule(static, 1)
 	
 	for(int i=0; i<entrou;i++){
+		thread = omp_get_thread_num();
+		printf("thread%d\n", thread);
 		centroid_idx = coaidx[i]/(last_search-last_assign);
 
 		//Faz a busca no vetor assinalado e envia o resultado ao agregador
 
-		q[i]=ivfpq_search(ivf, residual[i], ivfpq.pq, centroid_idx);
+		q=ivfpq_search(ivf, residual[i], ivfpq.pq, centroid_idx);
 
-		ktmp[i] = min(q[i].idx.n, k);
+		ktmp[i] = min(q.idx.n, k);
 		dis[i] = (float*)malloc(sizeof(float)*ktmp[i]);
 		ids[i] = (int*)malloc(sizeof(int)*ktmp[i]);
-		k_min(q[i].dis, ktmp[i], dis[i], ids[i]);
+		k_min(q.dis, ktmp[i], dis[i], ids[i]);
 		for(int b = 0; b < ktmp[i] ; b++){
-			ids[i][b] = q[i].idx.mat[ids[i][b]-1];
+			ids[i][b] = q.idx.mat[ids[i][b]-1];
 		}
-		pontos+=q[i].idx.n;
+		pontos+=q.idx.n;
 		//free(residual[i].mat);
 	}
+	
 
 	end= MPI_Wtime();
 	time=end*1000-start*1000;
