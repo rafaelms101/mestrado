@@ -26,4 +26,11 @@ typedef struct ivf{
 	matI codes;
 }ivf_t;
 
+typedef struct ivf_threads{
+	ivf_t *ivf;
+	ivfpq_t ivfpq;
+	int thread;
+	int k;
+}ivf_threads_t;
+
 #endif

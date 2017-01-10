@@ -2,11 +2,24 @@
 #define ASSIGN 2
 #define SEARCH 3
 #define AGGREGATOR 4
-#define FINISH 5
+#define THREAD 5
+
+static int threads;
+static int last_assign;
+static int last_search;
+static int last_aggregator;
 
 #include "ivf_parallel.h"
 
-void parallel_training (char *dataset, int coarsek, int nsq, int last_search, int last_aggregator, int last_assign, int tam){
+void set_last (int comm_sz, int num_threads){
+
+	threads = num_threads;
+	last_assign=1;
+	last_search=comm_sz-2;
+	last_aggregator=comm_sz-1;
+}
+
+void parallel_training (char *dataset, int coarsek, int nsq, int tam){
 	data v;
 	ivfpq_t ivfpq;
 	ivf_t *ivf;
@@ -14,8 +27,6 @@ void parallel_training (char *dataset, int coarsek, int nsq, int last_search, in
 
 	//Le os vetores
 	v = pq_test_load_vectors(dataset, tam);
-
-	//free(v.query.mat);
 
 	//Cria centroides a partir dos vetores de treinamento
 	ivfpq = ivfpq_new(coarsek, nsq, v.train);
@@ -53,11 +64,13 @@ void parallel_training (char *dataset, int coarsek, int nsq, int last_search, in
 	free(v.ids_gnd.mat);
 }
 
-void parallel_assign (char *dataset, int last_search, int last_assign, int w, int last_aggregator){
+void parallel_assign (char *dataset, int w){
 	mat vquery, residual;
 	ivfpq_t ivfpq;
-	int *coaidx, dest;
+	int *coaidx, dest, *dest_count, rest;
 	float *coadis;
+
+	dest_count = (int*)calloc(last_search-last_assign,sizeof(int));
 
 	vquery = pq_test_load_query(dataset);
 
@@ -85,19 +98,22 @@ void parallel_assign (char *dataset, int last_search, int last_assign, int w, in
 		for(int j=0;j<w;j++){
 
 			bsxfunMINUS(residual, vquery, ivfpq.coa_centroids, i, &coaidx[i*w+j], 1);
-			dest=coaidx[i*w+j]%(last_search-last_assign)+last_assign+1;
-			MPI_Send(&coaidx[i*w+j], 1, MPI_INT, dest, ASSIGN, MPI_COMM_WORLD);
-			MPI_Send(&residual.d, 1, MPI_INT, dest, ASSIGN, MPI_COMM_WORLD);
-			MPI_Send(&residual.mat[0], residual.n*residual.d, MPI_FLOAT, dest, ASSIGN, MPI_COMM_WORLD);
+			rest= coaidx[i*w+j]%(last_search-last_assign);
+			dest_count[rest] = (dest_count[rest]+1)%threads;
+			dest= rest+last_assign+1;
+			MPI_Send(&coaidx[i*w+j], 1, MPI_INT, dest, THREAD+dest_count[rest], MPI_COMM_WORLD);
+			MPI_Send(&residual.d, 1, MPI_INT, dest, THREAD+dest_count[rest], MPI_COMM_WORLD);
+			MPI_Send(&residual.mat[0], residual.n*residual.d, MPI_FLOAT, dest, THREAD+dest_count[rest], MPI_COMM_WORLD);
 		}
 	}
 	double start;
 
 	char finish='s';
 	for(int i=last_assign+1; i<=last_search; i++){
-		MPI_Ssend(&finish, 1, MPI_CHAR, i, FINISH, MPI_COMM_WORLD);
+		for(int j=0; j<threads; j++){
+			MPI_Send(&finish, 1, MPI_CHAR, i, THREAD+threads+j, MPI_COMM_WORLD);
+		}
 	}
-	start= MPI_Wtime();
 
 	MPI_Send(&start, 1, MPI_DOUBLE, last_aggregator, ASSIGN, MPI_COMM_WORLD);
 
@@ -109,125 +125,64 @@ void parallel_assign (char *dataset, int last_search, int last_assign, int w, in
 	free(ivfpq.coa_centroids);
 }
 
-void parallel_search (int nsq, int last_search, int my_rank, int last_aggregator, int k, int last_assign, char* arquivo, int threads){
+void parallel_search (int nsq, int my_rank, int k, char* arquivo){
 
-	ivfpq_t ivfpq;
-	ivf_t *ivf;
-	int tam, *ktmp, flag, flag2, l=2, *coaidx=(int*)malloc(sizeof(int)), centroid_idx, rank_source, **ids, entrou = 0, pontos = 0, thread;
-	float **dis;
-	char finish;
-	MPI_Status status, status2;
-	MPI_Request request, request2;
-	mat *residual=(mat*)malloc(sizeof(mat));
-	dis_t q;
-	FILE *fp;
-	double start=0, end=0, time =0;
+	ivf_threads_t ivf_threads, *ivf_threads_v;
+	pthread_t *thread_handles;
+	int tam, l=2, centroid_idx, rank_source, entrou = 0, pontos = 0, thread;
+
+	ivf_threads.k = k;
 
 	//Recebe os centroides
-	MPI_Recv(&ivfpq, sizeof(ivfpq_t), MPI_BYTE, 0, TRAINER, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-	ivfpq.pq.centroids = (float*)malloc(sizeof(float)*ivfpq.pq.centroidsn*ivfpq.pq.centroidsd);
-	MPI_Recv(&ivfpq.pq.centroids[0], ivfpq.pq.centroidsn*ivfpq.pq.centroidsd, MPI_FLOAT, 0, TRAINER, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-	ivfpq.coa_centroids=(float*)malloc(sizeof(float)*ivfpq.coa_centroidsd*ivfpq.coa_centroidsn);
-	MPI_Recv(&ivfpq.coa_centroids[0], ivfpq.coa_centroidsn*ivfpq.coa_centroidsd, MPI_FLOAT, 0, TRAINER, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	MPI_Recv(&ivf_threads.ivfpq, sizeof(ivfpq_t), MPI_BYTE, 0, TRAINER, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	ivf_threads.ivfpq.pq.centroids = (float*)malloc(sizeof(float)*ivf_threads.ivfpq.pq.centroidsn*ivf_threads.ivfpq.pq.centroidsd);
+	MPI_Recv(&ivf_threads.ivfpq.pq.centroids[0], ivf_threads.ivfpq.pq.centroidsn*ivf_threads.ivfpq.pq.centroidsd, MPI_FLOAT, 0, TRAINER, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	ivf_threads.ivfpq.coa_centroids=(float*)malloc(sizeof(float)*ivf_threads.ivfpq.coa_centroidsd*ivf_threads.ivfpq.coa_centroidsn);
+	MPI_Recv(&ivf_threads.ivfpq.coa_centroids[0], ivf_threads.ivfpq.coa_centroidsn*ivf_threads.ivfpq.coa_centroidsd, MPI_FLOAT, 0, TRAINER, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
 	//Recebe o trecho da lista invertida assinalada ao processo
-	tam = ivfpq.coarsek/(last_search-last_assign);
-	if(my_rank<=ivfpq.coarsek%(last_search-last_assign)+last_assign)tam++;
-	ivf = (ivf_t*)malloc(sizeof(ivf_t)*tam);
+	tam = ivf_threads.ivfpq.coarsek/(last_search-last_assign);
+	if(my_rank<=ivf_threads.ivfpq.coarsek%(last_search-last_assign)+last_assign)tam++;
+	ivf_threads.ivf = (ivf_t*)malloc(sizeof(ivf_t)*tam);
 	for(int i=0;i<tam;i++){
-		MPI_Recv(&ivf[i], sizeof(ivf_t), MPI_BYTE, 0, TRAINER, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		ivf[i].ids = (int*)malloc(sizeof(int)*ivf[i].idstam);
-		MPI_Recv(&ivf[i].ids[0], ivf[i].idstam, MPI_INT, 0, TRAINER, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		ivf[i].codes.mat = (int*)malloc(sizeof(int)*ivf[i].codes.n*ivf[i].codes.d);
-		MPI_Recv(&ivf[i].codes.mat[0], ivf[i].codes.n*ivf[i].codes.d, MPI_INT, 0, TRAINER, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		MPI_Recv(&ivf_threads.ivf[i], sizeof(ivf_t), MPI_BYTE, 0, TRAINER, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		ivf_threads.ivf[i].ids = (int*)malloc(sizeof(int)*ivf_threads.ivf[i].idstam);
+		MPI_Recv(&ivf_threads.ivf[i].ids[0], ivf_threads.ivf[i].idstam, MPI_INT, 0, TRAINER, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		ivf_threads.ivf[i].codes.mat = (int*)malloc(sizeof(int)*ivf_threads.ivf[i].codes.n*ivf_threads.ivf[i].codes.d);
+		MPI_Recv(&ivf_threads.ivf[i].codes.mat[0], ivf_threads.ivf[i].codes.n*ivf_threads.ivf[i].codes.d, MPI_INT, 0, TRAINER, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	}
 
-	//Recebe o resíduo de um vetor da query
-	finish = 'n';
-
-	fp = fopen(arquivo, "a");
-
-	MPI_Irecv(&finish, 1, MPI_CHAR, MPI_ANY_SOURCE, FINISH, MPI_COMM_WORLD, &request2);
-	while(1){
-		coaidx=(int*)realloc(coaidx,sizeof(int)*(entrou+1));
-		residual=(mat*)realloc(residual,sizeof(mat)*(entrou+1));
-		residual[entrou].n=1;
-
-		MPI_Irecv(&coaidx[entrou], 1, MPI_INT, MPI_ANY_SOURCE, ASSIGN, MPI_COMM_WORLD, &request);
-		do{
-			MPI_Test(&request, &flag, &status);
-			MPI_Test(&request2, &flag2, &status2);
-		}while(flag !=1 && flag2 !=1);
-		if (finish=='s' && flag==0)break;
-
-		MPI_Recv(&residual[entrou].d, 1, MPI_INT, MPI_ANY_SOURCE, ASSIGN, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		residual[entrou].mat=(float*)malloc(sizeof(float)*residual[entrou].d);
-		MPI_Recv(&residual[entrou].mat[0], residual[entrou].d, MPI_FLOAT, MPI_ANY_SOURCE, ASSIGN, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		entrou++;
+	ivf_threads_v = (ivf_threads_t*)malloc(sizeof(ivf_threads_t)*threads);
+	thread_handles = (pthread_t*)malloc(sizeof(pthread_t)*threads);
+	for (thread =0; thread<threads; thread++){
+		ivf_threads_v[thread].thread = thread;
+		ivf_threads_v[thread].k = k;
+		ivf_threads_v[thread].ivf = ivf_threads.ivf;
+		ivf_threads_v[thread].ivfpq = ivf_threads.ivfpq;
+		pthread_create(&thread_handles[thread], NULL, search_threads, (void*) &ivf_threads_v[thread]);
 	}
-	start= MPI_Wtime();
-
-	//Rodar varias queries ao memso tempo, no lugar de paralelizar para uma so query
-
-	//q = (dis_t*)malloc(sizeof(dis_t)*entrou);
-	dis = (float**)malloc(sizeof(float*)*entrou);
-	ids = (int**)malloc(sizeof(int*)*entrou);
-	ktmp = (int*)malloc(sizeof(int)*entrou);
-
-	omp_set_dynamic(0);
-
-	#pragma omp parallel for num_threads(threads) private(centroid_idx, q) reduction(+:pontos) schedule(static, 1)
-	
-	for(int i=0; i<entrou;i++){
-		thread = omp_get_thread_num();
-		printf("thread%d\n", thread);
-		centroid_idx = coaidx[i]/(last_search-last_assign);
-
-		//Faz a busca no vetor assinalado e envia o resultado ao agregador
-
-		q=ivfpq_search(ivf, residual[i], ivfpq.pq, centroid_idx);
-
-		ktmp[i] = min(q.idx.n, k);
-		dis[i] = (float*)malloc(sizeof(float)*ktmp[i]);
-		ids[i] = (int*)malloc(sizeof(int)*ktmp[i]);
-		k_min(q.dis, ktmp[i], dis[i], ids[i]);
-		for(int b = 0; b < ktmp[i] ; b++){
-			ids[i][b] = q.idx.mat[ids[i][b]-1];
-		}
-		pontos+=q.idx.n;
-		//free(residual[i].mat);
+	for (thread =0; thread<threads; thread++){
+		pthread_join(thread_handles[thread], NULL);
 	}
-	
 
-	end= MPI_Wtime();
-	time=end*1000-start*1000;
-
-	free(residual);
-	for(int i=0; i<entrou;i++){
-		MPI_Send(&ktmp[i], 1, MPI_INT, last_search+1+(coaidx[i]%(last_aggregator-last_search)), SEARCH, MPI_COMM_WORLD);
-		MPI_Send(&ids[i][0], ktmp[i], MPI_INT, last_search+1+(coaidx[i]%(last_aggregator-last_search)), SEARCH, MPI_COMM_WORLD);
-		MPI_Send(&dis[i][0], ktmp[i], MPI_FLOAT, last_search+1+(coaidx[i]%(last_aggregator-last_search)), SEARCH, MPI_COMM_WORLD);
-	}
-	fprintf(fp,"my_rank: %d, entrou: %d, pontos: %d time: %g\n",my_rank,entrou, pontos,time);
-	fclose(fp);
-
-
-	free(ivfpq.pq.centroids);
-	free(ivfpq.coa_centroids);
-	free(ivf);
+	free(thread_handles);
+	free(ivf_threads.ivfpq.pq.centroids);
+	free(ivf_threads.ivfpq.coa_centroids);
+	free(ivf_threads.ivf);
 }
 
-void parallel_aggregator(int k, int w, int my_rank, int last_aggregator, int last_search, int last_assign, char *arquivo){
+void parallel_aggregator(int k, int w, int my_rank, char *arquivo){
 	mat qdis;
 	matI qidx, ids_gnd;
 	float *dis2, *dis;
-	int *coaidx, *ids2, *ids, nextdis, nextidx, source, queryn, tam, n, l=0;
+	int *coaidx, *ids2, *ids, rest, nextdis, nextidx, source, queryn, tam, n, l=0, *dest_count;
 	double start=0, end;
 
 	dis2 = (float*)malloc(sizeof(float)*k);
 	ids2 = (int*)malloc(sizeof(int)*k);
 	qdis.mat = (float*)malloc(sizeof(float));
 	qidx.mat = (int*)malloc(sizeof(int));
+	dest_count = (int*)calloc(last_search-last_assign,sizeof(int));
 
 	//Recebe o vetor contendo os indices da lista invertida
 	MPI_Recv(&queryn, 1, MPI_INT, last_assign, ASSIGN, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -250,15 +205,16 @@ void parallel_aggregator(int k, int w, int my_rank, int last_aggregator, int las
 		qdis.d = 1;
 		//Recebe os resultados da busca nos vetores assinalados ao agregador
 		for(int j=0; j<w; j++){
-			source=coaidx[i*w+j]%(last_search-last_assign)+last_assign+1;
-			MPI_Recv(&tam, 1, MPI_INT, source, SEARCH, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-			if(l==0 && j==0)end=MPI_Wtime();
+			rest = coaidx[i*w+j]%(last_search-last_assign);
+			source=rest+last_assign+1;
+			dest_count[rest] = (dest_count[rest]+1)%threads;
+			MPI_Recv(&tam, 1, MPI_INT, source, THREAD+dest_count[rest], MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 			qdis.n += tam;
 			qidx.n += tam;
 			qdis.mat = (float*)realloc(qdis.mat, sizeof(float)*(qdis.n));
 			qidx.mat = (int*)realloc(qidx.mat, sizeof(int)*(qidx.n));
-			MPI_Recv(&qidx.mat[0]+nextidx, tam, MPI_INT, source, SEARCH, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-			MPI_Recv(&qdis.mat[0]+nextdis, tam, MPI_FLOAT, source, SEARCH, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+			MPI_Recv(&qidx.mat[0]+nextidx, tam, MPI_INT, source, THREAD+dest_count[rest], MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+			MPI_Recv(&qdis.mat[0]+nextdis, tam, MPI_FLOAT, source, THREAD+dest_count[rest], MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 			nextdis+=tam;
 			nextidx+=tam;
 		}
@@ -272,6 +228,7 @@ void parallel_aggregator(int k, int w, int my_rank, int last_aggregator, int las
 		}
 		l++;
 	}
+	end=MPI_Wtime();
 
 	free(dis2);
 	free(ids2);
@@ -298,4 +255,59 @@ void parallel_aggregator(int k, int w, int my_rank, int last_aggregator, int las
 	pq_test_compute_stats2(ids, ids_gnd,k);
 
 	free(ids_gnd.mat);
+}
+
+void *search_threads(void *ivf_threads_recv){
+	ivf_threads_t *ivf_threads;
+	char finish;
+	int coaidx, flag, flag2, centroid_idx, *ids, ktmp;
+	float *dis;
+	dis_t q;
+	mat residual;
+	MPI_Status status, status2;
+	MPI_Request request, request2;
+
+	ivf_threads = (ivf_threads_t*)ivf_threads_recv;
+
+	residual.mat=(float*)malloc(sizeof(float));
+	dis = (float*)malloc(sizeof(float));
+	ids = (int*)malloc(sizeof(int));
+
+	finish = 'n';
+
+	printf("%d\n", ivf_threads->thread);
+
+	MPI_Irecv(&finish, 1, MPI_CHAR, MPI_ANY_SOURCE, THREAD+threads+ivf_threads->thread, MPI_COMM_WORLD, &request2);
+	while(1){
+
+		MPI_Irecv(&coaidx, 1, MPI_INT, MPI_ANY_SOURCE, THREAD+ivf_threads->thread, MPI_COMM_WORLD, &request);
+		do{
+			MPI_Test(&request, &flag, &status);
+			MPI_Test(&request2, &flag2, &status2);
+		}while(flag !=1 && flag2 !=1);
+		if (finish=='s' && flag==0)break;
+
+		MPI_Recv(&residual.d, 1, MPI_INT, MPI_ANY_SOURCE, THREAD+ivf_threads->thread, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		residual.mat=(float*)realloc(residual.mat,sizeof(float)*residual.d);
+		MPI_Recv(&residual.mat[0], residual.d, MPI_FLOAT, MPI_ANY_SOURCE, THREAD+ivf_threads->thread, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		centroid_idx = coaidx/(last_search-last_assign);
+
+		//Faz a busca no vetor assinalado e envia o resultado ao agregador
+
+		q=ivfpq_search(ivf_threads->ivf, residual, ivf_threads->ivfpq.pq, centroid_idx);
+
+		ktmp = min(q.idx.n, ivf_threads->k);
+		dis = (float*)realloc(dis,sizeof(float)*ktmp);
+		ids = (int*)realloc(ids,sizeof(int)*ktmp);
+		
+		k_min(q.dis, ktmp, dis, ids);
+		for(int b = 0; b < ktmp ; b++){
+			ids[b] = q.idx.mat[ids[b]-1];
+		}
+
+		MPI_Send(&ktmp, 1, MPI_INT, last_search+1+(coaidx%(last_aggregator-last_search)), THREAD+ivf_threads->thread, MPI_COMM_WORLD);
+		MPI_Send(&ids[0], ktmp, MPI_INT, last_search+1+(coaidx%(last_aggregator-last_search)), THREAD+ivf_threads->thread, MPI_COMM_WORLD);
+		MPI_Send(&dis[0], ktmp, MPI_FLOAT, last_search+1+(coaidx%(last_aggregator-last_search)), THREAD+ivf_threads->thread, MPI_COMM_WORLD);
+	}
+	return NULL;
 }

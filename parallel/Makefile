@@ -9,6 +9,7 @@ PQ_UTILS_DIR = ./pq-utils
 OBJDIR=./obj
 IVF_DIR = ./ivf_pq
 OMP = -fopenmp
+PTHREAD = -lpthread
 
 all: pq_test_load_vectors.o pq_new.o pq_assign.o pq_search.o pq_test.o pq_test $(OBJDIR)/myIVF.o $(OBJDIR)/ivf_new.o $(OBJDIR)/ivf_assign.o $(OBJDIR)/ivf_search.o ivfpq_test.o ivfpq_test
 
@@ -60,25 +61,25 @@ pq_test: $(OBJDIR)/pq_test.o $(OBJDIR)/pq_assign.o $(PQ_UTILS_DIR)/pq_assign.h  
 # IVF_TEST
 
 $(OBJDIR)/myIVF.o:  $(IVF_DIR)/myIVF.cpp $(PQ_UTILS_DIR)/pq_assign.h $(PQ_UTILS_DIR)/pq_new.h $(PQ_UTILS_DIR)/pq_test_load_vectors.h yael_needs/kmeans.h yael_needs/vector.h
-	$(MPICXX) $(cflags) -c $< -o $@ $(flags) $(extracflags) $(yaelcflags) $(OMP)
+	$(MPICXX) $(cflags) -c $< -o $@ $(flags) $(extracflags) $(yaelcflags) $(PTHREAD)
 
 $(OBJDIR)/ivf_new.o: $(IVF_DIR)/ivf_new.cpp $(IVF_DIR)/ivf_new.h $(IVF_DIR)/myIVF.h  $(PQ_UTILS_DIR)/pq_assign.h $(PQ_UTILS_DIR)/pq_new.h $(PQ_UTILS_DIR)/pq_test_load_vectors.h yael_needs//kmeans.h yael_needs/vector.h yael_needs/nn.h
-	$(MPICXX) $(cflags) -c $< -o $@ $(flags) $(extracflags) $(yaelcflags) $(OMP)
+	$(MPICXX) $(cflags) -c $< -o $@ $(flags) $(extracflags) $(yaelcflags) $(PTHREAD)
 
 $(OBJDIR)/ivf_assign.o: $(IVF_DIR)/ivf_assign.cpp $(IVF_DIR)/ivf_assign.h $(IVF_DIR)/ivf_new.h $(IVF_DIR)/myIVF.h $(OBJDIR)/pq_assign.o $(PQ_UTILS_DIR)/pq_assign.h $(OBJDIR)/pq_new.o $(PQ_UTILS_DIR)/pq_new.h $(OBJDIR)/pq_test_load_vectors.o $(PQ_UTILS_DIR)/pq_test_load_vectors.h yael_needs/kmeans.h yael_needs/vector.h yael_needs//nn.h
-	$(MPICXX) $(cflags) -c $< -o $@ $(flags) $(extracflags) $(yaelcflags) $(OMP)
+	$(MPICXX) $(cflags) -c $< -o $@ $(flags) $(extracflags) $(yaelcflags) $(PTHREAD)
 
 $(OBJDIR)/ivf_search.o: $(IVF_DIR)/ivf_search.cpp $(IVF_DIR)/ivf_assign.h $(IVF_DIR)/ivf_new.h $(IVF_DIR)/myIVF.h $(OBJDIR)/pq_search.o $(PQ_UTILS_DIR)/pq_search.h $(OBJDIR)/pq_assign.o $(PQ_UTILS_DIR)/pq_assign.h $(OBJDIR)/pq_new.o $(PQ_UTILS_DIR)/pq_new.h $(OBJDIR)/pq_test_load_vectors.o $(PQ_UTILS_DIR)/pq_test_load_vectors.h yael_needs/kmeans.h yael_needs/vector.h yael_needs/nn.h
-	$(MPICXX) $(cflags) -c $< -o $@ $(flags) $(extracflags) $(yaelcflags) $(OMP)
+	$(MPICXX) $(cflags) -c $< -o $@ $(flags) $(extracflags) $(yaelcflags) $(PTHREAD)
 
 $(OBJDIR)/ivf_parallel.o: $(IVF_DIR)/ivf_parallel.cpp $(IVF_DIR)/ivf_search.h $(IVF_DIR)/ivf_assign.h $(IVF_DIR)/ivf_new.h $(IVF_DIR)/myIVF.h $(OBJDIR)/pq_search.o $(PQ_UTILS_DIR)/pq_search.h $(OBJDIR)/pq_assign.o $(PQ_UTILS_DIR)/pq_assign.h $(OBJDIR)/pq_new.o $(PQ_UTILS_DIR)/pq_new.h $(OBJDIR)/pq_test_load_vectors.o $(PQ_UTILS_DIR)/pq_test_load_vectors.h $(OBJDIR)/pq_test_compute_stats.o $(PQ_UTILS_DIR)/pq_test_compute_stats.h yael_needs/kmeans.h yael_needs/vector.h yael_needs/nn.h
-	$(MPICXX) $(cflags) -c $< -o $@ $(flags) $(extracflags) $(yaelcflags) $(OMP)
+	$(MPICXX) $(cflags) -c $< -o $@ $(flags) $(extracflags) $(yaelcflags) $(PTHREAD)
 
 ivfpq_test.o: ivf_test.cpp $(OBJDIR)/ivf_parallel.o $(OBJDIR)/ivf_assign.o $(OBJDIR)/myIVF.o $(OBJDIR)/ivf_new.o $(OBJDIR)/ivf_search.o $(IVF_DIR)/ivf_search.h $(IVF_DIR)/ivf_new.h $(IVF_DIR)/myIVF.h $(IVF_DIR)/ivf_parallel.h $(IVF_DIR)/ivf_assign.h $(OBJDIR)/pq_test_load_vectors.o $(PQ_UTILS_DIR)/pq_test_load_vectors.h $(OBJDIR)/pq_test_compute_stats.o $(PQ_UTILS_DIR)/pq_test_compute_stats.h $(OBJDIR)/pq_new.o $(PQ_UTILS_DIR)/pq_new.h $(OBJDIR)/pq_assign.o $(PQ_UTILS_DIR)/pq_assign.h $(OBJDIR)/pq_search.o $(PQ_UTILS_DIR)/pq_search.h
-	$(MPICXX) $(cflags) -c $< -o $@ $(flags) $(extracflags) $(yaelcflags) $(OMP)
+	$(MPICXX) $(cflags) -c $< -o $@ $(flags) $(extracflags) $(yaelcflags) $(PTHREAD)
 
 ivfpq_test: ivfpq_test.o $(OBJDIR)/ivf_parallel.o $(OBJDIR)/ivf_assign.o $(OBJDIR)/myIVF.o $(OBJDIR)/ivf_new.o $(OBJDIR)/ivf_search.o $(IVF_DIR)/ivf_search.h $(IVF_DIR)/ivf_new.h $(IVF_DIR)/myIVF.h $(IVF_DIR)/ivf_assign.h $(IVF_DIR)/ivf_parallel.h  $(OBJDIR)/pq_test_load_vectors.o $(PQ_UTILS_DIR)/pq_test_load_vectors.h $(OBJDIR)/pq_test_compute_stats.o $(PQ_UTILS_DIR)/pq_test_compute_stats.h $(OBJDIR)/pq_new.o $(PQ_UTILS_DIR)/pq_new.h $(OBJDIR)/pq_assign.o $(PQ_UTILS_DIR)/pq_assign.h $(OBJDIR)/pq_search.o $(PQ_UTILS_DIR)/pq_search.h
-		$(MPICXX) $(cflags) -o $@ $^ $(LDFLAGS) $(LAPACKLDFLAGS) $(THREADLDFLAGS) $(EXTRAYAELLDFLAG) $(YAELLDFLAGS) $(OMP)
+		$(MPICXX) $(cflags) -o $@ $^ $(LDFLAGS) $(LAPACKLDFLAGS) $(THREADLDFLAGS) $(EXTRAYAELLDFLAG) $(YAELLDFLAGS) $(PTHREAD)
 
 clean:
 	rm -f $(OBJDIR)/*.o pq_test *.o ivfpq_test
