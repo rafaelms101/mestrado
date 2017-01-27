@@ -34,4 +34,8 @@ void swap(int *x, int *y);
 void k_min_qsort (mat disquerybase, int k, float *dis, int *ids);
 void k_min_stack (mat disquerybase, int k, float *dis, int *ids);
 
+void my_k_min(dis_t q, int ktmp, float *dis, int *ids);
+static void constroiHeap (int n, float *qdis, int *qidx);
+static void trocarRaiz (int n, float *qdis, int *qidx);
+
 #endif
