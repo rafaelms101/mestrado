@@ -19,14 +19,14 @@ class MinHeap{
     int capacity; // maximum possible size of min heap
     int heap_size; // Current number of elements in min heap
 public:
-    MinHeap(int a[], int size); // Constructor
+    MinHeap(element a[], int size); // Constructor
     void MinHeapify(int i);  //To minheapify subtree rooted with index i
     int parent(int i) { return (i-1)/2; }
     int left(int i) { return (2*i + 1); }
     int right(int i) { return (2*i + 2); }
 
     int extractMin();  // extracts root (minimum) element
-    int getMin() { return harr[0]; } // Returns minimum
+    element getMin() { return harr[0]; } // Returns minimum
 };
 
 // Prototype of a utility function to swap two integers

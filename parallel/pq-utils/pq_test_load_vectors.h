@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <iostream>
 #include <time.h>
+#include <string.h>
 extern "C" {
 #include "../yael_needs/matrix.h"
 #include "../yael_needs/vector.h"	
@@ -40,7 +41,7 @@ typedef struct{
 			*groundtruth;
 }namefile;
 
-data pq_test_load_vectors(char * dataset, int tam);
+data pq_test_load_vectors(char * dataset, int tam, int my_rank, int num);
 mat pq_test_load_query(char* dataset);
 void load_random (float *v, int n, int d);
 int ivecs_read (const char *fname, int d, int n, int *a);
