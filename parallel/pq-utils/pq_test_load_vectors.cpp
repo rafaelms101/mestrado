@@ -1,6 +1,6 @@
 #include "pq_test_load_vectors.h"
 
-data pq_test_load_vectors(char* dataset, int tam){
+data pq_test_load_vectors(char* dataset, int tam, int my_rank, int num){
 
 	data v;
 	int *ids_gnd;
@@ -37,9 +37,9 @@ data pq_test_load_vectors(char* dataset, int tam){
 	}
 	else {
 		namefile f;
+		int strtam;
 
 		f.base= (char*)malloc(sizeof(char)*41);
-		f.query= (char*) malloc(sizeof(char)*41);
 		f.train= (char*) malloc(sizeof(char)*41);
 		f.groundtruth= (char*) malloc(sizeof(char)*41);
 
@@ -48,10 +48,6 @@ data pq_test_load_vectors(char* dataset, int tam){
 			v.base.n=10000;
 			v.base.d=128;
 			v.base.mat= fmat_new (v.base.d, v.base.n);
-			strcpy (f.query,"../siftsmall/siftsmall_query.fvecs");
-			v.query.n=100;
-			v.query.d=128;
-			v.query.mat= fmat_new (v.query.d, v.query.n);
 			strcpy (f.train,"../siftsmall/siftsmall_learn.fvecs");
 			v.train.n=25000;
 			v.train.d=128;
@@ -66,10 +62,6 @@ data pq_test_load_vectors(char* dataset, int tam){
 			v.base.n=1000000;
 			v.base.d=128;
 			v.base.mat= fmat_new (v.base.d, v.base.n);
-			strcpy (f.query,"../sift/sift_query.fvecs");
-			v.query.n=10000;
-			v.query.d=128;
-			v.query.mat= fmat_new (v.query.d, v.query.n);
 			strcpy (f.train,"../sift/sift_learn.fvecs");
 			v.train.n=100000;
 			v.train.d=128;
@@ -105,10 +97,6 @@ data pq_test_load_vectors(char* dataset, int tam){
 			}
 			v.base.d=128;
 			v.base.mat= fmat_new (v.base.d, v.base.n);
-			strcpy (f.query,"../siftbig/siftbig_query.bvecs");
-			v.query.n=10000;
-			v.query.d=128;
-			v.query.mat= fmat_new (v.query.d, v.query.n);
 			strcpy (f.train,"../siftbig/siftbig_learn.bvecs");
 			v.train.n=100000;
 			v.train.d=128;
@@ -122,10 +110,6 @@ data pq_test_load_vectors(char* dataset, int tam){
 			v.base.n=1000000;
 			v.base.d=960;
 			v.base.mat= fmat_new (v.base.d, v.base.n);
-			strcpy (f.query,"../gist/gist_query.fvecs");
-			v.query.n=1000;
-			v.query.d=960;
-			v.query.mat= fmat_new (v.query.d, v.query.n);
 			strcpy (f.train,"../gist/gist_learn.fvecs");
 			v.train.n=500000;
 			v.train.d=960;
@@ -135,15 +119,19 @@ data pq_test_load_vectors(char* dataset, int tam){
 			v.ids_gnd.d=100;
 			ids_gnd= ivec_new (v.ids_gnd.n*v.ids_gnd.d);
 		}
+		if(num>1){
+			strtam = strlen (f.base);
+			f.base[strtam]=my_rank+48;
+			f.base[strtam+1]='\0';
+		}
+
 		if(strcmp(dataset, "siftbig")!=0){
 			fvecs_read (f.base, v.base.d, v.base.n, v.base.mat);
-			fvecs_read (f.query, v.query.d, v.query.n, v.query.mat);
 			fvecs_read (f.train, v.train.d, v.train.n, v.train.mat);
 			ivecs_read (f.groundtruth, v.ids_gnd.d , v.ids_gnd.n, ids_gnd);
 		}
 		else{
 			b2fvecs_read (f.base, v.base.d, v.base.n, v.base.mat);
-			b2fvecs_read (f.query, v.query.d, v.query.n, v.query.mat);
 			b2fvecs_read (f.train, v.train.d, v.train.n, v.train.mat);
 			ivecs_read (f.groundtruth, v.ids_gnd.d , v.ids_gnd.n, ids_gnd);
 		}

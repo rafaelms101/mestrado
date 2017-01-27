@@ -12,18 +12,18 @@ dis_t ivfpq_search(ivf_t *ivf, mat residual, pqtipo pq, int centroid_idx){
 	ds = pq.ds;
 	ks = pq.ks;
 	nsq = pq.nsq;
-
+	
 	mat v;
 
 	mat distab;
 	distab.mat = (float*)malloc(sizeof(float)*ks*nsq);
 	distab.n = nsq;
 	distab.d = ks;
-
+	
 	float *distab_temp=(float*)malloc(sizeof(float)*ks);
-
+	
 	float* AUXSUMIDX;
-
+	
 	q.dis.n = ivf[centroid_idx].codes.n;
 	q.dis.d = 1;
 	q.dis.mat = (float*)malloc(sizeof(float)*q.dis.n);
@@ -31,12 +31,12 @@ dis_t ivfpq_search(ivf_t *ivf, mat residual, pqtipo pq, int centroid_idx){
 	q.idx.n = ivf[centroid_idx].codes.n;
 	q.idx.d = 1;
 	q.idx.mat = (int*)malloc(sizeof(int)*q.idx.n);
-
+	
 	for (int query = 0; query < nsq; query++) {
 		compute_cross_distances(ds, 1, distab.d, &residual.mat[query*ds], &pq.centroids[query*ks*ds], distab_temp);
 		memcpy(distab.mat+query*ks, distab_temp, sizeof(float)*ks);
 	}
-
+	
 	AUXSUMIDX = sumidxtab2(distab, ivf[centroid_idx].codes, 0);
 
 	memcpy(q.idx.mat, ivf[centroid_idx].ids,  sizeof(int)*ivf[centroid_idx].idstam);

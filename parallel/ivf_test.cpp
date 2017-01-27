@@ -51,21 +51,24 @@ int main(int argv, char **argc){
 	w = 4;
 
 	set_last (comm_sz, threads);
-	if (my_rank==0){
+	if (my_rank<last_assign){
 		double start=0, finish=0;
 		FILE *fp;
-		fp = fopen(arquivo, "a");
-		fprintf(fp,"Teste com a base %s, coarsek=%d, w=%d, ", dataset, coarsek, w);
-		if(tam!=0)fprintf(fp,"tamanho%d\n\n", tam);
-		fclose(fp);
-		start = MPI_Wtime();
-		
+		if(my_rank==0){
+			fp = fopen(arquivo, "a");
+			fprintf(fp,"Teste com a base %s, coarsek=%d, w=%d, ", dataset, coarsek, w);
+			if(tam!=0)fprintf(fp,"tamanho%d\n\n", tam);
+			fclose(fp);
+			start = MPI_Wtime();
+		}
 		parallel_training (dataset, coarsek, nsq, tam);
-		
-		MPI_Recv(&finish, 1, MPI_DOUBLE, last_aggregator, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		fp = fopen(arquivo, "a");
-		fprintf(fp,"Tempo total: %g milissegundos\n\n", finish*1000-start*1000);
-		fclose(fp);
+	
+		if(my_rank==0){
+			MPI_Recv(&finish, 1, MPI_DOUBLE, last_aggregator, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+			fp = fopen(arquivo, "a");
+			fprintf(fp,"Tempo total: %g milissegundos\n\n", finish*1000-start*1000);
+			fclose(fp);
+		}
 	}
 	else if(my_rank<=last_assign){
 		parallel_assign (dataset, w);
