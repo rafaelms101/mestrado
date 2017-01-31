@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 #include <math.h>
-#include <mpi.h>
+//#include <mpi.h>
 #include <string.h>
 #include "../pq-utils/pq_assign.h"
 #include "../pq-utils/pq_new.h"
@@ -40,8 +40,8 @@ typedef struct ivf_threads{
 	int k;
 }ivf_threads_t;
 
-void my_k_min(dis_t q, int ktmp, float *dis, int *ids);
-static void constroiHeap (int n, float *qdis, int *qidx);
-static void trocarRaiz (int n, float *qdis, int *qidx);
+// void my_k_min(dis_t q, int ktmp, float *dis, int *ids);
+// static void constroiHeap (int n, float *qdis, int *qidx);
+// static void trocarRaiz (int n, float *qdis, int *qidx);
 
 #endif

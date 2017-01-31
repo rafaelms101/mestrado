@@ -12,6 +12,7 @@ extern "C"{
 #include "ivf_new.h"
 #include "ivf_search.h"
 #include "myIVF.h"
+#include "k_min.h"
 
 void set_last (int comm_sz, int num_threads);
 void parallel_training (char *dataset, int coarsek, int nsq, int tam);

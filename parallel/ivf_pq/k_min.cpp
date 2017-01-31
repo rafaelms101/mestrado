@@ -14,7 +14,7 @@ MinHeap::MinHeap(element a[], int size){
 // Method to remove minimum element (or root) from min heap
 element MinHeap::extractMin(){
     if (heap_size == 0)
-        return INT_MAX;
+        return make_pair(INT_MAX, -1);
 
     // Store the minimum vakue.
     element root = harr[0];
@@ -94,7 +94,7 @@ void k_min_qsort (mat disquerybase, int k, float *dis, int *ids){
 //using a stack --- CHECK IF IT IS WORKING
 void k_min_stack (mat disquerybase, int k, float *dis, int *ids){
 	int i, j, d, n;
-	list< std::pair<double, int> > k_mins = new list< std::pair<double, int> >;
+	list< std::pair<double, int> > k_mins;
 
 	if(disquerybase.d==1 && disquerybase.n>1){
 		d=disquerybase.n;
@@ -108,31 +108,33 @@ void k_min_stack (mat disquerybase, int k, float *dis, int *ids){
 			if(k_mins.size() <= k){
 				k_mins.push_front(std::make_pair(disquerybase.mat[i*d +j], i*d +j+1));
 			}
-			else if(k_mins.size() > k){
-				//create a new compare function for pairs, sorting them increasing order on the first item(double)
-				k_mins.sort(compare_function());
-			}
-			else if (disquerybase.mat[i*d +j] > k_min.back().first) {
+			// else if(k_mins.size() > k){
+			// 	//create a new compare function for pairs, sorting them increasing order on the first item(double)
+			// 	k_mins.sort(compare_function());
+			// }
+			else if (disquerybase.mat[i*d +j] > k_mins.back().first) {
 				//find where to insert the element in the list to maintain sorted
 				for (list< std::pair<double, int> >::iterator it=k_mins.begin(); it != k_mins.end(); ++it){
 					std::pair<double, int> & elem(*it);
 					//replace the element
-					if(it.first > disquerybase.mat[i*d +j]){
+					if(it->first > disquerybase.mat[i*d +j]){
 						elem = make_pair(disquerybase.mat[i*d +j], i*d +j+1);
 						break;
 					}
 				}
 			}
-			else if(dis[i*d +j] < k_min.back().first){
+			else if(dis[i*d +j] < k_mins.back().first){
 				k_mins.pop_back();
 				k_mins.push_front(std::make_pair(disquerybase.mat[i*d +j], i*d+j+1));
 			}
 		}
 
-		for (list< std::pair<double, int> >::iterator it=k_mins.begin(), j = 0; it != k_mins.end(), j < 100; ++it, j++){
+    j = 0;
+		for (list< std::pair<double, int> >::iterator it=k_mins.begin(); it != k_mins.end(); ++it){
 			//pass the result to dis, and ids
-			ids[j] = it.second;
+			ids[j] = it->second;
 			dis[j] = disquerybase.mat[ids[j]];
+      j++;
 		}
 		ids += k;
 		dis += k;
@@ -150,7 +152,6 @@ void k_min_stack (mat disquerybase, int k, float *dis, int *ids){
 	// 	disquerybase.mat += d;
 	// }
 }
-
 
 void my_k_min(dis_t q, int ktmp, float *dis, int *ids){
 	int f, *qidx, j=1;
