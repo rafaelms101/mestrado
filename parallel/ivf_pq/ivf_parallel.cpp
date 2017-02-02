@@ -52,6 +52,8 @@ void parallel_training (char *dataset, int coarsek, int nsq, int tam){
 		ivfpq.coa_centroids=(float*)malloc(sizeof(float)*ivfpq.coa_centroidsd*ivfpq.coa_centroidsn);
 		MPI_Recv(&ivfpq.coa_centroids[0], ivfpq.coa_centroidsn*ivfpq.coa_centroidsd, MPI_FLOAT, 0, TRAINER, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	}
+
+	v.base = pq_test_load_base(dataset, tam, my_rank, last_assign);
 	//Cria a lista invertida
 	ivf = ivfpq_assign(ivfpq, v.base);
 
@@ -317,7 +319,7 @@ void parallel_aggregator(int k, int w, int my_rank, char *arquivo){
 void *search_threads(void *ivf_threads_recv){
 	ivf_threads_t *ivf_threads;
 	char finish;
-	int coaidx, id, flag, flag2, centroid_idx, *ids, ktmp,my_rank, rest;
+	int coaidx, id, flag, flag2, centroid_idx, *ids, ktmp,my_rank;
 	float *dis;
 	dis_t q;
 	mat residual;
@@ -325,8 +327,6 @@ void *search_threads(void *ivf_threads_recv){
 	MPI_Request request, request2;
 
 	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
-
-	rest=my_rank-last_assign-1;
 
 	ivf_threads = (ivf_threads_t*)ivf_threads_recv;
 

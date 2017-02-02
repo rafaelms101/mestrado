@@ -39,66 +39,44 @@ data pq_test_load_vectors(char* dataset, int tam, int my_rank, int num){
 		namefile f;
 		int strtam;
 
-		f.base= (char*)malloc(sizeof(char)*41);
-		f.train= (char*) malloc(sizeof(char)*41);
-		f.groundtruth= (char*) malloc(sizeof(char)*41);
+		f.train= (char*) malloc(sizeof(char)*51);
+		f.groundtruth= (char*) malloc(sizeof(char)*51);
 
 		if(strcmp(dataset, "siftsmall")==0){
-			strcpy (f.base,"../siftsmall/siftsmall_base.fvecs");
-			v.base.n=10000;
-			v.base.d=128;
-			v.base.mat= fmat_new (v.base.d, v.base.n);
-			strcpy (f.train,"../siftsmall/siftsmall_learn.fvecs");
+			strcpy (f.train,"/scratch/04596/tg838951/siftsmall_learn.fvecs");
 			v.train.n=25000;
 			v.train.d=128;
 			v.train.mat= fmat_new (v.train.d, v.train.n);
-			strcpy (f.groundtruth,"../siftsmall/siftsmall_groundtruth.ivecs");
+			strcpy (f.groundtruth,"/scratch/04596/tg838951/siftsmall_groundtruth.ivecs");
 			v.ids_gnd.n=100;
 			v.ids_gnd.d=100;
 			ids_gnd= ivec_new (v.ids_gnd.n*v.ids_gnd.d);
 		}
 		else if(strcmp(dataset, "sift")==0){
-			strcpy (f.base,"../sift/sift_base.fvecs");
-			v.base.n=1000000;
-			v.base.d=128;
-			v.base.mat= fmat_new (v.base.d, v.base.n);
-			strcpy (f.train,"../sift/sift_learn.fvecs");
+			strcpy (f.train,"/scratch/04596/tg838951/sift_learn.fvecs");
 			v.train.n=100000;
 			v.train.d=128;
 			v.train.mat= fmat_new (v.train.d, v.train.n);
-			strcpy (f.groundtruth,"../sift/sift_groundtruth.ivecs");
+			strcpy (f.groundtruth,"/scratch/04596/tg838951/sift_groundtruth.ivecs");
 			v.ids_gnd.n=10000;
 			v.ids_gnd.d=100;
 			ids_gnd= ivec_new (v.ids_gnd.n*v.ids_gnd.d);
 		}
 		else if(strcmp(dataset, "siftbig")==0 ){
-			strcpy (f.base,"../siftbig/siftbig_base.bvecs");
-			v.base.n=tam;
-			if(tam==1000000){
-				strcpy (f.groundtruth,"../siftbig/siftbig_groundtruth_1M.ivecs");
+			if(tam==200000000){
+				strcpy (f.groundtruth,"/scratch/04596/tg838951/siftbig_groundtruth_200M.ivecs");
 			}
-			else if(tam==2000000){
-				strcpy (f.groundtruth,"../siftbig/siftbig_groundtruth_2M.ivecs");
-			}
-			else if(tam==5000000){
-				strcpy (f.groundtruth,"../siftbig/siftbig_groundtruth_5M.ivecs");
-			}
-			else if(tam==10000000){
-				strcpy (f.groundtruth,"../siftbig/siftbig_groundtruth_10M.ivecs");
-			}
-			else if(tam==20000000){
-				strcpy (f.groundtruth,"../siftbig/siftbig_groundtruth_20M.ivecs");
+			else if(tam==500000000){
+				strcpy (f.groundtruth,"/scratch/04596/tg838951/siftbig_groundtruth_500M.ivecs");
 			}
 			else if(tam==1000000000){
-				strcpy (f.groundtruth,"../siftbig/siftbig_groundtruth_1B.ivecs");
+				strcpy (f.groundtruth,"/scratch/04596/tg838951/siftbig_groundtruth_1B.ivecs");
 			}
 			else{
-				strcpy (f.groundtruth,"../siftbig/siftbig_groundtruth_1M.ivecs");
+				strcpy (f.groundtruth,"/scratch/04596/tg838951/siftbig_groundtruth_100M.ivecs");
 			}
-			v.base.d=128;
-			v.base.mat= fmat_new (v.base.d, v.base.n);
-			strcpy (f.train,"../siftbig/siftbig_learn.bvecs");
-			v.train.n=100000;
+			strcpy (f.train,"/scratch/04596/tg838951/siftbig_learn.bvecs");
+			v.train.n=100000000;
 			v.train.d=128;
 			v.train.mat= fmat_new (v.train.d, v.train.n);
 			v.ids_gnd.n=10000;
@@ -106,32 +84,21 @@ data pq_test_load_vectors(char* dataset, int tam, int my_rank, int num){
 			ids_gnd= ivec_new (v.ids_gnd.n*v.ids_gnd.d);
 		}
 		else if(strcmp(dataset, "gist")==0){
-			strcpy (f.base,"../gist/gist_base.fvecs");
-			v.base.n=1000000;
-			v.base.d=960;
-			v.base.mat= fmat_new (v.base.d, v.base.n);
-			strcpy (f.train,"../gist/gist_learn.fvecs");
+			strcpy (f.train,"/scratch/04596/tg838951/gist_learn.fvecs");
 			v.train.n=500000;
 			v.train.d=960;
 			v.train.mat= fmat_new (v.train.d, v.train.n);
-			strcpy (f.groundtruth,"../gist/gist_groundtruth.ivecs");
+			strcpy (f.groundtruth,"/scratch/04596/tg838951/gist_groundtruth.ivecs");
 			v.ids_gnd.n=1000;
 			v.ids_gnd.d=100;
 			ids_gnd= ivec_new (v.ids_gnd.n*v.ids_gnd.d);
 		}
-		if(num>1){
-			strtam = strlen (f.base);
-			f.base[strtam]=my_rank+48;
-			f.base[strtam+1]='\0';
-		}
 
 		if(strcmp(dataset, "siftbig")!=0){
-			fvecs_read (f.base, v.base.d, v.base.n, v.base.mat);
 			fvecs_read (f.train, v.train.d, v.train.n, v.train.mat);
 			ivecs_read (f.groundtruth, v.ids_gnd.d , v.ids_gnd.n, ids_gnd);
 		}
 		else{
-			b2fvecs_read (f.base, v.base.d, v.base.n, v.base.mat);
 			b2fvecs_read (f.train, v.train.d, v.train.n, v.train.mat);
 			ivecs_read (f.groundtruth, v.ids_gnd.d , v.ids_gnd.n, ids_gnd);
 		}
@@ -148,7 +115,6 @@ data pq_test_load_vectors(char* dataset, int tam, int my_rank, int num){
 mat pq_test_load_query(char* dataset){
 
 	mat vquery;
-	int *ids_gnd;
 
 	if(strcmp(dataset, "random")==0){
 
@@ -165,28 +131,28 @@ mat pq_test_load_query(char* dataset){
 	else {
 		char *fquery;
 
-		fquery= (char*) malloc(sizeof(char)*40);
+		fquery= (char*) malloc(sizeof(char)*51);
 
 		if(strcmp(dataset, "siftsmall")==0){
-			strcpy (fquery,"../siftsmall/siftsmall_query.fvecs");
+			strcpy (fquery,"/scratch/04596/tg838951/siftsmall_query.fvecs");
 			vquery.n=100;
 			vquery.d=128;
 			vquery.mat= fmat_new (vquery.d, vquery.n);
 		}
 		else if(strcmp(dataset, "sift")==0){
-			strcpy (fquery,"../sift/sift_query.fvecs");
+			strcpy (fquery,"/scratch/04596/tg838951/sift_query.fvecs");
 			vquery.n=10000;
 			vquery.d=128;
 			vquery.mat= fmat_new (vquery.d, vquery.n);
 		}
 		else if(strcmp(dataset, "siftbig")==0){
-			strcpy (fquery,"../siftbig/siftbig_query.bvecs");
+			strcpy (fquery,"/scratch/04596/tg838951/siftbig_query.bvecs");
 			vquery.n=10000;
 			vquery.d=128;
 			vquery.mat= fmat_new (vquery.d, vquery.n);
 		}
 		else if(strcmp(dataset, "gist")==0){
-			strcpy (fquery,"../gist/gist_query.fvecs");
+			strcpy (fquery,"/scratch/04596/tg838951/gist_query.fvecs");
 			vquery.n=1000;
 			vquery.d=960;
 			vquery.mat= fmat_new (vquery.d, vquery.n);
@@ -199,6 +165,73 @@ mat pq_test_load_query(char* dataset){
 		}
 	}
 	return vquery;
+}
+
+mat pq_test_load_base(char* dataset, int tam, int my_rank, int num){
+
+	mat vbase;
+
+	if(strcmp(dataset, "random")==0){
+
+		vbase.n=1000000;
+		vbase.d=16;
+		vbase.mat= fmat_new (vbase.d, vbase.n);
+
+		srand (time(NULL));
+
+		///inicializa com valores aleatórios
+
+		load_random(vbase.mat, vbase.n, vbase.d);
+	}
+	else {
+		int strtam;
+		char *fbase;
+
+		fbase= (char*) malloc(sizeof(char)*51);
+
+		if(strcmp(dataset, "siftsmall")==0){
+			strcpy (fbase,"/scratch/04596/tg838951/siftsmall_base.fvecs");
+			vbase.n=10000;
+			vbase.d=128;
+			vbase.mat= fmat_new (vbase.d, vbase.n);
+		}
+		else if(strcmp(dataset, "sift")==0){
+			strcpy (fbase,"/scratch/04596/tg838951/sift_base.fvecs");
+			vbase.n=1000000;
+			vbase.d=128;
+			vbase.mat= fmat_new (vbase.d, vbase.n);
+		}
+		else if(strcmp(dataset, "siftbig")==0 ){
+			strcpy (fbase,"/scratch/04596/tg838951/siftbig_base.bvecs");
+			if(num==my_rank+1){
+				vbase.n=tam-(num-1)*100000000;
+			}
+			else{
+				vbase.n=100000000;
+			}
+			vbase.d=128;
+			vbase.mat= fmat_new (vbase.d, vbase.n);
+		}
+		else if(strcmp(dataset, "gist")==0){
+			strcpy (fbase,"/scratch/04596/tg838951/gist_base.fvecs");
+			vbase.n=1000000;
+			vbase.d=960;
+			vbase.mat= fmat_new (vbase.d, vbase.n);
+		}
+		if(num>1){
+			strtam = strlen (fbase);
+			fbase[strtam]=my_rank+48;
+			fbase[strtam+1]='\0';
+		}
+
+		if(strcmp(dataset, "siftbig")!=0){
+			fvecs_read (fbase, vbase.d, vbase.n, vbase.mat);
+		}
+		else{
+			b2fvecs_read (fbase, vbase.d, vbase.n, vbase.mat);
+		}
+	}
+	return vbase;
 }
 
 void load_random (float *v, int n, int d){
