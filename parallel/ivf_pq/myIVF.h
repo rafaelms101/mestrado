@@ -38,6 +38,7 @@ typedef struct ivf_threads{
 	ivfpq_t ivfpq;
 	int thread;
 	int k;
+	int residuald;
 }ivf_threads_t;
 
 // void my_k_min(dis_t q, int ktmp, float *dis, int *ids);

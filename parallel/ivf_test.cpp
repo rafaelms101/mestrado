@@ -32,9 +32,14 @@ int main(int argv, char **argc){
 
 	int last_assign,
 		last_search,
-		last_aggregator;
+		last_aggregator,
+		provided;
 
-	MPI_Init(NULL, NULL);
+	MPI_Init_thread(NULL, NULL, MPI_THREAD_SERIALIZED, &provided);
+	if (provided < MPI_THREAD_SERIALIZED){
+   		printf("Error: the MPI library doesn't provide the required thread level\n");
+   		MPI_Abort(MPI_COMM_WORLD, 0);
+	}
 	MPI_Comm_size(MPI_COMM_WORLD, &comm_sz);
 	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 

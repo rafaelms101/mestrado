@@ -6,11 +6,11 @@ CC=gcc
 CFLAGS=-fPIC -Wall -g -O3 
 LDFLAGS=-g -fPIC 
 
-PYTHONCFLAGS = -I/usr/include/python2.7
+PYTHONCFLAGS = -I/usr/include/python2.x
 
 YAELCONF=linux64
-YAELCFLAGS=-I/home/andreff/pqnns-unb-off/parallel2
-YAELLDFLAGS=-L/home/andreff/pqnns-unb-off/parallel2/yael_needs -Wl,-rpath,/home/andreff/pqnns-unb-off/parallel2/yael_needs -lyael
+YAELCFLAGS=-I/home/andreff/Programas/pqnns-unb/parallel2
+YAELLDFLAGS=-L/home/andreff/Programas/pqnns-unb/parallel2/yael_needs -Wl,-rpath,/home/andreff/Programas/pqnns-unb/parallel2/yael_needs -lyael
 
 
 SWIG=swig -python

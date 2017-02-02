@@ -4,7 +4,7 @@
 #include <pthread.h>
 extern "C"{
 	#include "../yael_needs/nn.h"
-}
+}	
 #include "../pq-utils/pq_new.h"
 #include "../pq-utils/pq_test_load_vectors.h"
 #include "../pq-utils/pq_test_compute_stats.h"

@@ -2,14 +2,16 @@
 #define ASSIGN 2
 #define SEARCH 3
 #define AGGREGATOR 4
-#define THREAD 5
+#define FINISH 5
+#define THREAD 6
+
+#include "ivf_parallel.h"
 
 static int threads;
 static int last_assign;
 static int last_search;
 static int last_aggregator;
-
-#include "ivf_parallel.h"
+pthread_mutex_t lock;
 
 void set_last (int comm_sz, int num_threads){
 
@@ -111,10 +113,8 @@ void parallel_training (char *dataset, int coarsek, int nsq, int tam){
 void parallel_assign (char *dataset, int w){
 	mat vquery, residual;
 	ivfpq_t ivfpq;
-	int *coaidx, dest, *dest_count, rest;
+	int *coaidx, dest, rest,id;
 	float *coadis;
-
-	dest_count = (int*)calloc(last_search-last_assign,sizeof(int));
 
 	vquery = pq_test_load_query(dataset);
 
@@ -137,26 +137,31 @@ void parallel_assign (char *dataset, int w){
 		MPI_Send(&vquery.n, 1, MPI_INT, i, ASSIGN, MPI_COMM_WORLD);
 		MPI_Send(&coaidx[0], vquery.n*w, MPI_INT, i, ASSIGN, MPI_COMM_WORLD);
 	}
+	for(int i=last_assign+1; i<=last_search; i++){
+		MPI_Ssend(&residual.d, 1, MPI_INT, i, ASSIGN, MPI_COMM_WORLD);
+	}
 	double start;
 
 	start=MPI_Wtime();
 	for(int i=0;i<vquery.n; i++){
 		for(int j=0;j<w;j++){
+			id=i*w+j;
 
 			bsxfunMINUS(residual, vquery, ivfpq.coa_centroids, i, &coaidx[i*w+j], 1);
-			rest= coaidx[i*w+j]%(last_search-last_assign);
-			dest_count[rest] = (dest_count[rest]+1)%threads;
+			rest= coaidx[id]%(last_search-last_assign);
+			
 			dest= rest+last_assign+1;
-			MPI_Send(&coaidx[i*w+j], 1, MPI_INT, dest, THREAD+rest*threads+dest_count[rest], MPI_COMM_WORLD);
-			MPI_Send(&residual.d, 1, MPI_INT, dest, THREAD+rest*threads+dest_count[rest], MPI_COMM_WORLD);
-			MPI_Send(&residual.mat[0], residual.n*residual.d, MPI_FLOAT, dest, THREAD+rest*threads+dest_count[rest], MPI_COMM_WORLD);
+
+			MPI_Ssend(&coaidx[id], 1, MPI_INT, dest, THREAD, MPI_COMM_WORLD);
+			MPI_Ssend(&id, 1, MPI_INT, dest, THREAD, MPI_COMM_WORLD);
+			MPI_Ssend(&residual.mat[0], residual.d, MPI_FLOAT, dest, THREAD, MPI_COMM_WORLD);
 		}
 	}
 
 	char finish='s';
 	for(int i=last_assign+1; i<=last_search; i++){
 		for(int j=0; j<threads; j++){
-			MPI_Send(&finish, 1, MPI_CHAR, i, THREAD+(last_search-last_assign)*threads+j, MPI_COMM_WORLD);
+			MPI_Send(&finish, 1, MPI_CHAR, i, FINISH, MPI_COMM_WORLD);
 		}
 	}
 
@@ -174,7 +179,7 @@ void parallel_search (int nsq, int my_rank, int k, char* arquivo){
 
 	ivf_threads_t ivf_threads, *ivf_threads_v;
 	pthread_t *thread_handles;
-	int tam, l=2, centroid_idx, rank_source, entrou = 0, pontos = 0, thread;
+	int tam, thread;
 
 	ivf_threads.k = k;
 
@@ -196,7 +201,7 @@ void parallel_search (int nsq, int my_rank, int k, char* arquivo){
 		ivf_threads.ivf[i].codes.mat = (int*)malloc(sizeof(int)*ivf_threads.ivf[i].codes.n*ivf_threads.ivf[i].codes.d);
 		MPI_Recv(&ivf_threads.ivf[i].codes.mat[0], ivf_threads.ivf[i].codes.n*ivf_threads.ivf[i].codes.d, MPI_INT, 0, TRAINER, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	}
-
+	MPI_Recv(&ivf_threads.residuald, 1, MPI_INT, last_assign, ASSIGN, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	ivf_threads_v = (ivf_threads_t*)malloc(sizeof(ivf_threads_t)*threads);
 	thread_handles = (pthread_t*)malloc(sizeof(pthread_t)*threads);
 	for (thread =0; thread<threads; thread++){
@@ -204,17 +209,18 @@ void parallel_search (int nsq, int my_rank, int k, char* arquivo){
 		ivf_threads_v[thread].k = k;
 		ivf_threads_v[thread].ivf = ivf_threads.ivf;
 		ivf_threads_v[thread].ivfpq = ivf_threads.ivfpq;
+		ivf_threads_v[thread].residuald = ivf_threads.residuald;
 		pthread_create(&thread_handles[thread], NULL, search_threads, (void*) &ivf_threads_v[thread]);
 	}
 	for(thread =0; thread<threads; thread++){
-		pthread_join (thread_handles[thread], NULL);
+		pthread_join(thread_handles[thread], NULL);	
 	}
-	
 	
 	free(thread_handles);
 	free(ivf_threads.ivfpq.pq.centroids);
 	free(ivf_threads.ivfpq.coa_centroids);
 	free(ivf_threads.ivf);
+	free(ivf_threads_v);
 }
 
 void parallel_aggregator(int k, int w, int my_rank, char *arquivo){
@@ -255,15 +261,15 @@ void parallel_aggregator(int k, int w, int my_rank, char *arquivo){
 			source=rest+last_assign+1;
 			dest_count[rest] = (dest_count[rest]+1)%threads;
 			
-			MPI_Recv(&tam, 1, MPI_INT, source, THREAD+rest*threads+dest_count[rest], MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+			MPI_Recv(&tam, 1, MPI_INT, source, THREAD+i*w+j+1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 			q.dis.n += tam;
 			q.idx.n += tam;
 			q.dis.mat = (float*)realloc(q.dis.mat, sizeof(float)*(q.dis.n));
 			q.idx.mat = (int*)realloc(q.idx.mat, sizeof(int)*(q.idx.n));
 			
-			MPI_Recv(&q.idx.mat[0]+nextidx, tam, MPI_INT, source, THREAD+rest*threads+dest_count[rest], MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+			MPI_Recv(&q.idx.mat[0]+nextidx, tam, MPI_INT, source, THREAD+i*w+j+1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 			
-			MPI_Recv(&q.dis.mat[0]+nextdis, tam, MPI_FLOAT, source, THREAD+rest*threads+dest_count[rest], MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+			MPI_Recv(&q.dis.mat[0]+nextdis, tam, MPI_FLOAT, source, THREAD+i*w+j+1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 			
 			nextdis+=tam;
 			nextidx+=tam;
@@ -276,9 +282,6 @@ void parallel_aggregator(int k, int w, int my_rank, char *arquivo){
 	
 		memcpy(dis + l*k, dis2, sizeof(float)*k);
 		memcpy(ids + l*k, ids2, sizeof(float)*k);
-		/*for(int b = 0; b < k ; b++){
-			ids[l*k + b] = qidx.mat[ids2[b]-1];
-		}*/
 
 		l++;
 	}
@@ -314,7 +317,7 @@ void parallel_aggregator(int k, int w, int my_rank, char *arquivo){
 void *search_threads(void *ivf_threads_recv){
 	ivf_threads_t *ivf_threads;
 	char finish;
-	int coaidx, flag, flag2, centroid_idx, *ids, ktmp,my_rank, rest;
+	int coaidx, id, flag, flag2, centroid_idx, *ids, ktmp,my_rank, rest;
 	float *dis;
 	dis_t q;
 	mat residual;
@@ -329,10 +332,15 @@ void *search_threads(void *ivf_threads_recv){
 
 	finish = 'n';
 
-	MPI_Irecv(&finish, 1, MPI_CHAR, last_assign, THREAD+(last_search-last_assign)*threads+ivf_threads->thread, MPI_COMM_WORLD, &request2);
+	residual.d = ivf_threads->residuald;
+	residual.n=1;
+
+	residual.mat=(float*)malloc(sizeof(float)*residual.d);
+
+	MPI_Irecv(&finish, 1, MPI_CHAR, last_assign, FINISH, MPI_COMM_WORLD, &request2);
 	while(1){
-		
-		MPI_Irecv(&coaidx, 1, MPI_INT, last_assign, THREAD+rest*threads+ivf_threads->thread, MPI_COMM_WORLD, &request);
+		pthread_mutex_lock(&lock);
+		MPI_Irecv(&coaidx, 1, MPI_INT, last_assign, THREAD, MPI_COMM_WORLD, &request);
 		do{
 			
 			MPI_Test(&request, &flag, &status);
@@ -340,14 +348,14 @@ void *search_threads(void *ivf_threads_recv){
 			MPI_Test(&request2, &flag2, &status2);
 			
 		}while(flag !=1 && flag2 !=1);
-		if (finish=='s' && flag==0)break;
-		
-		MPI_Recv(&residual.d, 1, MPI_INT, last_assign, THREAD+rest*threads+ivf_threads->thread, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		
-		residual.mat=(float*)malloc(sizeof(float)*residual.d);
-		
-		MPI_Recv(&residual.mat[0], residual.d, MPI_FLOAT, last_assign, THREAD+rest*threads+ivf_threads->thread, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		
+
+		if (finish=='s' && flag==0){
+			pthread_mutex_unlock(&lock);
+			break;
+		}
+		MPI_Recv(&id, 1, MPI_INT, last_assign, THREAD, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		MPI_Recv(&residual.mat[0], residual.d, MPI_FLOAT, last_assign, THREAD, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		pthread_mutex_unlock(&lock);
 		centroid_idx = coaidx/(last_search-last_assign);
 		
 
@@ -362,17 +370,15 @@ void *search_threads(void *ivf_threads_recv){
 		
 		my_k_min(q, ktmp, dis, ids);
 		
-		MPI_Send(&ktmp, 1, MPI_INT, last_search+1+(coaidx%(last_aggregator-last_search)), THREAD+rest*threads+ivf_threads->thread, MPI_COMM_WORLD);
+		MPI_Send(&ktmp, 1, MPI_INT, last_search+1+(coaidx%(last_aggregator-last_search)), THREAD+id+1, MPI_COMM_WORLD);
 		
-		MPI_Send(&ids[0], ktmp, MPI_INT, last_search+1+(coaidx%(last_aggregator-last_search)), THREAD+rest*threads+ivf_threads->thread, MPI_COMM_WORLD);
+		MPI_Send(&ids[0], ktmp, MPI_INT, last_search+1+(coaidx%(last_aggregator-last_search)), THREAD+id+1, MPI_COMM_WORLD);
 		
-		MPI_Send(&dis[0], ktmp, MPI_FLOAT, last_search+1+(coaidx%(last_aggregator-last_search)), THREAD+rest*threads+ivf_threads->thread, MPI_COMM_WORLD);
-		
+		MPI_Send(&dis[0], ktmp, MPI_FLOAT, last_search+1+(coaidx%(last_aggregator-last_search)), THREAD+id+1, MPI_COMM_WORLD);
 
-		free(residual.mat);
 		free(dis);
 		free(ids);
 	}
-	
-	pthread_exit (NULL);
+	free(residual.mat);
+	pthread_exit(NULL);
 }
