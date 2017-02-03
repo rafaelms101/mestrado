@@ -52,8 +52,6 @@ void parallel_training (char *dataset, int coarsek, int nsq, int tam){
 		ivfpq.coa_centroids=(float*)malloc(sizeof(float)*ivfpq.coa_centroidsd*ivfpq.coa_centroidsn);
 		MPI_Recv(&ivfpq.coa_centroids[0], ivfpq.coa_centroidsn*ivfpq.coa_centroidsd, MPI_FLOAT, 0, TRAINER, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	}
-
-	v.base = pq_test_load_base(dataset, tam, my_rank, last_assign);
 	//Cria a lista invertida
 	ivf = ivfpq_assign(ivfpq, v.base);
 
