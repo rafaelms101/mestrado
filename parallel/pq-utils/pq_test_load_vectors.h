@@ -43,6 +43,7 @@ typedef struct{
 
 data pq_test_load_vectors(char * dataset, int tam, int my_rank, int num);
 mat pq_test_load_query(char* dataset);
+mat pq_test_load_base(char* dataset, int tam, int my_rank, int num);
 void load_random (float *v, int n, int d);
 int ivecs_read (const char *fname, int d, int n, int *a);
 
