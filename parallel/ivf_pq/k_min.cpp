@@ -154,17 +154,14 @@ void k_min_stack (mat disquerybase, int k, float *dis, int *ids){
 }
 
 void my_k_min(dis_t q, int ktmp, float *dis, int *ids){
-	int f, *qidx, j=1;
-	float *qdis;
+	int f, qidx[q.idx.n], j=1;
+	float qdis[q.dis.n];
 
 	if (q.dis.n == 0 || ktmp == 0)
     return;
 
-	qdis = (float*)malloc(sizeof(float)*q.dis.n);
-	qidx = (int*)malloc(sizeof(int)*q.idx.n);
-
-	memcpy(qdis, q.dis.mat, sizeof(float)*q.dis.n);
-	memcpy(qidx, q.idx.mat, sizeof(int)*q.idx.n);
+	memcpy(&qdis[0], q.dis.mat, sizeof(float)*q.dis.n);
+	memcpy(&qidx[0], q.idx.mat, sizeof(int)*q.idx.n);
 
 	constroiHeap(q.dis.n, qdis, qidx);
 
@@ -184,9 +181,6 @@ void my_k_min(dis_t q, int ktmp, float *dis, int *ids){
 
         j++;
 	}
-
-	free(qdis);
-	free(qidx);
 
 }
 

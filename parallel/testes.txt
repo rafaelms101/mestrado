@@ -1,1 +1,391 @@
-Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, 
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 1.48442e+12
+Tempo total: 50122.4 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 1.48442e+12
+Tempo total: 152703 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 1.48467e+12
+Tempo total: 107034 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 1.48467e+12
+Tempo total: 81860.1 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 1.48519e+12
+Tempo total: 92480.3 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 1.4852e+12
+Tempo total: 99858.7 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 1.4852e+12
+Tempo total: 98455 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 1.4852e+12
+Tempo total: 117778 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 1.4852e+12
+Tempo total: 237017 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 1.4852e+12
+Tempo total: 167618 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 1.4852e+12
+Tempo total: 176172 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 1.4852e+12
+Tempo total: 186963 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 1.4852e+12
+Tempo total: 217648 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 1.4852e+12
+Tempo total: 204680 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 1.48521e+12
+Tempo total: 105998 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 1.48521e+12
+Tempo total: 262200 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 1.48521e+12
+Tempo total: 237967 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 1.48521e+12
+Tempo total: 238245 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 1.48522e+12
+Tempo total: 241167 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 1.48522e+12
+Tempo total: 234693 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 1983.62
+Tempo total: 225067 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 1609.47
+Tempo total: 244907 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 2076.68
+Tempo total: 244886 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 1992.39
+Tempo total: 201814 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 1596.76
+Tempo total: 236638 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 1975.05
+Tempo total: 241871 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 1227.66
+Tempo total: 130329 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 1528.86
+Tempo total: 148789 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 299.847
+Tempo total: 27902.6 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 559.925
+Tempo total: 28788.9 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 280.79
+Tempo total: 23652 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 340.524
+Tempo total: 22626.8 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 395.769
+Tempo total: 24234.6 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 371.456
+Tempo total: 23228.6 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 438.286
+Tempo total: 22906.3 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 449.486
+Tempo total: 23156 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 331.448
+Tempo total: 26978.2 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 460.424
+Tempo total: 23165.3 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 432.804
+Tempo total: 24144.3 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 324.284
+Tempo total: 24725.6 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 376.797
+Tempo total: 23881.1 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 337.853
+Tempo total: 23817.3 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 387.453
+Tempo total: 23686.3 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 376.268
+Tempo total: 23194 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 390.757
+Tempo total: 23516.9 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 255.483
+Tempo total: 22813.9 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 279.606
+Tempo total: 22965.8 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 354.806
+Tempo total: 29904.5 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 479.197
+Tempo total: 24273.1 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 307.993
+Tempo total: 22748.4 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 316.828
+Tempo total: 24672.6 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 312.203
+Tempo total: 26694.1 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 370.359
+Tempo total: 22729 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 413.69
+Tempo total: 22559.6 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 380.749
+Tempo total: 38754.2 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 595.992
+Tempo total: 45808 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 447.837
+Tempo total: 41511.5 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 236.988
+Tempo total: 33385.4 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 259.905
+Tempo total: 41778.6 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 448.213
+Tempo total: 45056.4 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 271.058
+Tempo total: 38634.1 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 219.916
+Tempo total: 46001.3 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 212.768
+Tempo total: 49166.6 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 313.676
+Tempo total: 49869.1 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 313.571
+Tempo total: 43593.7 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 340.817
+Tempo total: 39635.5 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 169.988
+Tempo total: 39056 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 340.544
+Tempo total: 40407.6 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 209.788
+Tempo total: 40347.6 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 241.004
+Tempo total: 48529.7 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 334.056
+Tempo total: 49728.9 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 419.127
+Tempo total: 39956.6 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 46924.6
+Tempo total: 90645.1 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 1108.8
+Tempo total: 54446.6 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 4668.27
+Tempo total: 50019 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 5834.49
+Tempo total: 49873.9 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 84.3648
+Tempo total: 28617.4 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 165.213
+Tempo total: 30308.7 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 471.794
+Tempo total: 40659.9 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 80.8416
+Tempo total: 45509.3 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 46.8606
+Tempo total: 52938.1 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 46.9993
+Tempo total: 166484 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 35.9795
+Tempo total: 66093.5 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 40.7947
+Tempo total: 108912 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 47.7454
+Tempo total: 59832.4 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 48.3943
+Tempo total: 50631.4 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 57.3755
+Tempo total: 48563.6 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 52.697
+Tempo total: 49079.5 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 47.6877
+Tempo total: 45849 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 106.661
+Tempo total: 56836.8 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 53.4602
+Tempo total: 49527.5 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 60.7014
+Tempo total: 45983.8 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 63.6384
+Tempo total: 77670.7 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 39.9807
+Tempo total: 62329.1 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 48.2844
+Tempo total: 47591.3 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 38.1555
+Tempo total: 45326.7 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 114.428
+Tempo total: 45605.3 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 67.1643
+Tempo total: 66116.1 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 3436.13
+Tempo total: 202889 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 4544.41
+Tempo total: 213059 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 39.2788
+Tempo total: 46359.7 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 4941.57
+Tempo total: 247187 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 3740
+Tempo total: 225550 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 4112.2
+Tempo total: 249436 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 36.314
+Tempo total: 111080 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 3032
+Tempo total: 243208 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 47.8467
+Tempo total: 47751.1 milissegundos
+
+Teste com a base sift, coarsek=256, w=4, Teste com a base sift, coarsek=256, w=4, Teste com a base sift, coarsek=256, w=4, Tempo de busca: 16748
+Tempo total: 294631 milissegundos
+
+Teste com a base sift, coarsek=256, w=4, Teste com a base sift, coarsek=256, w=4, Teste com a base sift, coarsek=256, w=4, Teste com a base sift, coarsek=256, w=4, Teste com a base sift, coarsek=256, w=4, Teste com a base sift, coarsek=256, w=4, Teste com a base sift, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 46.5483
+Tempo total: 84003.1 milissegundos
+
+Teste com a base sift, coarsek=256, w=4, Teste com a base sift, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 141.703
+Tempo total: 202206 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 50.4565
+Tempo total: 181261 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 95.3137
+Tempo total: 47133.8 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 70.1526
+Tempo total: 48510.5 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 64.7996
+Tempo total: 45630.8 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 192.719
+Tempo total: 113099 milissegundos
+
+Teste com a base sift, coarsek=256, w=4, Teste com a base sift, coarsek=256, w=4, Tempo de busca: 47933
+Teste com a base sift, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 88.5361
+Tempo total: 79597.6 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 133.101
+Tempo total: 111237 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 168.85
+Tempo total: 48601.4 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 169.657
+Tempo total: 47934.5 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 205.997
+Tempo total: 80627.7 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 52.012
+Tempo total: 47310.5 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 205.216
+Tempo total: 50225.1 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 117.038
+Tempo total: 47358.8 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 76.2798
+Tempo total: 64066.4 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 173.441
+Tempo total: 61064.9 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 116.609
+Tempo total: 51542.6 milissegundos
+
+Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 66.2239
+Tempo total: 137016 milissegundos
+
+Teste com a base sift, coarsek=256, w=4, Teste com a base sift, coarsek=256, w=4, Teste com a base sift, coarsek=256, w=4, Teste com a base sift, coarsek=256, w=4, Teste com a base sift, coarsek=256, w=4, Teste com a base sift, coarsek=256, w=4, Teste com a base sift, coarsek=256, w=4, Teste com a base sift, coarsek=256, w=4, Teste com a base sift, coarsek=256, w=4, Teste com a base sift, coarsek=256, w=4, Teste com a base sift, coarsek=256, w=4, Teste com a base sift, coarsek=256, w=4, Teste com a base sift, coarsek=256, w=4, Teste com a base sift, coarsek=256, w=4, Teste com a base sift, coarsek=256, w=4, Teste com a base siftsmall, coarsek=256, w=4, Tempo de busca: 86.6304
+Tempo total: 220898 milissegundos
+
+Teste com a base sift, coarsek=256, w=4, Tempo de busca: 29093.3
+Tempo total: 1.1147e+06 milissegundos
+
+Teste com a base sift, coarsek=256, w=4, Tempo de busca: 29581.1
+Tempo total: 579834 milissegundos
+

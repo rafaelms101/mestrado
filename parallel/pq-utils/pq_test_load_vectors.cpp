@@ -43,21 +43,21 @@ data pq_test_load_vectors(char* dataset, int tam, int my_rank, int num){
 		f.groundtruth= (char*) malloc(sizeof(char)*51);
 
 		if(strcmp(dataset, "siftsmall")==0){
-			strcpy (f.train,"/scratch/04596/tg838951/siftsmall_learn.fvecs");
+			strcpy (f.train,"../siftsmall/siftsmall_learn.fvecs");
 			v.train.n=25000;
 			v.train.d=128;
 			v.train.mat= fmat_new (v.train.d, v.train.n);
-			strcpy (f.groundtruth,"/scratch/04596/tg838951/siftsmall_groundtruth.ivecs");
+			strcpy (f.groundtruth,"../siftsmall/siftsmall_groundtruth.ivecs");
 			v.ids_gnd.n=100;
 			v.ids_gnd.d=100;
 			ids_gnd= ivec_new (v.ids_gnd.n*v.ids_gnd.d);
 		}
 		else if(strcmp(dataset, "sift")==0){
-			strcpy (f.train,"/scratch/04596/tg838951/sift_learn.fvecs");
+			strcpy (f.train,"../sift/sift_learn.fvecs");
 			v.train.n=100000;
 			v.train.d=128;
 			v.train.mat= fmat_new (v.train.d, v.train.n);
-			strcpy (f.groundtruth,"/scratch/04596/tg838951/sift_groundtruth.ivecs");
+			strcpy (f.groundtruth,"../sift/sift_groundtruth.ivecs");
 			v.ids_gnd.n=10000;
 			v.ids_gnd.d=100;
 			ids_gnd= ivec_new (v.ids_gnd.n*v.ids_gnd.d);
@@ -134,13 +134,13 @@ mat pq_test_load_query(char* dataset){
 		fquery= (char*) malloc(sizeof(char)*51);
 
 		if(strcmp(dataset, "siftsmall")==0){
-			strcpy (fquery,"/scratch/04596/tg838951/siftsmall_query.fvecs");
+			strcpy (fquery,"../siftsmall/siftsmall_query.fvecs");
 			vquery.n=100;
 			vquery.d=128;
 			vquery.mat= fmat_new (vquery.d, vquery.n);
 		}
 		else if(strcmp(dataset, "sift")==0){
-			strcpy (fquery,"/scratch/04596/tg838951/sift_query.fvecs");
+			strcpy (fquery,"../sift/sift_query.fvecs");
 			vquery.n=10000;
 			vquery.d=128;
 			vquery.mat= fmat_new (vquery.d, vquery.n);
@@ -190,13 +190,13 @@ mat pq_test_load_base(char* dataset, int tam, int my_rank, int num){
 		fbase= (char*) malloc(sizeof(char)*51);
 
 		if(strcmp(dataset, "siftsmall")==0){
-			strcpy (fbase,"/scratch/04596/tg838951/siftsmall_base.fvecs");
+			strcpy (fbase,"../siftsmall/siftsmall_base.fvecs");
 			vbase.n=10000;
 			vbase.d=128;
 			vbase.mat= fmat_new (vbase.d, vbase.n);
 		}
 		else if(strcmp(dataset, "sift")==0){
-			strcpy (fbase,"/scratch/04596/tg838951/sift_base.fvecs");
+			strcpy (fbase,"../sift/sift_base.fvecs");
 			vbase.n=1000000;
 			vbase.d=128;
 			vbase.mat= fmat_new (vbase.d, vbase.n);
