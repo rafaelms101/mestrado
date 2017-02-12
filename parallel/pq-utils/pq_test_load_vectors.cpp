@@ -37,7 +37,6 @@ data pq_test_load_vectors(char* dataset, int tam, int my_rank, int num){
 	}
 	else {
 		namefile f;
-		int strtam;
 
 		f.train= (char*) malloc(sizeof(char)*51);
 		f.groundtruth= (char*) malloc(sizeof(char)*51);
@@ -184,7 +183,6 @@ mat pq_test_load_base(char* dataset, int tam, int my_rank, int num){
 		load_random(vbase.mat, vbase.n, vbase.d);
 	}
 	else {
-		int strtam;
 		char *fbase;
 
 		fbase= (char*) malloc(sizeof(char)*51);
@@ -219,7 +217,7 @@ mat pq_test_load_base(char* dataset, int tam, int my_rank, int num){
 			vbase.mat= fmat_new (vbase.d, vbase.n);
 		}
 		if(num>1){
-			strtam = strlen (fbase);
+			int strtam = strlen (fbase);
 			fbase[strtam]=my_rank+48;
 			fbase[strtam+1]='\0';
 		}

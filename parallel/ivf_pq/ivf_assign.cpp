@@ -30,8 +30,10 @@ ivf_t* ivfpq_assign(ivfpq_t ivfpq, mat vbase){
 		memcpy(codebook.mat+i*codebook.d, codeaux+codebook.d*ids[i], sizeof(int)*codebook.d);
 	}
 
-	int pos = 0, nextpos;
+	int pos = 0;
 	for (int i = 0; i < ivfpq.coarsek; i++) {
+		int nextpos;
+		
 		ivf[i].ids = (int*)malloc(sizeof(int)*hist[i]);
 		ivf[i].idstam = hist[i];
 		ivf[i].codes.mat = (int*)malloc(sizeof(int)*hist[i]*ivfpq.pq.nsq);
@@ -49,6 +51,7 @@ ivf_t* ivfpq_assign(ivfpq_t ivfpq, mat vbase){
 
 	free(hist);
 	free(codebook.mat);
+	free(codeaux);
 	free(ids);
 	free(assign);
 	free(dis);

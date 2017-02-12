@@ -42,9 +42,6 @@ void check_new();
  * vin : vetor a ser copiado
  *  ...
  */
-void fvec_concat(float* vinout, int vinout_n, float* vin, int vin_n);
-
-void ivec_concat(int* vinout, int vinout_n, int* vin, int vin_n);
 
 void copySubVectors(float *vout, mat vin, int ds, int n1row, int n1col, int n2col);
 

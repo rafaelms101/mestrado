@@ -154,7 +154,7 @@ void k_min_stack (mat disquerybase, int k, float *dis, int *ids){
 }
 
 void my_k_min(dis_t q, int ktmp, float *dis, int *ids){
-	int f, qidx[q.idx.n], j=1;
+	int qidx[q.idx.n], j=1;
 	float qdis[q.dis.n];
 
 	if (q.dis.n == 0 || ktmp == 0)

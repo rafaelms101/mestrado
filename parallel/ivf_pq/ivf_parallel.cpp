@@ -25,7 +25,7 @@ void parallel_training (char *dataset, int coarsek, int nsq, int tam){
 	data v;
 	ivfpq_t ivfpq;
 	ivf_t *ivf;
-	int dest, my_rank;
+	int my_rank;
 
 	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
@@ -71,12 +71,11 @@ void parallel_training (char *dataset, int coarsek, int nsq, int tam){
 	}
 	else{
 		ivf_t ivf2;
-		int idstam, codesn;
 		
 		//Envia trechos da lista invertida assinalados a cada processo de busca
 		for(int i=0; i<ivfpq.coarsek; i++){
-			idstam = ivf[i].idstam;
-			codesn = ivf[i].codes.n;
+			int idstam = ivf[i].idstam;
+			int codesn = ivf[i].codes.n;
 			
 			for(int j=1; j<last_assign; j++){
 				MPI_Recv(&ivf2, sizeof(ivf_t), MPI_BYTE, j, TRAINER, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -98,7 +97,7 @@ void parallel_training (char *dataset, int coarsek, int nsq, int tam){
 				free(ivf2.ids);
 				free(ivf2.codes.mat);
 			}
-			dest = i%(last_search-last_assign)+last_assign+1;
+			int dest = i%(last_search-last_assign)+last_assign+1;
 			MPI_Send(&ivf[i], sizeof(ivf_t), MPI_BYTE, dest, TRAINER, MPI_COMM_WORLD);
 			MPI_Send(&ivf[i].ids[0], ivf[i].idstam, MPI_INT, dest, TRAINER, MPI_COMM_WORLD);
 			MPI_Send(&ivf[i].codes.mat[0], ivf[i].codes.d*ivf[i].codes.n, MPI_INT, dest, TRAINER, MPI_COMM_WORLD);
@@ -109,6 +108,7 @@ void parallel_training (char *dataset, int coarsek, int nsq, int tam){
 			MPI_Send(&v.ids_gnd.mat[0], v.ids_gnd.d*v.ids_gnd.n, MPI_INT, i, TRAINER, MPI_COMM_WORLD);
 		}
 	}	
+	free(ivf);
 	free(v.ids_gnd.mat);
 }
 
@@ -308,6 +308,7 @@ void parallel_aggregator(int k, int w, int my_rank, char *arquivo){
 	free(ids2);
 	free(coaidx);
 	free(dis);
+	free(part);
 
 	MPI_Recv(&start, 1, MPI_DOUBLE, last_assign, ASSIGN, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
@@ -327,12 +328,13 @@ void parallel_aggregator(int k, int w, int my_rank, char *arquivo){
 	pq_test_compute_stats2(ids, ids_gnd,k);
 
 	free(ids_gnd.mat);
+	free(ids);
 }
 
 void *search_threads(void *ivf_threads_recv){
 	ivf_threads_t *ivf_threads;
 	char finish;
-	int coaidx, id, flag, flag2, centroid_idx, ktmp,my_rank;
+	int coaidx, id, flag, flag2, ktmp,my_rank;
 	dis_t q;
 	mat residual;
 	MPI_Status status, status2;
@@ -372,7 +374,7 @@ void *search_threads(void *ivf_threads_recv){
 		MPI_Recv(&residual.mat[0], residual.d, MPI_FLOAT, last_assign, ASSIGN, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	
 		pthread_mutex_unlock(&lock);
-		centroid_idx = coaidx/(last_search-last_assign);
+		int centroid_idx = coaidx/(last_search-last_assign);
 		
 
 		//Faz a busca no vetor assinalado e envia o resultado ao agregador
@@ -382,6 +384,9 @@ void *search_threads(void *ivf_threads_recv){
 		ktmp = min(q.idx.n, ivf_threads->k);
 		
 		my_k_min(q, ktmp, &dis[0], &ids[0]);
+
+		free(q.dis.mat);
+		free(q.idx.mat);
 		
 		pthread_mutex_lock(&lock);
 		MPI_Send(&id, 1, MPI_INT, last_search+1+(coaidx%(last_aggregator-last_search)), THREAD, MPI_COMM_WORLD);

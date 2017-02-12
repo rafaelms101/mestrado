@@ -59,34 +59,6 @@ void check_new(){
   cout << ":::PQ_NEW OK:::" << endl;
 }
 
-// Função que concatena dois vetores de numeros reais
-
-void fvec_concat(float* vinout, int vinout_n, float* vin, int vin_n){
-	if (vinout == NULL) {
-		vinout = (float*)malloc(sizeof(float)*vin_n);
-		vinout_n = 0;
-		memcpy(vinout + vinout_n, vin, sizeof(float)*vin_n);
-	}
-	else{
-		fvec_resize(vinout, vinout_n + vin_n);
-		memcpy(vinout + vinout_n, vin, sizeof(float)*vin_n);
-	}
-}
-
-// Função que concatena dois vetores de numeros inteiros
-
-void ivec_concat(int* vinout, int vinout_n, int* vin, int vin_n){
-	if (vinout == NULL) {
-		vinout = (int*)malloc(sizeof(int)*vin_n);
-		vinout_n = 0;
-		memcpy(vinout + vinout_n, vin, sizeof(int)*vin_n);
-	}
-	else{
-		ivec_resize(vinout, vinout_n + vin_n);
-		memcpy(vinout + vinout_n, vin, sizeof(int)*vin_n);
-	}
-}
-
 // Função que copia um intervalo de um vetor, criando um subvetor
 // vout : vetor de saída
 // vin : estrutura com o vetor de entrada
