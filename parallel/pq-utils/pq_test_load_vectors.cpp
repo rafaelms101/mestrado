@@ -202,13 +202,13 @@ mat pq_test_load_base(char* dataset, int tam, int my_rank, int num){
 		else if(strcmp(dataset, "siftbig")==0 ){
 			strcpy (fbase,"/scratch/04596/tg838951/siftbig_base.bvecs");
 			if(num==my_rank+1){
-				vbase.n=tam-(num-1)*100000000;
+				vbase.n=tam-((my_rank)*50000000);
 			}
 			else{
-				vbase.n=100000000;
+				vbase.n=50000000;
 			}
 			vbase.d=128;
-			vbase.mat= fmat_new (vbase.d, vbase.n);
+			vbase.mat= (float*) malloc(sizeof(float)*vbase.d*vbase.n);
 		}
 		else if(strcmp(dataset, "gist")==0){
 			strcpy (fbase,"/scratch/04596/tg838951/gist_base.fvecs");
@@ -226,7 +226,7 @@ mat pq_test_load_base(char* dataset, int tam, int my_rank, int num){
 			fvecs_read (fbase, vbase.d, vbase.n, vbase.mat);
 		}
 		else{
-			b2fvecs_read (fbase, vbase.d, vbase.n, vbase.mat);
+			my_bvecs_read (0, fbase, vbase.d, vbase.n, vbase.mat);
 		}
 	}
 	return vbase;
@@ -273,6 +273,54 @@ int ivecs_read (const char *fname, int d, int n, int *a){
 			fclose(f);
 			return -1;
 		}
+	}
+	fclose (f);
+
+	return i;
+}
+
+int my_bvecs_read (int offset, const char *fname, int d, int n, float *a){
+	FILE *f = fopen (fname, "r");
+
+	if (!f) {
+		fprintf (stderr, "ivecs_read: could not open %s\n", fname);
+		perror ("");
+		return -1;
+	}
+
+	fseek (f, offset, SEEK_SET);
+
+	long i;
+	for (i = 0; i < n; i++) {
+		int new_d;
+
+		if (fread (&new_d, sizeof (int), 1, f) != 1) {
+			if (feof (f))break;
+			else {
+				perror ("ivecs_read error 1");
+				fclose(f);
+				return -1;
+			}
+		}
+
+		if (new_d != d) {
+			fprintf (stderr, "ivecs_read error 2: unexpected vector dimension\n");
+			fclose(f);
+			return -1;
+		}
+
+		unsigned char * vb = (unsigned char *) malloc (sizeof (*vb) * d);
+
+		if (fread (vb, sizeof (*vb), d, f) != d) {
+			fprintf (stderr, "ivecs_read error 3\n");
+			fclose(f);
+			return -1;
+		}
+
+		for (int j = 0 ; j < d ; j++){
+    		a[i*d+j] = vb[j];
+		}
+  		free (vb);
 	}
 	fclose (f);
 
