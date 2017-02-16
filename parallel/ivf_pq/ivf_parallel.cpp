@@ -30,7 +30,7 @@ void parallel_training (char *dataset, int coarsek, int nsq, int tam){
 	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
 	//Le os vetores
-	v = pq_test_load_vectors(dataset, tam, my_rank, last_assign);
+	v = pq_test_load_vectors(dataset, tam, my_rank);
 
 	if (my_rank==0){
 		//Cria centroides a partir dos vetores de treinamento
@@ -52,12 +52,40 @@ void parallel_training (char *dataset, int coarsek, int nsq, int tam){
 		ivfpq.coa_centroids=(float*)malloc(sizeof(float)*ivfpq.coa_centroidsd*ivfpq.coa_centroidsn);
 		MPI_Recv(&ivfpq.coa_centroids[0], ivfpq.coa_centroidsn*ivfpq.coa_centroidsd, MPI_FLOAT, 0, TRAINER, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	}
-	v.base = pq_test_load_base(dataset, tam, my_rank, last_assign);
 
-	//Cria a lista invertida
-	ivf = ivfpq_assign(ivfpq, v.base);
+	ivf = (ivf_t*)malloc(sizeof(ivf_t)*ivfpq.coarsek);
 
-	free(v.base.mat);
+	for(int i=0; i<coarsek; i++){
+		ivf[i].ids = (int*)malloc(sizeof(int));
+		ivf[i].idstam = 0;
+		ivf[i].codes.mat = (int*)malloc(sizeof(int));
+		ivf[i].codes.n = 0;
+		ivf[i].codes.d = nsq;
+	}
+
+	for(int i=0; i<=(tam/1000000); i++){
+		ivf_t *ivf3;
+		int aux;
+
+		if(tam%1000000==0 && i==(tam/1000000))break;
+		v.base = pq_test_load_base(dataset, my_rank, last_assign, i);
+
+		//Cria a lista invertida
+
+		ivf3 = ivfpq_assign(ivfpq, v.base);
+
+		for(int j=0; j<coarsek; j++){
+			aux = ivf[j].idstam;
+			ivf[j].idstam += ivf3[j].idstam;
+			ivf[j].ids = (int*)realloc(ivf[j].ids,sizeof(int)*ivf[j].idstam);
+			memcpy (ivf[j].ids+aux, ivf3[j].ids, sizeof(int)*ivf3[j].idstam);
+			ivf[j].codes.n += ivf3[j].codes.n;
+			ivf[j].codes.mat = (int*)realloc(ivf[j].codes.mat,sizeof(int)*ivf[j].codes.n*ivf[j].codes.d);
+			memcpy (ivf[j].codes.mat+aux*ivf[i].codes.d, ivf3[j].codes.mat, sizeof(int)*ivf3[j].codes.n*ivf3[j].codes.d);
+		}
+		free(v.base.mat);
+		free(ivf3);
+	}
 	free(ivfpq.pq.centroids);
 	free(ivfpq.coa_centroids);
 

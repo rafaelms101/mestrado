@@ -1,6 +1,6 @@
 #include "pq_test_load_vectors.h"
 
-data pq_test_load_vectors(char* dataset, int tam, int my_rank, int num){
+data pq_test_load_vectors(char* dataset, int tam, int my_rank){
 
 	data v;
 	int *ids_gnd;
@@ -166,7 +166,7 @@ mat pq_test_load_query(char* dataset){
 	return vquery;
 }
 
-mat pq_test_load_base(char* dataset, int tam, int my_rank, int num){
+mat pq_test_load_base(char* dataset, int my_rank, int num, int offset){
 
 	mat vbase;
 
@@ -201,12 +201,7 @@ mat pq_test_load_base(char* dataset, int tam, int my_rank, int num){
 		}
 		else if(strcmp(dataset, "siftbig")==0 ){
 			strcpy (fbase,"/scratch/04596/tg838951/siftbig_base.bvecs");
-			if(num==my_rank+1){
-				vbase.n=tam-((my_rank)*50000000);
-			}
-			else{
-				vbase.n=50000000;
-			}
+			vbase.n=1000000;
 			vbase.d=128;
 			vbase.mat= (float*) malloc(sizeof(float)*vbase.d*vbase.n);
 		}
@@ -226,7 +221,7 @@ mat pq_test_load_base(char* dataset, int tam, int my_rank, int num){
 			fvecs_read (fbase, vbase.d, vbase.n, vbase.mat);
 		}
 		else{
-			my_bvecs_read (0, fbase, vbase.d, vbase.n, vbase.mat);
+			my_bvecs_read (offset*1000000*(vbase.d*sizeof(unsigned char)+sizeof(int)), fbase, vbase.d, vbase.n, vbase.mat);
 		}
 	}
 	return vbase;
@@ -283,7 +278,7 @@ int my_bvecs_read (int offset, const char *fname, int d, int n, float *a){
 	FILE *f = fopen (fname, "r");
 
 	if (!f) {
-		fprintf (stderr, "ivecs_read: could not open %s\n", fname);
+		fprintf (stderr, "my_bvecs_read: could not open %s\n", fname);
 		perror ("");
 		return -1;
 	}
@@ -297,14 +292,15 @@ int my_bvecs_read (int offset, const char *fname, int d, int n, float *a){
 		if (fread (&new_d, sizeof (int), 1, f) != 1) {
 			if (feof (f))break;
 			else {
-				perror ("ivecs_read error 1");
+				perror ("my_bvecs_read error 1");
 				fclose(f);
 				return -1;
 			}
 		}
+		printf("newd%dd%d\n", new_d, d);
 
 		if (new_d != d) {
-			fprintf (stderr, "ivecs_read error 2: unexpected vector dimension\n");
+			fprintf (stderr, "my_bvecs_read error 2: unexpected vector dimension\n");
 			fclose(f);
 			return -1;
 		}
@@ -312,7 +308,7 @@ int my_bvecs_read (int offset, const char *fname, int d, int n, float *a){
 		unsigned char * vb = (unsigned char *) malloc (sizeof (*vb) * d);
 
 		if (fread (vb, sizeof (*vb), d, f) != d) {
-			fprintf (stderr, "ivecs_read error 3\n");
+			fprintf (stderr, "my_bvecs_read error 3\n");
 			fclose(f);
 			return -1;
 		}

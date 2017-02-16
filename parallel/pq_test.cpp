@@ -33,7 +33,7 @@ int main(int argv, char** argc){
 	tam=atoi(argc[2]);
 
 	gettimeofday(&inicio, NULL);
-	v = pq_test_load_vectors(dataset,tam,0,0);
+	v = pq_test_load_vectors(dataset,tam,0);
 	gettimeofday(&final, NULL);
 	tmili = (int) (1000 * (final.tv_sec - inicio.tv_sec) + (final.tv_usec - inicio.tv_usec) / 1000);
 	printf("Tempo load vectors: %d\n", tmili);
