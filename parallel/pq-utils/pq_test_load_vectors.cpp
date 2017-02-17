@@ -3,7 +3,6 @@
 data pq_test_load_vectors(char* dataset, int tam, int my_rank){
 
 	data v;
-	int *ids_gnd;
 
 	if(strcmp(dataset, "random")==0){
 
@@ -36,6 +35,7 @@ data pq_test_load_vectors(char* dataset, int tam, int my_rank){
 
 	}
 	else {
+		int *ids_gnd;
 		namefile f;
 
 		f.train= (char*) malloc(sizeof(char)*51);
@@ -107,6 +107,9 @@ data pq_test_load_vectors(char* dataset, int tam, int my_rank){
 			v.ids_gnd.mat[i]=ids_gnd[i*v.ids_gnd.d];
 		}
 		v.ids_gnd.d=1;
+		free(ids_gnd);
+		free(f.train);
+		free(f.groundtruth);
 	}
 	return v;
 }
@@ -162,6 +165,7 @@ mat pq_test_load_query(char* dataset){
 		else{
 			b2fvecs_read (fquery, vquery.d, vquery.n, vquery.mat);
 		}
+		free(fquery);
 	}
 	return vquery;
 }
@@ -223,6 +227,7 @@ mat pq_test_load_base(char* dataset, int my_rank, int num, int offset){
 		else{
 			my_bvecs_read (offset*1000000*(vbase.d*sizeof(unsigned char)+sizeof(int)), fbase, vbase.d, vbase.n, vbase.mat);
 		}
+		free(fbase);
 	}
 	return vbase;
 }

@@ -11,9 +11,9 @@
 #include "ivf_pq/ivf_search.h"
 #include "ivf_pq/ivf_parallel.h"
 
-int main(int argv, char **argc){
+int main(int argc, char **argv){
 
-	if(argv < 2){
+	if(argc < 2){
 		cout << "Usage: mpiexec -n ./ivfpq_test <dataset> <threads> <tam>" << endl;
 		return -1;
 	}
@@ -34,7 +34,7 @@ int main(int argv, char **argc){
 		last_search,
 		last_aggregator;
 
-	MPI_Init(NULL, NULL);
+	MPI_Init(&argc, &argv);
 	MPI_Comm_size(MPI_COMM_WORLD, &comm_sz);
 	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
@@ -42,9 +42,9 @@ int main(int argv, char **argc){
 	last_search=comm_sz-2;
 	last_aggregator=comm_sz-1;
 
-	dataset = argc[1];
-	threads  = atoi(argc[2]);
-	if(argv==4)tam  = atoi(argc[3]);
+	dataset = argv[1];
+	threads  = atoi(argv[2]);
+	tam  = atoi(argv[3]);
 	k = 100;
 	nsq = 8;
 	coarsek = 256;

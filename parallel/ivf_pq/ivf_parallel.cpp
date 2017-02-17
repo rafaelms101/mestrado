@@ -83,6 +83,8 @@ void parallel_training (char *dataset, int coarsek, int nsq, int tam){
 			ivf[j].codes.n += ivf3[j].codes.n;
 			ivf[j].codes.mat = (int*)realloc(ivf[j].codes.mat,sizeof(int)*ivf[j].codes.n*ivf[j].codes.d);
 			memcpy (ivf[j].codes.mat+aux*ivf[i].codes.d, ivf3[j].codes.mat, sizeof(int)*ivf3[j].codes.n*ivf3[j].codes.d);
+			free(ivf3[j].ids);
+			free(ivf3[j].codes.mat);
 		}
 		
 		free(v.base.mat);
@@ -131,6 +133,8 @@ void parallel_training (char *dataset, int coarsek, int nsq, int tam){
 			MPI_Send(&ivf[i], sizeof(ivf_t), MPI_BYTE, dest, TRAINER, MPI_COMM_WORLD);
 			MPI_Send(&ivf[i].ids[0], ivf[i].idstam, MPI_INT, dest, TRAINER, MPI_COMM_WORLD);
 			MPI_Send(&ivf[i].codes.mat[0], ivf[i].codes.d*ivf[i].codes.n, MPI_INT, dest, TRAINER, MPI_COMM_WORLD);
+			free(ivf[i].ids);
+			free(ivf[i].codes.mat);
 		}
 		//Envia o ids_gnd para o agregador calcular as estatisticas da busca
 		for(int i=last_search+1; i<=last_aggregator; i++){

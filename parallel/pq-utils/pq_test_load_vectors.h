@@ -35,9 +35,7 @@ typedef struct{
 }data;
 
 typedef struct{
-	char 	*base,
-			*query,
-			*train,
+	char 	*train,
 			*groundtruth;
 }namefile;
 
