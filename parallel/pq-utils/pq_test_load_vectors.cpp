@@ -297,9 +297,10 @@ int my_bvecs_read (int offset, const char *fname, int d, int n, float *a){
 				return -1;
 			}
 		}
-		printf("newd%dd%d\n", new_d, d);
+		
 
 		if (new_d != d) {
+			printf("d%dnd%d",d,new_d);
 			fprintf (stderr, "my_bvecs_read error 2: unexpected vector dimension\n");
 			fclose(f);
 			return -1;
