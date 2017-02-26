@@ -75,7 +75,7 @@ data pq_test_load_vectors(char* dataset, int tam, int my_rank){
 				strcpy (f.groundtruth,"/scratch/04596/tg838951/siftbig_groundtruth_100M.ivecs");
 			}
 			strcpy (f.train,"/scratch/04596/tg838951/siftbig_learn.bvecs");
-			v.train.n=100000;
+			v.train.n=tam/10;
 			v.train.d=128;
 			v.train.mat= fmat_new (v.train.d, v.train.n);
 			v.ids_gnd.n=10000;
@@ -204,7 +204,7 @@ mat pq_test_load_base(char* dataset, int my_rank, int num, int offset){
 			vbase.mat= fmat_new (vbase.d, vbase.n);
 		}
 		else if(strcmp(dataset, "siftbig")==0 ){
-			strcpy (fbase,"/scratch/04596/tg838951/siftbig_base.bvecs");
+			strcpy (fbase,"/work/04596/tg838951/siftbig_base.bvecs");
 			vbase.n=1000000;
 			vbase.d=128;
 			vbase.mat= (float*) malloc(sizeof(float)*vbase.d*vbase.n);
@@ -225,7 +225,7 @@ mat pq_test_load_base(char* dataset, int my_rank, int num, int offset){
 			fvecs_read (fbase, vbase.d, vbase.n, vbase.mat);
 		}
 		else{
-			my_bvecs_read (offset*1000000*(vbase.d*sizeof(unsigned char)+sizeof(int)), fbase, vbase.d, vbase.n, vbase.mat);
+			my_bvecs_read (offset, fbase, vbase.d, vbase.n, vbase.mat);
 		}
 		free(fbase);
 	}
@@ -288,9 +288,12 @@ int my_bvecs_read (int offset, const char *fname, int d, int n, float *a){
 		return -1;
 	}
 
-	fseek (f, offset, SEEK_SET);
+	unsigned long long b;
+	b=(unsigned long long) offset*n*(d+4);
 
+	fseek (f, b, SEEK_SET);
 	long i;
+	
 	for (i = 0; i < n; i++) {
 		int new_d;
 
@@ -302,7 +305,6 @@ int my_bvecs_read (int offset, const char *fname, int d, int n, float *a){
 				return -1;
 			}
 		}
-		
 
 		if (new_d != d) {
 			printf("d%dnd%d",d,new_d);

@@ -31,7 +31,7 @@ void parallel_training (char *dataset, int coarsek, int nsq, int tam){
 
 	//Le os vetores
 	v = pq_test_load_vectors(dataset, tam, my_rank);
-
+	printf("a");
 	if (my_rank==0){
 		//Cria centroides a partir dos vetores de treinamento
 		ivfpq = ivfpq_new(coarsek, nsq, v.train);
@@ -52,9 +52,9 @@ void parallel_training (char *dataset, int coarsek, int nsq, int tam){
 		ivfpq.coa_centroids=(float*)malloc(sizeof(float)*ivfpq.coa_centroidsd*ivfpq.coa_centroidsn);
 		MPI_Recv(&ivfpq.coa_centroids[0], ivfpq.coa_centroidsn*ivfpq.coa_centroidsd, MPI_FLOAT, 0, TRAINER, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	}
-
+	printf("b");
 	ivf = (ivf_t*)malloc(sizeof(ivf_t)*ivfpq.coarsek);
-
+	printf("c");
 	for(int i=0; i<coarsek; i++){
 		ivf[i].ids = (int*)malloc(sizeof(int));
 		ivf[i].idstam = 0;
@@ -62,18 +62,20 @@ void parallel_training (char *dataset, int coarsek, int nsq, int tam){
 		ivf[i].codes.n = 0;
 		ivf[i].codes.d = nsq;
 	}
+	printf("d");
 
 	for(int i=0; i<=(tam/1000000); i++){
 		ivf_t *ivf3;
 		int aux;
-
+		
+		
 		ivf3 = (ivf_t *)malloc(sizeof(ivf_t)*coarsek);
 		if(tam%1000000==0 && i==(tam/1000000))break;
 		v.base = pq_test_load_base(dataset, my_rank, last_assign, i);
 		
 		//Cria a lista invertida
 
-		ivf3 = ivfpq_assign(ivfpq, v.base);
+		ivfpq_assign(ivfpq, v.base, ivf3);
 		
 		for(int j=0; j<coarsek; j++){
 			aux = ivf[j].idstam;
@@ -87,9 +89,11 @@ void parallel_training (char *dataset, int coarsek, int nsq, int tam){
 			free(ivf3[j].codes.mat);
 		}
 		
+		
 		free(v.base.mat);
 		free(ivf3);
 	}
+	
 	free(ivfpq.pq.centroids);
 	free(ivfpq.coa_centroids);
 	
@@ -383,7 +387,7 @@ void *search_threads(void *ivf_threads_recv){
 	MPI_Request request, request2;
 
 	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
-
+	
 	ivf_threads = (ivf_threads_t*)ivf_threads_recv;
 
 	int ids[ivf_threads->k];
@@ -393,11 +397,12 @@ void *search_threads(void *ivf_threads_recv){
 
 	residual.d = ivf_threads->residuald;
 	residual.n=1;
-
+	
 	residual.mat=(float*)malloc(sizeof(float)*residual.d);
-
+	
 	MPI_Irecv(&finish, 1, MPI_CHAR, last_assign, FINISH+ivf_threads->thread, MPI_COMM_WORLD, &request2);
 	while(1){
+		
 		pthread_mutex_lock(&lock);
 		MPI_Irecv(&coaidx, 1, MPI_INT, last_assign, ASSIGN, MPI_COMM_WORLD, &request);
 		do{
@@ -407,14 +412,16 @@ void *search_threads(void *ivf_threads_recv){
 			MPI_Test(&request2, &flag2, &status2);
 			
 		}while(flag !=1 && flag2 !=1);
-
+		
 		if (finish=='s' && flag==0){
 			pthread_mutex_unlock(&lock);
 			break;
 		}
+		
 		MPI_Recv(&id, 1, MPI_INT, last_assign, ASSIGN, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		
 		MPI_Recv(&residual.mat[0], residual.d, MPI_FLOAT, last_assign, ASSIGN, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-	
+		
 		pthread_mutex_unlock(&lock);
 		int centroid_idx = coaidx/(last_search-last_assign);
 		
@@ -426,18 +433,19 @@ void *search_threads(void *ivf_threads_recv){
 		ktmp = min(q.idx.n, ivf_threads->k);
 		
 		my_k_min(q, ktmp, &dis[0], &ids[0]);
-
+		
 		free(q.dis.mat);
 		free(q.idx.mat);
 		
 		pthread_mutex_lock(&lock);
 		MPI_Send(&id, 1, MPI_INT, last_search+1+(coaidx%(last_aggregator-last_search)), THREAD, MPI_COMM_WORLD);
-
+		
 		MPI_Send(&ktmp, 1, MPI_INT, last_search+1+(coaidx%(last_aggregator-last_search)), THREAD+1+id, MPI_COMM_WORLD);
 		
 		MPI_Send(&ids[0], ktmp, MPI_INT, last_search+1+(coaidx%(last_aggregator-last_search)), THREAD+1+id, MPI_COMM_WORLD);
 		
 		MPI_Send(&dis[0], ktmp, MPI_FLOAT, last_search+1+(coaidx%(last_aggregator-last_search)), THREAD+1+id, MPI_COMM_WORLD);
+		
 		pthread_mutex_unlock(&lock);
 	}
 	free(residual.mat);
