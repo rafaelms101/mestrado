@@ -204,7 +204,7 @@ mat pq_test_load_base(char* dataset, int my_rank, int num, int offset){
 			vbase.mat= fmat_new (vbase.d, vbase.n);
 		}
 		else if(strcmp(dataset, "siftbig")==0 ){
-			strcpy (fbase,"/work/04596/tg838951/siftbig_base.bvecs");
+			strcpy (fbase,"/scratch/04596/tg838951/siftbig_base.bvecs");
 			vbase.n=1000000;
 			vbase.d=128;
 			vbase.mat= (float*) malloc(sizeof(float)*vbase.d*vbase.n);
