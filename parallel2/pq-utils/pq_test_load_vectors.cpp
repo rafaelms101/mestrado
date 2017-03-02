@@ -1,9 +1,8 @@
 #include "pq_test_load_vectors.h"
 
-data pq_test_load_vectors(char* dataset, int tam, int my_rank, int num){
+data pq_test_load_vectors(char* dataset, int tam, int my_rank){
 
 	data v;
-	int *ids_gnd;
 
 	if(strcmp(dataset, "random")==0){
 
@@ -36,8 +35,8 @@ data pq_test_load_vectors(char* dataset, int tam, int my_rank, int num){
 
 	}
 	else {
+		int *ids_gnd;
 		namefile f;
-		int strtam;
 
 		f.train= (char*) malloc(sizeof(char)*51);
 		f.groundtruth= (char*) malloc(sizeof(char)*51);
@@ -76,7 +75,7 @@ data pq_test_load_vectors(char* dataset, int tam, int my_rank, int num){
 				strcpy (f.groundtruth,"/scratch/04596/tg838951/siftbig_groundtruth_100M.ivecs");
 			}
 			strcpy (f.train,"/scratch/04596/tg838951/siftbig_learn.bvecs");
-			v.train.n=100000;
+			v.train.n=tam/10;
 			v.train.d=128;
 			v.train.mat= fmat_new (v.train.d, v.train.n);
 			v.ids_gnd.n=10000;
@@ -108,6 +107,9 @@ data pq_test_load_vectors(char* dataset, int tam, int my_rank, int num){
 			v.ids_gnd.mat[i]=ids_gnd[i*v.ids_gnd.d];
 		}
 		v.ids_gnd.d=1;
+		free(ids_gnd);
+		free(f.train);
+		free(f.groundtruth);
 	}
 	return v;
 }
@@ -163,11 +165,12 @@ mat pq_test_load_query(char* dataset){
 		else{
 			b2fvecs_read (fquery, vquery.d, vquery.n, vquery.mat);
 		}
+		free(fquery);
 	}
 	return vquery;
 }
 
-mat pq_test_load_base(char* dataset, int tam, int my_rank, int num){
+mat pq_test_load_base(char* dataset, int my_rank, int num, int offset){
 
 	mat vbase;
 
@@ -184,7 +187,6 @@ mat pq_test_load_base(char* dataset, int tam, int my_rank, int num){
 		load_random(vbase.mat, vbase.n, vbase.d);
 	}
 	else {
-		int strtam;
 		char *fbase;
 
 		fbase= (char*) malloc(sizeof(char)*51);
@@ -203,14 +205,9 @@ mat pq_test_load_base(char* dataset, int tam, int my_rank, int num){
 		}
 		else if(strcmp(dataset, "siftbig")==0 ){
 			strcpy (fbase,"/scratch/04596/tg838951/siftbig_base.bvecs");
-			if(num==my_rank+1){
-				vbase.n=tam-(num-1)*100000000;
-			}
-			else{
-				vbase.n=100000000;
-			}
+			vbase.n=1000000;
 			vbase.d=128;
-			vbase.mat= fmat_new (vbase.d, vbase.n);
+			vbase.mat= (float*) malloc(sizeof(float)*vbase.d*vbase.n);
 		}
 		else if(strcmp(dataset, "gist")==0){
 			strcpy (fbase,"/scratch/04596/tg838951/gist_base.fvecs");
@@ -219,7 +216,7 @@ mat pq_test_load_base(char* dataset, int tam, int my_rank, int num){
 			vbase.mat= fmat_new (vbase.d, vbase.n);
 		}
 		if(num>1){
-			strtam = strlen (fbase);
+			int strtam = strlen (fbase);
 			fbase[strtam]=my_rank+48;
 			fbase[strtam+1]='\0';
 		}
@@ -228,8 +225,9 @@ mat pq_test_load_base(char* dataset, int tam, int my_rank, int num){
 			fvecs_read (fbase, vbase.d, vbase.n, vbase.mat);
 		}
 		else{
-			b2fvecs_read (fbase, vbase.d, vbase.n, vbase.mat);
+			my_bvecs_read (offset, fbase, vbase.d, vbase.n, vbase.mat);
 		}
+		free(fbase);
 	}
 	return vbase;
 }
@@ -275,6 +273,58 @@ int ivecs_read (const char *fname, int d, int n, int *a){
 			fclose(f);
 			return -1;
 		}
+	}
+	fclose (f);
+
+	return i;
+}
+
+int my_bvecs_read (int offset, const char *fname, int d, int n, float *a){
+	FILE *f = fopen (fname, "r");
+
+	if (!f) {
+		fprintf (stderr, "my_bvecs_read: could not open %s\n", fname);
+		perror ("");
+		return -1;
+	}
+
+	unsigned long long b;
+	b=(unsigned long long) offset*n*(d+4);
+
+	fseek (f, b, SEEK_SET);
+	long i;
+	
+	for (i = 0; i < n; i++) {
+		int new_d;
+
+		if (fread (&new_d, sizeof (int), 1, f) != 1) {
+			if (feof (f))break;
+			else {
+				perror ("my_bvecs_read error 1");
+				fclose(f);
+				return -1;
+			}
+		}
+
+		if (new_d != d) {
+			printf("d%dnd%d",d,new_d);
+			fprintf (stderr, "my_bvecs_read error 2: unexpected vector dimension\n");
+			fclose(f);
+			return -1;
+		}
+
+		unsigned char * vb = (unsigned char *) malloc (sizeof (*vb) * d);
+
+		if (fread (vb, sizeof (*vb), d, f) != d) {
+			fprintf (stderr, "my_bvecs_read error 3\n");
+			fclose(f);
+			return -1;
+		}
+
+		for (int j = 0 ; j < d ; j++){
+    		a[i*d+j] = vb[j];
+		}
+  		free (vb);
 	}
 	fclose (f);
 

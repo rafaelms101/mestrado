@@ -75,7 +75,7 @@ void printMatI(int* mat, int n, int d){
 //nq ????????????
 void copySubVectorsI(int* qcoaidx, int* coaidx, int query, int nq, int w){
 	for (int i = 0; i < w; i++) {
-			qcoaidx[i] = coaidx[query*w + i];
+		qcoaidx[i] = coaidx[query*w + i];
 	}
 }
 

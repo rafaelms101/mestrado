@@ -6,14 +6,11 @@ float * sumidxtab2(mat D, matI ids, int offset);
 
 dis_t ivfpq_search(ivf_t *ivf, mat residual, pqtipo pq, int centroid_idx){
 	dis_t q;
-	int d, ds, ks, nsq, nextdis, nextidx;
+	int ds, ks, nsq;
 
-	d = residual.d;
 	ds = pq.ds;
 	ks = pq.ks;
 	nsq = pq.nsq;
-	
-	mat v;
 
 	mat distab;
 	distab.mat = (float*)malloc(sizeof(float)*ks*nsq);
@@ -41,7 +38,10 @@ dis_t ivfpq_search(ivf_t *ivf, mat residual, pqtipo pq, int centroid_idx){
 
 	memcpy(q.idx.mat, ivf[centroid_idx].ids,  sizeof(int)*ivf[centroid_idx].idstam);
 	memcpy(q.dis.mat, AUXSUMIDX, sizeof(float)*ivf[centroid_idx].codes.n);
-	free(AUXSUMIDX);
+	
+	free (AUXSUMIDX);
+	free (distab_temp);
+	free (distab.mat);
 	return q;
 }
 
@@ -64,12 +64,11 @@ int min(int a, int b){
 float * sumidxtab2(mat D, matI ids, int offset){
 	//aloca o vetor a ser retornado
 	float *dis = (float*)malloc(sizeof(float)*ids.n);
-	float dis_tmp = 0;
-	int i, j, idsN = 0;
+	int i, j;
 
 	//soma as distancias para cada vetor
 	for (i = 0; i < ids.n ; i++) {
-		dis_tmp = 0;
+		float dis_tmp = 0;
 		for(j=0; j<D.n; j++){
 			dis_tmp += D.mat[ids.mat[i*ids.d+j]+ offset + j*D.d];
 		}

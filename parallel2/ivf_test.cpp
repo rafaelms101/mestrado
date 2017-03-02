@@ -11,9 +11,9 @@
 #include "ivf_pq/ivf_search.h"
 #include "ivf_pq/ivf_parallel.h"
 
-int main(int argv, char **argc){
+int main(int argc, char **argv){
 
-	if(argv < 2){
+	if(argc < 2){
 		cout << "Usage: mpiexec -n ./ivfpq_test <dataset> <threads> <tam>" << endl;
 		return -1;
 	}
@@ -32,60 +32,67 @@ int main(int argv, char **argc){
 
 	int last_assign,
 		last_search,
-		last_aggregator,
-		provided;
+		last_aggregator;
 
-	MPI_Init(NULL, NULL);
-	/*if (provided < MPI_THREAD_SERIALIZED){
-   		printf("Error: the MPI library doesn't provide the required thread level\n");
-   		MPI_Abort(MPI_COMM_WORLD, 0);
-	}*/
+	#ifndef TRAIN
+	MPI_Init(&argc, &argv);
 	MPI_Comm_size(MPI_COMM_WORLD, &comm_sz);
 	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+	#endif
 
 	last_assign=1;
 	last_search=comm_sz-2;
 	last_aggregator=comm_sz-1;
 
-	dataset = argc[1];
-	threads  = atoi(argc[2]);
-	if(argv==4)tam  = atoi(argc[3]);
+	dataset = argv[1];
+	threads  = atoi(argv[2]);
+	tam  = atoi(argv[3]);
 	k = 100;
 	nsq = 8;
 	coarsek = 256;
 	w = 4;
 
 	set_last (comm_sz, threads);
-	if (my_rank<last_assign){
-		double start=0, finish=0;
-		FILE *fp;
-		if(my_rank==0){
-			fp = fopen(arquivo, "a");
-			fprintf(fp,"Teste com a base %s, coarsek=%d, w=%d, ", dataset, coarsek, w);
-			if(tam!=0)fprintf(fp,"tamanho%d\n\n", tam);
-			fclose(fp);
-			start = MPI_Wtime();
-		}
-		parallel_training (dataset, coarsek, nsq, tam);
 	
-		if(my_rank==0){
-			MPI_Recv(&finish, 1, MPI_DOUBLE, last_aggregator, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-			fp = fopen(arquivo, "a");
-			fprintf(fp,"Tempo total: %g milissegundos\n\n", finish*1000-start*1000);
-			fclose(fp);
+	#ifdef TRAIN
+	
+		parallel_training (dataset, coarsek, nsq, tam);
+
+	#else
+
+		if (my_rank<last_assign){
+			double start=0, finish=0;
+			FILE *fp;
+			if(my_rank==0){
+				fp = fopen(arquivo, "a");
+				fprintf(fp,"Teste com a base %s, coarsek=%d, w=%d, ", dataset, coarsek, w);
+				if(tam!=0)fprintf(fp,"tamanho%d\n\n", tam);
+				fclose(fp);
+				start = MPI_Wtime();
+			}
+			parallel_training (dataset, coarsek, nsq, tam);
+	
+			if(my_rank==0){
+				MPI_Recv(&finish, 1, MPI_DOUBLE, last_aggregator, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+				fp = fopen(arquivo, "a");
+				fprintf(fp,"Tempo total: %g milissegundos\n\n", finish*1000-start*1000);
+				fclose(fp);
+			}
 		}
-	}
-	else if(my_rank<=last_assign){
-		parallel_assign (dataset, w);
-	}
-	else if(my_rank<=last_search){
-		parallel_search (nsq, my_rank, k, arquivo);
-	}
-	else{
-		parallel_aggregator(k, w, my_rank, arquivo);
-		double finish = MPI_Wtime();
-		MPI_Send(&finish, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
-	}
-	MPI_Finalize();
+		else if(my_rank<=last_assign){
+			parallel_assign (dataset, w);
+		}
+		else if(my_rank<=last_search){
+			parallel_search (nsq, my_rank, k, arquivo);
+		}
+		else{
+			parallel_aggregator(k, w, my_rank, arquivo);
+			double finish = MPI_Wtime();
+			MPI_Send(&finish, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
+		}
+		MPI_Finalize();
+	
+	#endif
+
 	return 0;
 }

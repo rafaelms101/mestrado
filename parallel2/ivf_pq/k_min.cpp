@@ -154,33 +154,41 @@ void k_min_stack (mat disquerybase, int k, float *dis, int *ids){
 }
 
 void my_k_min(dis_t q, int ktmp, float *dis, int *ids){
-	int f, qidx[q.idx.n], j=1;
-	float qdis[q.dis.n];
+	int *qidx = (int*)malloc(sizeof(int)*q.idx.n), j=1;
+	float *qdis = (float*)malloc(sizeof(float)*q.dis.n);
 
-	if (q.dis.n == 0 || ktmp == 0)
-    return;
-
-	memcpy(&qdis[0], q.dis.mat, sizeof(float)*q.dis.n);
-	memcpy(&qidx[0], q.idx.mat, sizeof(int)*q.idx.n);
-
+	if (q.dis.n == 0 || ktmp == 0)return;
+	
+	memcpy(&qdis[0],&q.dis.mat[0], sizeof(float)*q.dis.n);
+	
+	memcpy(&qidx[0],&q.idx.mat[0], sizeof(int)*q.idx.n);
+	
 	constroiHeap(q.dis.n, qdis, qidx);
-
+	
 	dis[0] = qdis[0];
-    qdis[0] = qdis[q.dis.n-1];
-    ids[0] = qidx[0];
-    qidx[0] = qidx[q.dis.n-1];
-
+    	
+	qdis[0] = qdis[q.dis.n-1];
+    	
+	ids[0] = qidx[0];
+    	
+	qidx[0] = qidx[q.dis.n-1];
+	
 	for (int i = q.dis.n-1; i > q.dis.n-ktmp; i--){
-
+		
 		trocarRaiz(q.dis.n, qdis, qidx);
-
+		
 		dis[j] = qdis[0];
-        qdis[0] = qdis[i-1];
-        ids[j] = qidx[0];
-        qidx[0] = qidx[i-1];
-
-        j++;
+       		
+		qdis[0] = qdis[i-1];
+        	
+		ids[j] = qidx[0];
+        	
+		qidx[0] = qidx[i-1];
+		
+        	j++;
 	}
+	free(qidx);
+	free(qdis);
 
 }
 

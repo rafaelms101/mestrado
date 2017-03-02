@@ -13,8 +13,8 @@
 	#include "myIVF.h"
 	#include "ivf_new.h"
 
-	ivf* ivfpq_assign(ivfpq_t ivfpq, mat vbase);
+	void ivfpq_assign(ivfpq_t ivfpq, mat vbase, ivf_t *ivf);
 
-	int* histogram(const int* vec, int n, int range);
+	void histogram(const int* vec, int n, int range, int *hist);
 
 #endif

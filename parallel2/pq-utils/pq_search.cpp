@@ -65,17 +65,18 @@ void pq_search(pqtipo pq, matI codebook, mat vquery, int k, float *dis, int *ids
 
 	free(distab_temp);
 	free(disquerybase.mat);
+	free(dis1);
+	free(ids1);
 }
 
 float* sumidxtab(mat distab, matI codebook){
 	//aloca o vetor a ser retornado
 	float *dis = (float*)malloc(sizeof(float)*codebook.n);
-	float dis_tmp = 0;
 	int i, j;
 
 	//soma as distancias para cada vetor
 	for (i = 0; i < codebook.n ; i++) {
-		dis_tmp = 0;
+		float dis_tmp = 0;
 		for(j=0; j<distab.n; j++){
 			dis_tmp += distab.mat[codebook.mat[j+i*distab.n] + j*distab.d];
 		}
@@ -89,7 +90,7 @@ void k_min (mat disquerybase, int k, float *dis, int *ids){
 	int i,
 		j,
 		d,
-		n;
+		n=1;
 
 	if(disquerybase.d==1 && disquerybase.n>1){
 		d=disquerybase.n;

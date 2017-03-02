@@ -157,6 +157,9 @@ void parallel_training (char *dataset, int coarsek, int nsq, int tam){
 			ivfpq_assign(ivfpq, v.base, ivf3);
 		
 			for(int j=0; j<coarsek; j++){
+				for(int l=0; l<ivf3[j].idstam; l++){
+					ivf3[j].ids[l]+=1000000*i;
+				}
 				aux = ivf[j].idstam;
 				ivf[j].idstam += ivf3[j].idstam;
 				ivf[j].ids = (int*)realloc(ivf[j].ids,sizeof(int)*ivf[j].idstam);
@@ -167,7 +170,6 @@ void parallel_training (char *dataset, int coarsek, int nsq, int tam){
 				free(ivf3[j].ids);
 				free(ivf3[j].codes.mat);
 			}
-		
 		
 			free(v.base.mat);
 			free(ivf3);

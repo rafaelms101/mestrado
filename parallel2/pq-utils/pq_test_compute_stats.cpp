@@ -4,8 +4,7 @@ void pq_test_compute_stats (int *ids, matI ids_gnd, int k){
 	int *nn_ranks_pqc,
 		max;
 
-	float 	r_at_i,
-			length;
+	float 	r_at_i;
 
 	nn_ranks_pqc= (int*) malloc(sizeof(int)*ids_gnd.n);
 
@@ -62,7 +61,7 @@ void pq_test_compute_stats (int *ids, matI ids_gnd, int k){
 				max=10000;
 				break;
 		}
-		length=0;
+		float length=0;
 		if(max<=k){
 			for(int j=0; j<ids_gnd.n; j++){
 				if(nn_ranks_pqc[j]<max && nn_ranks_pqc[j]<k)length++;
@@ -77,8 +76,7 @@ void pq_test_compute_stats2 (int *ids, matI ids_gnd, int k){
 	int *nn_ranks_pqc,
 		max;
 
-	float 	r_at_i,
-			length;
+	float 	r_at_i;
 
 	nn_ranks_pqc= (int*) malloc(sizeof(int)*ids_gnd.n);
 
@@ -135,7 +133,7 @@ void pq_test_compute_stats2 (int *ids, matI ids_gnd, int k){
 				max=10000;
 				break;
 		}
-		length=0;
+		float length=0;
 		if(max<=k){
 			for(int j=0; j<ids_gnd.n; j++){
 				if(nn_ranks_pqc[j]<max && nn_ranks_pqc[j]<k)length++;
