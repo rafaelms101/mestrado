@@ -6,17 +6,17 @@ CC=gcc
 CFLAGS=-fPIC -Wall -g -O3 
 LDFLAGS=-g -fPIC 
 
-PYTHONCFLAGS = -I/usr/include/python2.x
+PYTHONCFLAGS = -I/usr/include/python2.6
 
 YAELCONF=linux64
-YAELCFLAGS=-I/home/andreff/Programas/pqnns-unb/parallel
-YAELLDFLAGS=-L/home/andreff/Programas/pqnns-unb/parallel/yael_needs -Wl,-rpath,/home/andreff/Programas/pqnns-unb/parallel/yael_needs -lyael
+YAELCFLAGS=-I/home1/04596/tg838951/pqnns-unb/parallel
+YAELLDFLAGS=-L/home1/04596/tg838951/pqnns-unb/parallel/yael_needs -Wl,-rpath,/home1/04596/tg838951/pqnns-unb/parallel/yael_needs -lyael
 
 
 SWIG=swig -python
 
 WRAPLDFLAGS=-shared
-LAPACKLDFLAGS=-lblas -llapack
+LAPACKLDFLAGS=/usr/lib64/atlas/libf77blas.so.3 /usr/lib64/atlas/liblapack.so.3
 LAPACKCFLAGS=-DFINTEGER=int
 
 USEARPACK=no

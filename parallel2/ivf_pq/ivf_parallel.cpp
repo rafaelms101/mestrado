@@ -416,7 +416,7 @@ void parallel_aggregator(int k, int w, int my_rank, char *arquivo){
 			}
 		}
 	}
-	
+	end=MPI_Wtime();	
 	while (l<queryn){
 		ktmp = min(q[l].idx.n, k);
 	
@@ -427,7 +427,6 @@ void parallel_aggregator(int k, int w, int my_rank, char *arquivo){
 
 		l++;
 	}
-	end=MPI_Wtime();
 
 	free(q);
 	free(dis2);

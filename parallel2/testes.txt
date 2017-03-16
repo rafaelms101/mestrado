@@ -1,0 +1,37 @@
+Teste com a base siftbig, coarsek=256, w=4, tamanho1000000
+
+Tempo de busca: 14572
+Tempo total: 32504.2 milissegundos
+
+Teste com a base siftbig, coarsek=256, w=4, tamanho10000000
+
+Tempo de busca: 117297
+Tempo total: 293709 milissegundos
+
+Teste com a base siftbig, coarsek=256, w=4, tamanho506000000
+
+Teste com a base siftbig, coarsek=256, w=4, tamanho2000000
+
+Tempo de busca: 26581.5
+Tempo total: 63921 milissegundos
+
+Teste com a base siftbig, coarsek=256, w=4, tamanho200000000
+
+Tempo de busca: 93194
+Tempo total: 4.44383e+06 milissegundos
+
+Teste com a base siftbig, coarsek=256, w=4, tamanho200000000
+
+Tempo de busca: 2.54476e+06
+Tempo total: 6.48534e+06 milissegundos
+
+Teste com a base siftbig, coarsek=256, w=4, tamanho200000000
+
+Tempo de busca: 1137.15
+Tempo total: 4.44935e+06 milissegundos
+
+Teste com a base siftbig, coarsek=256, w=4, tamanho200000000
+
+Tempo de busca: 723.489
+Tempo total: 6.51215e+06 milissegundos
+

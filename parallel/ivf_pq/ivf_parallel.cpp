@@ -266,7 +266,7 @@ void parallel_assign (char *dataset, int w){
 	}
 	double start;
 	
-	start=MPI_Wtime();
+	
 	for(int i=0;i<vquery.n; i++){
 		for(int j=0;j<w;j++){
 			id=i*w+j;
@@ -277,6 +277,7 @@ void parallel_assign (char *dataset, int w){
 			dest= rest+last_assign+1;
 
 			MPI_Ssend(&coaidx[id], 1, MPI_INT, dest, ASSIGN, MPI_COMM_WORLD);
+			if(i==0 && j==0)start=MPI_Wtime();
 			MPI_Ssend(&id, 1, MPI_INT, dest, ASSIGN, MPI_COMM_WORLD);
 			MPI_Ssend(&residual.mat[0], residual.d, MPI_FLOAT, dest, ASSIGN, MPI_COMM_WORLD);
 		}
@@ -381,12 +382,12 @@ void parallel_aggregator(int k, int w, int my_rank, char *arquivo){
 
 	dis = (float*)malloc(sizeof(float)*k*n);
 	ids = (int*)malloc(sizeof(int)*k*n);
-	
+	double c = 0;
 	for(int i=(my_rank-last_search-1); i<queryn; i+=(last_aggregator-last_search)){
 		//Recebe os resultados da busca nos vetores assinalados ao agregador
 		for(int j=0; j<w; j++){
 			MPI_Recv(&id, 1, MPI_INT, MPI_ANY_SOURCE, THREAD, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
+			
 			rest = coaidx[id]%(last_search-last_assign);
 			source=rest+last_assign+1;
 			
@@ -395,7 +396,8 @@ void parallel_aggregator(int k, int w, int my_rank, char *arquivo){
 			MPI_Recv(&q[id/w].idx.mat[q[id/w].idx.n], tam, MPI_INT, source, THREAD+1+id, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
 			MPI_Recv(&q[id/w].dis.mat[q[id/w].dis.n], tam, MPI_FLOAT, source, THREAD+1+id, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-			
+			double a =  MPI_Wtime();
+
 			q[id/w].dis.n += tam;
 			q[id/w].idx.n += tam;
 			part[id/w]++;
@@ -415,9 +417,13 @@ void parallel_aggregator(int k, int w, int my_rank, char *arquivo){
 
 				l++;
 			}
+			double b =  MPI_Wtime();
+
+                	c += b*1000-a*1000;
 		}
 	}
-	
+	printf("agreg %g",c);
+	end=MPI_Wtime();
 	while (l<queryn){
 		ktmp = min(q[l].idx.n, k);
 	
@@ -428,8 +434,8 @@ void parallel_aggregator(int k, int w, int my_rank, char *arquivo){
 
 		l++;
 	}
-	end=MPI_Wtime();
-
+	double end2 = MPI_Wtime();
+	
 	free(q);
 	free(dis2);
 	free(ids2);
@@ -445,6 +451,7 @@ void parallel_aggregator(int k, int w, int my_rank, char *arquivo){
         fp = fopen(arquivo, "a");
 
 	fprintf(fp,"Tempo de busca: %g\n",end*1000-start*1000);
+	fprintf(fp,"Tempo de agregar: %g\n",end2*1000-end*1000);
 
 	fclose(fp);
 
@@ -521,6 +528,7 @@ void *search_threads(void *ivf_threads_recv){
 		free(q.idx.mat);
 		
 		pthread_mutex_lock(&lock);
+
 		MPI_Send(&id, 1, MPI_INT, last_search+1+(coaidx%(last_aggregator-last_search)), THREAD, MPI_COMM_WORLD);
 		
 		MPI_Send(&ktmp, 1, MPI_INT, last_search+1+(coaidx%(last_aggregator-last_search)), THREAD+1+id, MPI_COMM_WORLD);
