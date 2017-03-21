@@ -69,3 +69,51 @@ Tempo de busca: 2.54926e+06
 Tempo de agregar: 0
 Tempo total: 6.50852e+06 milissegundos
 
+w=4, tasks=4Tempo de busca: 88.3074
+w=4, tasks=4Tempo de busca: 141.335
+w=4, tasks=4Tempo de busca: 104.696
+w=4, tasks=4Tempo de busca: 69.7891
+w=4, tasks=4Tempo de busca: 86.8127
+w=4, tasks=4Tempo de busca: 90.8218
+w=4, tasks=4
+Tempo de busca: 87.6165
+
+w=4, tasks=4
+Tempo de busca: 130.187
+
+w=4, tasks=4
+Tempo de busca: 168.994
+
+w=4, tasks=4
+Tempo de busca: 83.2161
+
+w=4, tasks=4
+Tempo de busca: 248.328
+
+w=4, tasks=4
+Tempo de busca: 731.498
+
+w=4, tasks=4
+Tempo de busca: 84.8923
+
+w=4, tasks=4
+Tempo de busca: 173.488
+
+w=4, tasks=4
+Tempo de busca: 1013.21
+
+w=4, tasks=4
+Tempo de busca: 1405.84
+
+w=4, tasks=4
+Tempo de busca: 865.15
+
+w=4, tasks=4
+Tempo de busca: 1933.79
+
+w=4, tasks=4
+Tempo de busca: 92.9871
+
+w=4, tasks=4
+Tempo de busca: 338700
+
