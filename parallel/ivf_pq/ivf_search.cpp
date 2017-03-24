@@ -130,11 +130,8 @@ void *search_threads(void *ivf_threads_recv){
 
 	ivf2.codes.d = ivf_threads->ivf->codes.d;
 
-	ivf2.codes.mat = (int*)malloc(sizeof(int)*ivf2.codes.d*ivf2.codes.n);
-	ivf2.ids = (int*)malloc(sizeof(int)*ivf2.idstam);
-
-	memcpy(ivf2.ids, ivf_threads->ivf->ids + tam*ivf_threads->thread, sizeof(float)*ivf2.idstam);
-	memcpy(ivf2.codes.mat, ivf_threads->ivf->codes.mat + tam*ivf2.codes.d*ivf_threads->thread, sizeof(float)*ivf2.codes.n*ivf2.codes.d);
+	ivf2.codes.mat = ivf_threads->ivf->codes.mat + tam*ivf2.codes.d*ivf_threads->thread;
+	ivf2.ids = ivf_threads->ivf->ids + tam*ivf_threads->thread;
 
 	q=ivfpq_search(&ivf2, ivf_threads->residual, ivf_threads->ivfpq.pq, 0);
 	pthread_mutex_lock(&lock);
@@ -145,9 +142,6 @@ void *search_threads(void *ivf_threads_recv){
 	memcpy(q_total.idx.mat + q_total.idx.n, q.idx.mat, sizeof(int)*q.idx.n);
 	q_total.idx.n += q.idx.n;
 	pthread_mutex_unlock(&lock);
-
-	free(ivf2.codes.mat);
-	free(ivf2.ids);
 		
 	return NULL;
 }
