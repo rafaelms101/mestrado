@@ -3,18 +3,19 @@
 static int last_assign, last_search, last_aggregator;
 pthread_mutex_t lock;
 
-void parallel_search (int nsq, int my_rank, int k, int comm_sz, int threads, MPI_Comm search_comm){
+void parallel_search (int nsq, int k, int comm_sz, int threads, MPI_Comm search_comm){
 
 	ivfpq_t ivfpq;
 	ivf_t *ivf;
 	mat residual;
 	dis_t q;
-	MPI_Status status, status2;
-	MPI_Request request, request2;
-	int tam, ids[k], *coaidx, id, flag, flag2, ktmp;
-	float dis[k];
+	int *ids, *coaidx, ktmp;
+	float *dis;
 
 	set_last (comm_sz, &last_assign, &last_search, &last_aggregator);
+
+	ids = (int*) malloc(sizeof(int)*k);
+	dis = (float*) malloc(sizeof(float)*k);
 
 	//Recebe os centroides
 	MPI_Recv(&ivfpq, sizeof(ivfpq_t), MPI_BYTE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -31,7 +32,7 @@ void parallel_search (int nsq, int my_rank, int k, int comm_sz, int threads, MPI
 
 		MPI_Recv(&ivf[i].idstam, 1, MPI_INT, 0, 0, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 
-		MPI_Recv(&ivf[i].codes.n, 1, MPI_INT, 0, 0, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+		ivf[i].codes.n = ivf[i].idstam; 
 
 		ivf[i].ids = (int*)malloc(sizeof(int)*ivf[i].idstam);
 		MPI_Recv(&ivf[i].ids[0], ivf[i].idstam, MPI_INT, 0, 0, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
@@ -40,9 +41,6 @@ void parallel_search (int nsq, int my_rank, int k, int comm_sz, int threads, MPI
 		MPI_Recv(&ivf[i].codes.mat[0], ivf[i].codes.n*ivf[i].codes.d, MPI_INT, 0, 0, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 		
 	}
-
-
-	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 	
 	MPI_Bcast(&residual, sizeof(mat), MPI_BYTE, 0, search_comm);
 	residual.mat = (float*)malloc(sizeof(float)*residual.n*residual.d);
@@ -53,7 +51,7 @@ void parallel_search (int nsq, int my_rank, int k, int comm_sz, int threads, MPI
 
 	for(int i=0; i<residual.n; i++){
 		
-		q=ivfpq_search(&ivf[0], &residual.mat[0]+i*residual.d, ivfpq.pq, coaidx[i]);
+		q=ivfpq_search(ivf, &residual.mat[0]+i*residual.d, ivfpq.pq, coaidx[i]);
 		
 		ktmp = min(q.idx.n, k);
 		
@@ -64,12 +62,16 @@ void parallel_search (int nsq, int my_rank, int k, int comm_sz, int threads, MPI
 		MPI_Send(&ids[0], ktmp, MPI_INT, last_aggregator, 0, MPI_COMM_WORLD);
 		
 		MPI_Send(&dis[0], ktmp, MPI_FLOAT, last_aggregator, 0, MPI_COMM_WORLD);
-		
+
+		free(q.dis.mat);
+		free(q.idx.mat);		
 	}
 	free(ivfpq.pq.centroids);
 	free(ivfpq.coa_centroids);
 	free(ivf);
 	free(residual.mat);
+	free(dis);
+	free(ids);
 }
 
 dis_t ivfpq_search(ivf_t *ivf, float *residual, pqtipo pq, int centroid_idx){

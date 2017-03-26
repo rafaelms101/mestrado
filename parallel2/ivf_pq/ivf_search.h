@@ -24,7 +24,7 @@
 		mat residual;
 	}ivf_threads_t;
 
-	void parallel_search (int nsq, int my_rank, int k, int comm_sz, int threads, MPI_Comm search_comm);
+	void parallel_search (int nsq, int k, int comm_sz, int threads, MPI_Comm search_comm);
 	dis_t ivfpq_search(ivf_t *ivf, float *residual, pqtipo pq, int centroid_idx);
 	int min(int a, int b);
 	float * sumidxtab2(mat D, matI ids, int offset);

@@ -74,7 +74,7 @@ int main(int argc, char **argv){
 			parallel_assign (dataset, w, comm_sz, threads, search_comm);
 		}
 		else if(my_rank<=last_search){
-			parallel_search (nsq, my_rank, k, comm_sz, threads, search_comm);
+			parallel_search (nsq, k, comm_sz, threads, search_comm);
 		}
 		else{
 			parallel_aggregator(k, w, my_rank, comm_sz);

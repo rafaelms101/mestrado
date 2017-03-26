@@ -213,10 +213,6 @@ void parallel_training (char *dataset, int coarsek, int nsq, int tam, int comm_s
 						itr=0;
 					}
 				}
-			
-					for(int j=0; j<last_search-last_assign; j++){
-						printf("send%d\n", sendcounts[j]);
-					}
 				
 				displs[0]=0;
 				
@@ -229,7 +225,6 @@ void parallel_training (char *dataset, int coarsek, int nsq, int tam, int comm_s
 				for(int j=last_assign+1; j<=last_search; j++){
 					
 					MPI_Send(&ivf[i].codes.d, 1, MPI_INT, j, 0, MPI_COMM_WORLD);
-					MPI_Send(&sendcounts[j-last_assign-1], 1, MPI_INT, j, 0, MPI_COMM_WORLD);
 					MPI_Send(&sendcounts[j-last_assign-1], 1, MPI_INT, j, 0, MPI_COMM_WORLD);
 					MPI_Send(&ivf[i].ids[displs[j-last_assign-1]], sendcounts[j-last_assign-1], MPI_INT, j, 0, MPI_COMM_WORLD);
 					MPI_Send(&ivf[i].codes.mat[displs[j-last_assign-1]*ivf[i].codes.d], sendcounts[j-last_assign-1]*ivf[i].codes.d, MPI_INT, j, 0, MPI_COMM_WORLD);
