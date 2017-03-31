@@ -1,6 +1,6 @@
 #include "pq_test_load_vectors.h"
 
-data pq_test_load_vectors(char* dataset, int tam, int my_rank){
+data pq_test_load_vectors(char* dataset, int tam){
 
 	data v;
 
@@ -170,7 +170,7 @@ mat pq_test_load_query(char* dataset){
 	return vquery;
 }
 
-mat pq_test_load_base(char* dataset, int my_rank, int num, int offset){
+mat pq_test_load_base(char* dataset, int num, int offset){
 
 	mat vbase;
 
@@ -214,11 +214,6 @@ mat pq_test_load_base(char* dataset, int my_rank, int num, int offset){
 			vbase.n=1000000;
 			vbase.d=960;
 			vbase.mat= fmat_new (vbase.d, vbase.n);
-		}
-		if(num>1){
-			int strtam = strlen (fbase);
-			fbase[strtam]=my_rank+48;
-			fbase[strtam+1]='\0';
 		}
 
 		if(strcmp(dataset, "siftbig")!=0){

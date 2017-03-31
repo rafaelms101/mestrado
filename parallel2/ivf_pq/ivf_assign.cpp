@@ -39,22 +39,19 @@ void parallel_assign (char *dataset, int w, int comm_sz, int threads, MPI_Comm s
 		MPI_Send(&coaidx[0], vquery.n*w, MPI_INT, i, 0, MPI_COMM_WORLD);
 	}
 	
-	
-	
 	int i=0;
-	
-        MPI_Bcast(&residual.n, 1, MPI_INT, 0, search_comm);
+
+	MPI_Barrier(search_comm);
+	double start = MPI_Wtime();
+    MPI_Bcast(&residual.n, 1, MPI_INT, 0, search_comm);
 	int tam=residual.n/1;
-        MPI_Bcast(&residual.d, 1, MPI_INT, 0, search_comm);
-        double start = MPI_Wtime();
+    MPI_Bcast(&residual.d, 1, MPI_INT, 0, search_comm);
 	while(i<residual.n){
 
-                MPI_Bcast(&residual.mat[0]+i*residual.d, residual.d*tam, MPI_FLOAT, 0, search_comm);
-                MPI_Bcast(&coaidx[0]+i, tam, MPI_INT, 0, search_comm);
-                i+=tam;
-        }
-	
-
+        MPI_Bcast(&residual.mat[0]+i*residual.d, residual.d*tam, MPI_FLOAT, 0, search_comm);
+        MPI_Bcast(&coaidx[0]+i, tam, MPI_INT, 0, search_comm);
+        i+=tam;
+    }
 	
 	double start2 = MPI_Wtime();	
 

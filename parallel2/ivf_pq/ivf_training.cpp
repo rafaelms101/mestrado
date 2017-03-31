@@ -16,7 +16,7 @@ void parallel_training (char *dataset, int coarsek, int nsq, int tam, int comm_s
 
 	#ifdef TRAIN
 
-		v = pq_test_load_vectors(dataset, tam, 0);
+		v = pq_test_load_vectors(dataset, tam);
 
 		ivfpq = ivfpq_new(coarsek, nsq, v.train);
 
@@ -57,64 +57,53 @@ void parallel_training (char *dataset, int coarsek, int nsq, int tam, int comm_s
 
 		MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
-		v = pq_test_load_vectors(dataset, tam, my_rank);
+		v = pq_test_load_vectors(dataset, tam);
 
-		if (my_rank==0){
+		#ifdef READ_TRAIN
 
-			#ifdef READ_TRAIN
+			FILE *arq, *arq2, *arq3;
 
-				FILE *arq, *arq2, *arq3;
+			arq = fopen(file, "rb");
+			arq2 = fopen(file2, "rb");
+			arq3 = fopen(file3, "rb");
 
-				arq = fopen(file, "rb");
-				arq2 = fopen(file2, "rb");
-				arq3 = fopen(file3, "rb");
-
-				if (arq == NULL){
-    				printf("Problemas na abertura do arquivo\n");
-    				return;
-				}
-
-				fread (&ivfpq.pq.nsq, sizeof(int), 1, arq);
-    			fread (&ivfpq.pq.ks, sizeof(int), 1, arq);
-    			fread (&ivfpq.pq.ds, sizeof(int), 1, arq);
-    			fread (&ivfpq.pq.centroidsn, sizeof(int), 1, arq);
-    			fread (&ivfpq.pq.centroidsd, sizeof(int), 1, arq);
-    			fread (&ivfpq.coarsek, sizeof(int), 1, arq);
-    			fread (&ivfpq.coa_centroidsn, sizeof(int), 1, arq);
-    			fread (&ivfpq.coa_centroidsd, sizeof(int), 1, arq);
-    			ivfpq.pq.centroids = (float *) malloc(sizeof(float)*ivfpq.pq.centroidsn*ivfpq.pq.centroidsn);
-    			fread (&ivfpq.pq.centroids[0], sizeof(float), ivfpq.pq.centroidsn*ivfpq.pq.centroidsn, arq2);
-    			ivfpq.coa_centroids = (float *) malloc(sizeof(float)*ivfpq.coa_centroidsn*ivfpq.coa_centroidsn);
-    			fread (&ivfpq.coa_centroids[0], sizeof(float), ivfpq.coa_centroidsn*ivfpq.coa_centroidsn, arq3);
-
-    			fclose(arq);
-    			fclose(arq2);
-    			fclose(arq3);
- 
-
-			#else
-
-				//Cria centroides a partir dos vetores de treinamento
-				ivfpq = ivfpq_new(coarsek, nsq, v.train);
-
-			#endif
-			
-			free(v.train.mat);
-
-			//Envia os centroides para os processos de recebimento da query e de indexação e busca
-			for(int i=1; i<=last_search; i++){
-				MPI_Send(&ivfpq, sizeof(ivfpq_t), MPI_BYTE, i, 0, MPI_COMM_WORLD);
-				MPI_Send(&ivfpq.pq.centroids[0], ivfpq.pq.centroidsn*ivfpq.pq.centroidsd, MPI_FLOAT, i, 0, MPI_COMM_WORLD);
-				MPI_Send(&ivfpq.coa_centroids[0], ivfpq.coa_centroidsd*ivfpq.coa_centroidsn, MPI_FLOAT, i, 0, MPI_COMM_WORLD);
+			if (arq == NULL){
+    			printf("Problemas na abertura do arquivo\n");
+    			return;
 			}
-		}
-		else {
-			MPI_Recv(&ivfpq, sizeof(ivfpq_t), MPI_BYTE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-			ivfpq.pq.centroids = (float*)malloc(sizeof(float)*ivfpq.pq.centroidsn*ivfpq.pq.centroidsd);
-			MPI_Recv(&ivfpq.pq.centroids[0], ivfpq.pq.centroidsn*ivfpq.pq.centroidsd, MPI_FLOAT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-			ivfpq.coa_centroids=(float*)malloc(sizeof(float)*ivfpq.coa_centroidsd*ivfpq.coa_centroidsn);
-			MPI_Recv(&ivfpq.coa_centroids[0], ivfpq.coa_centroidsn*ivfpq.coa_centroidsd, MPI_FLOAT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		}
+
+			fread (&ivfpq.pq.nsq, sizeof(int), 1, arq);
+    		fread (&ivfpq.pq.ks, sizeof(int), 1, arq);
+    		fread (&ivfpq.pq.ds, sizeof(int), 1, arq);
+    		fread (&ivfpq.pq.centroidsn, sizeof(int), 1, arq);
+    		fread (&ivfpq.pq.centroidsd, sizeof(int), 1, arq);
+    		fread (&ivfpq.coarsek, sizeof(int), 1, arq);
+    		fread (&ivfpq.coa_centroidsn, sizeof(int), 1, arq);
+    		fread (&ivfpq.coa_centroidsd, sizeof(int), 1, arq);
+    		ivfpq.pq.centroids = (float *) malloc(sizeof(float)*ivfpq.pq.centroidsn*ivfpq.pq.centroidsn);
+    		fread (&ivfpq.pq.centroids[0], sizeof(float), ivfpq.pq.centroidsn*ivfpq.pq.centroidsn, arq2);
+    		ivfpq.coa_centroids = (float *) malloc(sizeof(float)*ivfpq.coa_centroidsn*ivfpq.coa_centroidsn);
+    		fread (&ivfpq.coa_centroids[0], sizeof(float), ivfpq.coa_centroidsn*ivfpq.coa_centroidsn, arq3);
+
+    		fclose(arq);
+    		fclose(arq2);
+    		fclose(arq3);
+ 
+		#else
+
+			//Cria centroides a partir dos vetores de treinamento
+			ivfpq = ivfpq_new(coarsek, nsq, v.train);
+
+		#endif
+			
+		free(v.train.mat);
+
+		//Envia os centroides para os processos de recebimento da query e de indexação e busca
+		for(int i=1; i<=last_search; i++){
+			MPI_Send(&ivfpq, sizeof(ivfpq_t), MPI_BYTE, i, 0, MPI_COMM_WORLD);
+			MPI_Send(&ivfpq.pq.centroids[0], ivfpq.pq.centroidsn*ivfpq.pq.centroidsd, MPI_FLOAT, i, 0, MPI_COMM_WORLD);
+			MPI_Send(&ivfpq.coa_centroids[0], ivfpq.coa_centroidsd*ivfpq.coa_centroidsn, MPI_FLOAT, i, 0, MPI_COMM_WORLD);
+		}		
 		
 		ivf = (ivf_t*)malloc(sizeof(ivf_t)*ivfpq.coarsek);
 	
@@ -134,7 +123,7 @@ void parallel_training (char *dataset, int coarsek, int nsq, int tam, int comm_s
 		
 			ivf3 = (ivf_t *)malloc(sizeof(ivf_t)*coarsek);
 			if(tam%1000000==0 && i==(tam/1000000))break;
-			v.base = pq_test_load_base(dataset, my_rank, last_assign, i);
+			v.base = pq_test_load_base(dataset, last_assign, i);
 			
 			//Cria a lista invertida
 
@@ -162,85 +151,52 @@ void parallel_training (char *dataset, int coarsek, int nsq, int tam, int comm_s
 		free(ivfpq.pq.centroids);
 		free(ivfpq.coa_centroids);
 	
-		if(my_rank!=0){
-			//Envia trechos da lista invertida assinalados a cada processo de busca
-			for(int i=0; i<ivfpq.coarsek; i++){
-				MPI_Send(&ivf[i], sizeof(ivf_t), MPI_BYTE, 0, 0, MPI_COMM_WORLD);
-				MPI_Send(&ivf[i].ids[0], ivf[i].idstam, MPI_INT, 0, 0, MPI_COMM_WORLD);
-				MPI_Send(&ivf[i].codes.mat[0], ivf[i].codes.d*ivf[i].codes.n, MPI_INT, 0, 0, MPI_COMM_WORLD);
+		int *sendcounts, *displs;
+			
+		//Envia trechos da lista invertida assinalados a cada processo de busca
+		for(int i=0; i<ivfpq.coarsek; i++){
+			int idstam = ivf[i].idstam;
+			int codesn = ivf[i].codes.n;
+
+			int itr=0;
+				
+			sendcounts = (int*) calloc(last_search-last_assign, sizeof(int));
+			displs = (int*) malloc(sizeof(int)*(last_search-last_assign));
+				
+			for(int j=0;j<ivf[i].idstam; j++){
+				sendcounts[itr]++;
+				
+				itr++;
+				if(itr>=last_search-last_assign){
+					itr=0;
+				}
 			}
+				
+			displs[0]=0;
+				
+			for(int j=1; j<(last_search-last_assign); j++){
+					
+				displs[j]= displs[j-1]+sendcounts[j-1];
+			}
+				
+			
+			for(int j=last_assign+1; j<=last_search; j++){
+					
+				MPI_Send(&ivf[i].codes.d, 1, MPI_INT, j, 0, MPI_COMM_WORLD);
+				MPI_Send(&sendcounts[j-last_assign-1], 1, MPI_INT, j, 0, MPI_COMM_WORLD);
+				MPI_Send(&ivf[i].ids[displs[j-last_assign-1]], sendcounts[j-last_assign-1], MPI_INT, j, 0, MPI_COMM_WORLD);
+				MPI_Send(&ivf[i].codes.mat[displs[j-last_assign-1]*ivf[i].codes.d], sendcounts[j-last_assign-1]*ivf[i].codes.d, MPI_INT, j, 0, MPI_COMM_WORLD);
+			}
+			free(ivf[i].ids);
+			free(ivf[i].codes.mat);
 		}
-		else{
-			ivf_t ivf2;
-			int *sendcounts, *displs;
 			
-			//Envia trechos da lista invertida assinalados a cada processo de busca
-			for(int i=0; i<ivfpq.coarsek; i++){
-				int idstam = ivf[i].idstam;
-				int codesn = ivf[i].codes.n;
-				
-				for(int j=1; j<last_assign; j++){
-					MPI_Recv(&ivf2, sizeof(ivf_t), MPI_BYTE, j, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-					ivf2.ids = (int*)malloc(sizeof(int)*ivf2.idstam);
-					MPI_Recv(&ivf2.ids[0], ivf2.idstam, MPI_INT, j, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-					ivf2.codes.mat = (int*)malloc(sizeof(int)*ivf2.codes.n*ivf2.codes.d);
-					MPI_Recv(&ivf2.codes.mat[0], ivf2.codes.n*ivf2.codes.d, MPI_INT, j, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-				
-					idstam += ivf2.idstam;
-					codesn += ivf2.codes.n;
-
-					ivf[i].ids = (int*)realloc(ivf[i].ids,sizeof(int)*idstam);
-					memcpy (ivf[i].ids+ivf[i].idstam, ivf2.ids, sizeof(int)*ivf2.idstam);
-					ivf[i].idstam = idstam;
-					ivf[i].codes.mat = (int*)realloc(ivf[i].codes.mat,sizeof(int)*codesn*ivf[i].codes.d);
-					memcpy (ivf[i].codes.mat+ivf[i].codes.n*ivf[i].codes.d, ivf2.codes.mat, sizeof(int)*ivf2.codes.n*ivf2.codes.d);
-					ivf[i].codes.n = codesn;
-
-					free(ivf2.ids);
-					free(ivf2.codes.mat);
-				}
-
-				int itr=0;
-				
-				sendcounts = (int*) calloc(last_search-last_assign, sizeof(int));
-				displs = (int*) malloc(sizeof(int)*(last_search-last_assign));
-				
-				for(int j=0;j<ivf[i].idstam; j++){
-					sendcounts[itr]++;
-					
-					itr++;
-					if(itr>=last_search-last_assign){
-						itr=0;
-					}
-				}
-				
-				displs[0]=0;
-				
-				for(int j=1; j<(last_search-last_assign); j++){
-					
-					displs[j]= displs[j-1]+sendcounts[j-1];
-				}
-				
+		//Envia o ids_gnd para o agregador calcular as estatisticas da busca
+		for(int i=last_search+1; i<=last_aggregator; i++){
+			MPI_Send(&v.ids_gnd, sizeof(matI), MPI_BYTE, i, 0, MPI_COMM_WORLD);
+			MPI_Send(&v.ids_gnd.mat[0], v.ids_gnd.d*v.ids_gnd.n, MPI_INT, i, 0, MPI_COMM_WORLD);
+		}
 			
-				for(int j=last_assign+1; j<=last_search; j++){
-					
-					MPI_Send(&ivf[i].codes.d, 1, MPI_INT, j, 0, MPI_COMM_WORLD);
-					MPI_Send(&sendcounts[j-last_assign-1], 1, MPI_INT, j, 0, MPI_COMM_WORLD);
-					MPI_Send(&ivf[i].ids[displs[j-last_assign-1]], sendcounts[j-last_assign-1], MPI_INT, j, 0, MPI_COMM_WORLD);
-					MPI_Send(&ivf[i].codes.mat[displs[j-last_assign-1]*ivf[i].codes.d], sendcounts[j-last_assign-1]*ivf[i].codes.d, MPI_INT, j, 0, MPI_COMM_WORLD);
-				}
-				free(ivf[i].ids);
-				free(ivf[i].codes.mat);
-			}
-			
-			//Envia o ids_gnd para o agregador calcular as estatisticas da busca
-			for(int i=last_search+1; i<=last_aggregator; i++){
-				MPI_Send(&v.ids_gnd, sizeof(matI), MPI_BYTE, i, 0, MPI_COMM_WORLD);
-				MPI_Send(&v.ids_gnd.mat[0], v.ids_gnd.d*v.ids_gnd.n, MPI_INT, i, 0, MPI_COMM_WORLD);
-			}
-		
-
-		}	
 		free(ivf);
 	
 	#endif

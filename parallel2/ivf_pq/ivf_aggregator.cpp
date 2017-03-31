@@ -1,6 +1,6 @@
 #include "ivf_aggregator.h"
 
-void parallel_aggregator(int k, int w, int my_rank, int comm_sz){
+void parallel_aggregator(int k, int w, int my_rank, int comm_sz, int tam_base){
 	static int last_assign, last_search, last_aggregator;
 	dis_t *q;
 	matI ids_gnd;
@@ -37,14 +37,14 @@ void parallel_aggregator(int k, int w, int my_rank, int comm_sz){
 
 			for(int s=last_assign+1; s<=last_search; s++){
 			
-				MPI_Recv(&tam, 1, MPI_INT, s, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+				MPI_Recv(&tam, 1, MPI_INT, s, 1+i*w+j, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 				
 				q[i].dis.mat = (float*)realloc(q[i].dis.mat,sizeof(float)*(q[i].dis.n+tam));
 				q[i].idx.mat = (int*)realloc(q[i].idx.mat,sizeof(int)*(q[i].idx.n+tam));
 				
-				MPI_Recv(&q[i].idx.mat[q[i].idx.n], tam, MPI_INT, s, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+				MPI_Recv(&q[i].idx.mat[q[i].idx.n], tam, MPI_INT, s, 1+i*w+j, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-				MPI_Recv(&q[i].dis.mat[q[i].dis.n], tam, MPI_FLOAT, s, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+				MPI_Recv(&q[i].dis.mat[q[i].dis.n], tam, MPI_FLOAT, s, 1+i*w+j, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
 				q[i].dis.n += tam;
 				q[i].idx.n += tam;
@@ -73,8 +73,8 @@ void parallel_aggregator(int k, int w, int my_rank, int comm_sz){
 
     	fp = fopen(arquivo, "a");
 
-	fprintf(fp,"w=%d, tasks=%d\n", w, last_aggregator+1);
-	fprintf(fp,"Tempo de busca antes do bcast: %g\n\n",end*1000-start*1000);
+	fprintf(fp,"w=%d, tasks=%d, tamanho da base=%d\n", w, last_aggregator+1, tam_base);
+	fprintf(fp,"Tempo de busca antes do bcast: %g\n",end*1000-start*1000);
 	fprintf(fp,"Tempo de busca apos o bcast: %g\n\n",end*1000-start2*1000);
 
 	fclose(fp);
