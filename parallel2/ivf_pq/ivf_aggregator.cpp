@@ -6,7 +6,7 @@ void parallel_aggregator(int k, int w, int my_rank, int comm_sz){
 	matI ids_gnd;
 	float *dis2, *dis;
 	int *coaidx, *ids2, *ids, rest, source, queryn, tam, l=0, id, ktmp;
-	double start=0, end;
+	double start=0, start2=0, end;
 	char arquivo[15] = "testes.txt";
 
 	dis2 = (float*)malloc(sizeof(float)*k);
@@ -67,13 +67,15 @@ void parallel_aggregator(int k, int w, int my_rank, int comm_sz){
 	
 
 	MPI_Recv(&start, 1, MPI_DOUBLE, last_assign, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	MPI_Recv(&start2, 1, MPI_DOUBLE, last_assign, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
 	FILE *fp;
 
-    fp = fopen(arquivo, "a");
+    	fp = fopen(arquivo, "a");
 
-    fprintf(fp,"w=%d, tasks=%d\n", w, last_aggregator+1);
-	fprintf(fp,"Tempo de busca: %g\n\n",end*1000-start*1000);
+	fprintf(fp,"w=%d, tasks=%d\n", w, last_aggregator+1);
+	fprintf(fp,"Tempo de busca antes do bcast: %g\n\n",end*1000-start*1000);
+	fprintf(fp,"Tempo de busca apos o bcast: %g\n\n",end*1000-start2*1000);
 
 	fclose(fp);
 
