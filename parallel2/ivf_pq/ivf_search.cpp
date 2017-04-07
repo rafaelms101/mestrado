@@ -55,9 +55,11 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, MPI_Comm search_
 			for(int i=0; i<residual.n; i++){
 				dis_t q = ivfpq_search(ivf, &residual.mat[0]+i*residual.d, ivfpq.pq, coaidx[i]);
 		
-				int ktmp = min(q.idx.n, k);
+				int ktmp = min(q.idx.n, k), id, my_rank;
 				MPI_Request request;
-				
+
+				MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+				id = i+my_rank+1;
 
 				int *ids;
 				float *dis;
@@ -69,11 +71,11 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, MPI_Comm search_
 				
 				# pragma omp critical
 				{
-				MPI_Send(&ktmp, 1, MPI_INT, last_aggregator, 1+i, MPI_COMM_WORLD);
-		
-				MPI_Send(&ids[0], ktmp, MPI_INT, last_aggregator, 1+i, MPI_COMM_WORLD);
-			
-				MPI_Send(&dis[0], ktmp, MPI_FLOAT, last_aggregator, 1+i, MPI_COMM_WORLD);
+					MPI_Send(&id, 1, MPI_INT, last_aggregator, 100000, MPI_COMM_WORLD);
+					MPI_Send(&my_rank, 1, MPI_INT, last_aggregator, id, MPI_COMM_WORLD);
+					MPI_Send(&ktmp, 1, MPI_INT, last_aggregator, id, MPI_COMM_WORLD);
+					MPI_Send(&ids[0], ktmp, MPI_INT, last_aggregator, id, MPI_COMM_WORLD);
+					MPI_Send(&dis[0], ktmp, MPI_FLOAT, last_aggregator, id, MPI_COMM_WORLD);
 				}
 
 				free(dis);

@@ -14,4 +14,4 @@ w=4, tasks=4, tamanho da base=200000000
 Tempo de busca antes do bcast: 8532090.7
 Tempo de busca apos o bcast: 2540352.2
 
-
+------------------------------------------------

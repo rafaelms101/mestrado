@@ -5,7 +5,7 @@ void parallel_aggregator(int k, int w, int my_rank, int comm_sz, int tam_base){
 	dis_t *q;
 	matI ids_gnd;
 	float *dis2, *dis;
-	int *coaidx, *ids2, *ids, rest, source, queryn, tam, l=0, id, ktmp;
+	int *coaidx, *ids2, *ids, rest, id, rank, queryn, tam, l=0, ktmp, *in_q, in=0, ttam=0;
 	double start=0, start2=0, end;
 	char arquivo[15] = "testes.txt";
 
@@ -19,6 +19,7 @@ void parallel_aggregator(int k, int w, int my_rank, int comm_sz, int tam_base){
 	MPI_Recv(&coaidx[0], queryn*w, MPI_INT, last_assign, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
 	q = (dis_t*)malloc(sizeof(dis_t)*queryn);
+	in_q = (int*)calloc(queryn,sizeof(in_q));
 
 	for(int i=0; i<queryn; i++){
 		q[i].dis.mat = (float*)malloc(sizeof(float));
@@ -30,35 +31,51 @@ void parallel_aggregator(int k, int w, int my_rank, int comm_sz, int tam_base){
 	dis = (float*)malloc(sizeof(float)*k*queryn);
 	ids = (int*)malloc(sizeof(int)*k*queryn);
 
-	for(int i=0; i<queryn; i++){
-		//Recebe os resultados da busca nos vetores assinalados ao agregador
+	int i=0;
+	while(i<queryn*w*(last_search-last_assign)){
 
-		for(int j=0; j<w; j++){
+		MPI_Recv(&id, 1, MPI_INT, MPI_ANY_SOURCE , 100000, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		MPI_Recv(&rank, 1, MPI_INT, MPI_ANY_SOURCE , id, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		MPI_Recv(&tam, 1, MPI_INT, MPI_ANY_SOURCE, id, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-			for(int s=last_assign+1; s<=last_search; s++){
-			
-				MPI_Recv(&tam, 1, MPI_INT, s, 1+i*w+j, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		q[(id-rank-1)/w].dis.mat = (float*)realloc(q[(id-rank-1)/w].dis.mat,sizeof(float)*(q[(id-rank-1)/w].dis.n+tam));
+		q[(id-rank-1)/w].idx.mat = (int*)realloc(q[(id-rank-1)/w].idx.mat,sizeof(int)*(q[(id-rank-1)/w].idx.n+tam));
 				
-				//TODO: receber source, deixar execução assincrona
+		MPI_Recv(&q[(id-rank-1)/w].idx.mat[q[(id-rank-1)/w].idx.n], tam, MPI_INT, MPI_ANY_SOURCE, id, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-				q[i].dis.mat = (float*)realloc(q[i].dis.mat,sizeof(float)*(q[i].dis.n+tam));
-				q[i].idx.mat = (int*)realloc(q[i].idx.mat,sizeof(int)*(q[i].idx.n+tam));
-				
-				MPI_Recv(&q[i].idx.mat[q[i].idx.n], tam, MPI_INT, s, 1+i*w+j, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		MPI_Recv(&q[(id-rank-1)/w].dis.mat[q[(id-rank-1)/w].dis.n], tam, MPI_FLOAT, MPI_ANY_SOURCE, id, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-				MPI_Recv(&q[i].dis.mat[q[i].dis.n], tam, MPI_FLOAT, s, 1+i*w+j, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		q[(id-rank-1)/w].dis.n += tam;
+		q[(id-rank-1)/w].idx.n += tam;
 
-				q[i].dis.n += tam;
-				q[i].idx.n += tam;
-			}
-		}
-		ktmp = min(q[i].idx.n, k);
+		in_q[(id-rank-1)/w]++;
+
+		if(in_q[in]==w*(last_search-last_assign)){
+			ktmp = min(q[in].idx.n, k);
 		
-		my_k_min(q[i], ktmp, dis2, ids2);
-	
-		memcpy(&dis[0] + i*k, dis2, sizeof(float)*k);
-		memcpy(&ids[0] + i*k, ids2, sizeof(int)*k);
+			my_k_min(q[in], ktmp, dis2, ids2);
+		
+			ttam+=ktmp;
+
+			memcpy(&dis[0] + ttam, dis2, sizeof(float)*ktmp);
+			memcpy(&ids[0] + ttam, ids2, sizeof(int)*ktmp);
+			in++;
+		}
+		i++;
 	}
+
+	while(in<queryn){
+		ktmp = min(q[in].idx.n, k);
+		
+		my_k_min(q[in], ktmp, dis2, ids2);
+		
+		ttam+=ktmp;
+
+		memcpy(&dis[0] + ttam, dis2, sizeof(float)*ktmp);
+		memcpy(&ids[0] + ttam, ids2, sizeof(int)*ktmp);
+		in++;
+	}
+
 	end=MPI_Wtime();
 
 	free(q);
