@@ -16,7 +16,7 @@ YAELLDFLAGS=-L/home/andreff/Programas/pqnns-unb/parallel/yael_needs -Wl,-rpath,/
 SWIG=swig -python
 
 WRAPLDFLAGS=-shared
-LAPACKLDFLAGS=-lblas -llapack
+LAPACKLDFLAGS=/usr/lib/libblas.so.3gf /usr/lib/liblapack.so.3gf
 LAPACKCFLAGS=-DFINTEGER=int
 
 USEARPACK=no

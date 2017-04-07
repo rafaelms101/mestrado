@@ -1,0 +1,119 @@
+Teste com a base siftbig, coarsek=256, w=4, tamanho506000000
+
+Teste com a base siftbig, coarsek=256, w=4, tamanho200000000
+
+Teste com a base siftbig, coarsek=256, w=4, tamanho200000000
+
+Teste com a base siftbig, coarsek=256, w=4, tamanho2000000
+
+Tempo de busca: 26666.3
+Tempo total: 64319 milissegundos
+
+Tempo de busca: 2.54071e+06
+Tempo total: 6.45386e+06 milissegundos
+
+Teste com a base siftbig, coarsek=256, w=4, tamanho200000000
+
+Tempo de busca: 93577.6
+Tempo total: 4.10397e+06 milissegundos
+
+Teste com a base siftbig, coarsek=256, w=4, tamanho200000000
+
+Tempo de busca: 2.5665e+06
+Tempo total: 6.51595e+06 milissegundos
+
+Teste com a base siftbig, coarsek=256, w=4, tamanho200000000
+
+Tempo de busca: 574.559
+Tempo de agregar: -1.49035e+12
+Tempo total: 6.49767e+06 milissegundos
+
+Teste com a base siftbig, coarsek=256, w=4, tamanho200000000
+
+Tempo de busca: 594.814
+Tempo de agregar: 2.5358e+06
+Tempo total: 6.45825e+06 milissegundos
+
+Teste com a base siftbig, coarsek=256, w=4, tamanho200000000
+
+Tempo de busca: 2.51065e+06
+Tempo de agregar: 0.00195312
+Tempo total: 6.44379e+06 milissegundos
+Teste com a base siftbig, coarsek=256, w=4, tamanho200000000
+
+Tempo de busca: 2.53823e+06
+Tempo de agregar: 0.000732422
+Tempo total: 6.46117e+06 milissegundos
+
+Teste com a base siftbig, coarsek=256, w=4, tamanho200000000
+
+Teste com a base siftbig, coarsek=256, w=4, tamanho200000000
+
+Teste com a base siftbig, coarsek=256, w=4, tamanho200000000
+
+Teste com a base siftbig, coarsek=256, w=4, tamanho200000000
+
+Tempo de busca: 93182.3
+Tempo de agregar: 40.1548
+Tempo total: 4.03355e+06 milissegundos
+
+Teste com a base siftbig, coarsek=256, w=4, tamanho200000000
+
+Tempo de busca: 2.5509e+06
+Tempo de agregar: 0.041748
+Tempo total: 6.48572e+06 milissegundos
+
+Teste com a base siftbig, coarsek=256, w=4, tamanho200000000
+
+Tempo de busca: 2.54926e+06
+Tempo de agregar: 0
+Tempo total: 6.50852e+06 milissegundos
+
+w=4, tasks=4Tempo de busca: 88.3074
+w=4, tasks=4Tempo de busca: 141.335
+w=4, tasks=4Tempo de busca: 104.696
+w=4, tasks=4Tempo de busca: 69.7891
+w=4, tasks=4Tempo de busca: 86.8127
+w=4, tasks=4Tempo de busca: 90.8218
+w=4, tasks=4
+Tempo de busca: 87.6165
+
+w=4, tasks=4
+Tempo de busca: 130.187
+
+w=4, tasks=4
+Tempo de busca: 168.994
+
+w=4, tasks=4
+Tempo de busca: 83.2161
+
+w=4, tasks=4
+Tempo de busca: 248.328
+
+w=4, tasks=4
+Tempo de busca: 731.498
+
+w=4, tasks=4
+Tempo de busca: 84.8923
+
+w=4, tasks=4
+Tempo de busca: 173.488
+
+w=4, tasks=4
+Tempo de busca: 1013.21
+
+w=4, tasks=4
+Tempo de busca: 1405.84
+
+w=4, tasks=4
+Tempo de busca: 865.15
+
+w=4, tasks=4
+Tempo de busca: 1933.79
+
+w=4, tasks=4
+Tempo de busca: 92.9871
+
+w=4, tasks=4
+Tempo de busca: 338700
+

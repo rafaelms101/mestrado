@@ -1,0 +1,17 @@
+w=4, tasks=4, tamanho da base=2000000
+Tempo de busca antes do bcast: 63092.3
+Tempo de busca apos o bcast: 26070.1
+
+w=4, tasks=13, tamanho da base=20000000
+Tempo de busca antes do bcast: 382056.4
+Tempo de busca apos o bcast: 26112.3
+
+w=4, tasks=103, tamanho da base=200000000
+Tempo de busca antes do bcast: 6471403.3
+Tempo de busca apos o bcast: 26152.4
+
+w=4, tasks=4, tamanho da base=200000000
+Tempo de busca antes do bcast: 8532090.7
+Tempo de busca apos o bcast: 2540352.2
+
+

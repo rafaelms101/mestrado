@@ -1,8 +1,150 @@
 #include "ivf_search.h"
 
-#define L2 2
+static int last_assign, last_search, last_aggregator;
+dis_t q_total;
+pthread_mutex_t lock;
 
-float * sumidxtab2(mat D, matI ids, int offset);
+void parallel_search (int nsq, int my_rank, int k, int comm_sz, int threads){
+
+	ivf_threads_t ivf_threads, *ivf_threads_v;
+	pthread_t *thread_handles;
+	mat residual;
+	MPI_Status status, status2;
+	MPI_Request request, request2;
+	int tam, ids[k], coaidx, id, flag, flag2, ktmp;
+	float dis[k];
+	char finish;
+
+	set_last (comm_sz, &last_assign, &last_search, &last_aggregator);
+
+	//Recebe os centroides
+	MPI_Recv(&ivf_threads.ivfpq, sizeof(ivfpq_t), MPI_BYTE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	ivf_threads.ivfpq.pq.centroids = (float*)malloc(sizeof(float)*ivf_threads.ivfpq.pq.centroidsn*ivf_threads.ivfpq.pq.centroidsd);
+	MPI_Recv(&ivf_threads.ivfpq.pq.centroids[0], ivf_threads.ivfpq.pq.centroidsn*ivf_threads.ivfpq.pq.centroidsd, MPI_FLOAT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	ivf_threads.ivfpq.coa_centroids=(float*)malloc(sizeof(float)*ivf_threads.ivfpq.coa_centroidsd*ivf_threads.ivfpq.coa_centroidsn);
+	MPI_Recv(&ivf_threads.ivfpq.coa_centroids[0], ivf_threads.ivfpq.coa_centroidsn*ivf_threads.ivfpq.coa_centroidsd, MPI_FLOAT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	
+	//Recebe o trecho da lista invertida assinalada ao processo
+	tam = ivf_threads.ivfpq.coarsek/(last_search-last_assign);
+	if(my_rank<=ivf_threads.ivfpq.coarsek%(last_search-last_assign)+last_assign)tam++;
+	ivf_threads.ivf = (ivf_t*)malloc(sizeof(ivf_t)*tam);
+	for(int i=0;i<tam;i++){
+		MPI_Recv(&ivf_threads.ivf[i], sizeof(ivf_t), MPI_BYTE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		ivf_threads.ivf[i].ids = (int*)malloc(sizeof(int)*ivf_threads.ivf[i].idstam);
+		MPI_Recv(&ivf_threads.ivf[i].ids[0], ivf_threads.ivf[i].idstam, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		ivf_threads.ivf[i].codes.mat = (int*)malloc(sizeof(int)*ivf_threads.ivf[i].codes.n*ivf_threads.ivf[i].codes.d);
+		MPI_Recv(&ivf_threads.ivf[i].codes.mat[0], ivf_threads.ivf[i].codes.n*ivf_threads.ivf[i].codes.d, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	}
+
+	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+	finish = 'n';
+	
+	MPI_Recv(&residual.d, 1, MPI_INT, last_assign, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	residual.n=1;
+	residual.mat=(float*)malloc(sizeof(float)*residual.d);
+
+	MPI_Irecv(&finish, 1, MPI_CHAR, last_assign, FINISH, MPI_COMM_WORLD, &request2);
+	while(1){
+
+		MPI_Irecv(&coaidx, 1, MPI_INT, last_assign, 0, MPI_COMM_WORLD, &request);
+		do{
+			
+			MPI_Test(&request, &flag, &status);
+			
+			MPI_Test(&request2, &flag2, &status2);
+			
+		}while(flag !=1 && flag2 !=1);
+		
+		if (finish=='s' && flag==0){
+			break;
+		}
+		
+		MPI_Recv(&id, 1, MPI_INT, last_assign, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		
+		MPI_Recv(&residual.mat[0], residual.d, MPI_FLOAT, last_assign, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		
+		int centroid_idx = coaidx/(last_search-last_assign);
+
+		q_total.dis.mat = (float*)malloc(sizeof(float));
+		q_total.dis.n = 0;
+		q_total.dis.d = 1;
+		q_total.idx.mat = (int*)malloc(sizeof(int));
+		q_total.idx.n = 0;
+		q_total.idx.d = 1;
+
+		ivf_threads_v = (ivf_threads_t*)malloc(sizeof(ivf_threads_t)*threads);
+		thread_handles = (pthread_t*)malloc(sizeof(pthread_t)*threads);
+		for(int thread=0; thread<threads; thread++){
+			ivf_threads_v[thread].thread = thread;
+			ivf_threads_v[thread].threads = threads;
+			ivf_threads_v[thread].ivf = &ivf_threads.ivf[centroid_idx];
+			ivf_threads_v[thread].ivfpq = ivf_threads.ivfpq;
+			ivf_threads_v[thread].residual = residual;
+
+			pthread_create(&thread_handles[thread], NULL, search_threads, (void*) &ivf_threads_v[thread]);
+		}
+		for(int thread =0; thread<threads; thread++){
+			pthread_join(thread_handles[thread], NULL);	
+		}
+
+		ktmp = min(q_total.idx.n, k);
+
+		my_k_min(q_total, ktmp, &dis[0], &ids[0]);
+		
+		free(thread_handles);
+		free(ivf_threads_v);
+		free(q_total.dis.mat);
+		free(q_total.idx.mat);
+
+		MPI_Send(&id, 1, MPI_INT, last_search+1+(coaidx%(last_aggregator-last_search)), SEARCH, MPI_COMM_WORLD);
+		
+		MPI_Send(&ktmp, 1, MPI_INT, last_search+1+(coaidx%(last_aggregator-last_search)), id, MPI_COMM_WORLD);
+		
+		MPI_Send(&ids[0], ktmp, MPI_INT, last_search+1+(coaidx%(last_aggregator-last_search)), id, MPI_COMM_WORLD);
+		
+		MPI_Send(&dis[0], ktmp, MPI_FLOAT, last_search+1+(coaidx%(last_aggregator-last_search)), id, MPI_COMM_WORLD);
+	}
+	free(ivf_threads.ivfpq.pq.centroids);
+	free(ivf_threads.ivfpq.coa_centroids);
+	free(ivf_threads.ivf);
+	free(residual.mat);
+}
+
+void *search_threads(void *ivf_threads_recv){
+	ivf_threads_t *ivf_threads;
+	dis_t q;
+	ivf_t ivf2;
+	int tam;
+	
+	ivf_threads = (ivf_threads_t*)ivf_threads_recv;
+	
+	tam = ivf_threads->ivf->idstam/ivf_threads->threads;
+	if(ivf_threads->thread == ivf_threads->threads-1){
+		ivf2.idstam = ivf_threads->ivf->idstam - tam*(ivf_threads->threads-1);
+		ivf2.codes.n = ivf_threads->ivf->idstam - tam*(ivf_threads->threads-1);
+	}
+	else{
+		ivf2.idstam = tam;
+		ivf2.codes.n = tam;
+	}
+
+	ivf2.codes.d = ivf_threads->ivf->codes.d;
+
+	ivf2.codes.mat = ivf_threads->ivf->codes.mat + tam*ivf2.codes.d*ivf_threads->thread;
+	ivf2.ids = ivf_threads->ivf->ids + tam*ivf_threads->thread;
+
+	q=ivfpq_search(&ivf2, ivf_threads->residual, ivf_threads->ivfpq.pq, 0);
+	pthread_mutex_lock(&lock);
+	q_total.dis.mat = (float*)realloc(q_total.dis.mat,sizeof(float)*(q_total.dis.n+q.dis.n));
+	q_total.idx.mat = (int*)realloc(q_total.idx.mat,sizeof(int)*(q_total.idx.n+q.idx.n));
+	memcpy(q_total.dis.mat + q_total.dis.n, q.dis.mat, sizeof(float)*q.dis.n);
+	q_total.dis.n += q.dis.n;
+	memcpy(q_total.idx.mat + q_total.idx.n, q.idx.mat, sizeof(int)*q.idx.n);
+	q_total.idx.n += q.idx.n;
+	pthread_mutex_unlock(&lock);
+		
+	return NULL;
+}
 
 dis_t ivfpq_search(ivf_t *ivf, mat residual, pqtipo pq, int centroid_idx){
 	dis_t q;
@@ -43,14 +185,6 @@ dis_t ivfpq_search(ivf_t *ivf, mat residual, pqtipo pq, int centroid_idx){
 	free (distab_temp);
 	free (distab.mat);
 	return q;
-}
-
-void bsxfunMINUS(mat mout, mat vin, float* vin2, int nq, int* qcoaidx, int ncoaidx){
-	for (int i = 0; i < vin.d; i++) {
-		for (int j = 0; j < ncoaidx; j++) {
-			mout.mat[j*vin.d+i] = vin.mat[(vin.d*nq) + i] - vin2[(qcoaidx[j]*vin.d)+i];
-		}
-	}
 }
 
 int min(int a, int b){
