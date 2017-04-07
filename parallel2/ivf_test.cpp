@@ -55,7 +55,7 @@ int main(int argc, char **argv){
 	dataset = argv[1];
 	threads  = atoi(argv[2]);
 	tam  = atoi(argv[3]);
-	k = 100;
+	k = 1000;
 	nsq = 8;
 	coarsek = 256;
 	w = 4;

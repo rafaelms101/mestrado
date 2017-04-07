@@ -39,6 +39,8 @@ void parallel_aggregator(int k, int w, int my_rank, int comm_sz, int tam_base){
 			
 				MPI_Recv(&tam, 1, MPI_INT, s, 1+i*w+j, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 				
+				//TODO: receber source, deixar execução assincrona
+
 				q[i].dis.mat = (float*)realloc(q[i].dis.mat,sizeof(float)*(q[i].dis.n+tam));
 				q[i].idx.mat = (int*)realloc(q[i].idx.mat,sizeof(int)*(q[i].idx.n+tam));
 				
