@@ -54,14 +54,13 @@ void bsxfunMINUS(mat mout, mat vin, float* vin2, int nq, int* qcoaidx, int ncoai
 	}
 }
 
-int min(int a, int b){
+__declspec(target(mic)) int min(int a, int b){
 	if(a>b){
 		return b;
 	}
 	else
 		return a;
 }
-
 
 __declspec(target(mic)) float * sumidxtab2(mat D, matI ids, int offset){
 	//aloca o vetor a ser retornado

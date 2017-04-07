@@ -2,8 +2,8 @@
 
 include makefile.inc
 
-CC=icc -g
-CXX=icc -g
+CC=icc -g -L/opt/intel/mkl/lib/intel64 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -lpthread -lm -ldl
+CXX=icc -g -L/opt/intel/mkl/lib/intel64 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -lpthread -lm -ldl
 MPICXX = mpicc -g
 PQ_UTILS_DIR = ./pq-utils
 OBJDIR=./obj

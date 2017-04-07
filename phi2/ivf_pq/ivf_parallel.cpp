@@ -11,7 +11,7 @@ static int threads;
 static int last_assign;
 static int last_search;
 static int last_aggregator;
-pthread_mutex_t lock, lock2, lock3;
+__declspec(target(mic)) pthread_mutex_t lock, lock2, lock3;
 
 void set_last (int comm_sz, int num_threads){
 
@@ -330,15 +330,42 @@ void parallel_search (int nsq, int my_rank, int k, char* arquivo){
 	MPI_Recv(&ivf_threads.residuald, 1, MPI_INT, last_assign, ASSIGN, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
 	//TODO offload dos dados para o intel Phi
+	int coa_centroidsn, coa_centroidsd, coarsek, idstam;
+	int nsq, ks, ds, centroidsn, centroidsd, n, d, residuald;
+	int *ids, *mat;
+	float *coa_centroids, *centroids;
+	coa_centroidsn = ivf_threads.ivfpq.coa_centroidsn;	//OK
+	coa_centroidsd = ivf_threads.ivfpq.coa_centroidsd;	//OK
+	coarsek = ivf_threads.ivfpq.coarsek;								//OK
+	nsq = ivf_threads.ivfpq.pq.nsq;											//OK
+	ks = ivf_threads.ivfpq.pq.ks;												//OK
+	ds = ivf_threads.ivfpq.pq.ds;												//OK
+	centroidsn = ivf_threads.ivfpq.pq.centroidsn;				//OK
+	centroidsd = ivf_threads.ivfpq.pq.centroidsd;				//OK
+	coa_centroids = ivf_threads.ivfpq.coa_centroids;		//OK
+	centroids = ivf_threads.ivfpq.centroids;						//OK
+	ids = ivf_threads.ivf->ids;													//OK
+	idstam = ivf_threads.ivf->idstam;										//OK
+	n = ivf_threads.ivf->codes.n;												//OK
+	d = ivf_threads.ivf->codes.n;												//OK
+	mat = ivf_threads.ivf->codes.mat;										//OK
+	residuald = ivf_threads.residuald;									//OK
+
 	#pragma offload target (mic:0)
+				in(ids : length(idstam) ALLOC FREE)
+				in(residuald, nsq, ks, ds, centroidsn, centroidsd, coa_centroidsn, coa_centroidsd, coarsek, idstam, k, n, d)
+				in(coa_centroids : length(coa_centroidsn*coa_centroidsd) ALLOC FREE)
+				in(centroids : length(centroidsn*centroidsd) ALLOC FREE)
+				in(mat : lenght(n*d) ALLOC FREE)
+	{
 		phi_search();
+	}
 
 	free(thread_handles);
 	free(ivf_threads.ivfpq.pq.centroids);
 	free(ivf_threads.ivfpq.coa_centroids);
 	free(ivf_threads.ivf);
 	free(ivf_threads_v);
-
 }
 
 void parallel_aggregator(int k, int w, int my_rank, char *arquivo){
@@ -531,9 +558,22 @@ __declspec(target(mic)) void phi_search(){
 	for (int thread =0; thread<threads; thread++){
 		ivf_threads_v[thread].thread = thread;
 		ivf_threads_v[thread].k = k;
-		ivf_threads_v[thread].ivf = ivf_threads.ivf;
-		ivf_threads_v[thread].ivfpq = ivf_threads.ivfpq;
-		ivf_threads_v[thread].residuald = ivf_threads.residuald;
+		ivf_threads_v[thread].ivf->ids = ids;
+		ivf_threads_v[thread].ivf->idstam = idstam;
+		ivf_threads_v[thread].ivf->codes.n = n;
+		ivf_threads_v[thread].ivf->codes.d = d;
+		ivf_threads_v[thread].ivf->codes.mat = mat;
+		ivf_threads_v[thread].ivfpq.coa_centroids = coa_centroids;
+		ivf_threads_v[thread].ivfpq.coa_centroidsn = coa_centroidsn;
+		ivf_threads_v[thread].ivfpq.coa_centroidsd = coa_centroidsd;
+		ivf_threads_v[thread].ivfpq.coarsek = coarsek;
+		ivf_threads_v[thread].ivfpq.pq.nsq = nsq;
+		ivf_threads_v[thread].ivfpq.pq.ks = ks;
+		ivf_threads_v[thread].ivfpq.pq.ds = ds;
+		ivf_threads_v[thread].ivfpq.pq.centroids = centroids;
+		ivf_threads_v[thread].ivfpq.pq.centroidsn = centroidsn;
+		ivf_threads_v[thread].ivfpq.pq.centroidsd = centroidsd;
+		ivf_threads_v[thread].residuald = residuald;
 		pthread_create(&thread_handles[thread], NULL, search_threads, (void*) &ivf_threads_v[thread]);
 	}
 	for(thread =0; thread<threads; thread++){

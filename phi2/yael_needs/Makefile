@@ -5,6 +5,7 @@ include ../makefile.inc
 all: libyael.a libyael.$(SHAREDEXT)
 
 CC=icc
+ICCFLAGS = -L/opt/intel/compilers_and_libraries_2017.1.132/linux/mkl/lib/intel64_lin/ -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -lpthread -ldl
 
 ifeq "$(USEARPACK)" "yes"
   EXTRAYAELLDFLAG=$(ARPACKLDFLAGS)
@@ -33,15 +34,15 @@ libyael.$(SHAREDEXT): $(LIBOBJ)
 .c.o:
 	$(CC) $(CFLAGS) -c $< -o $@ $(FLAGS) $(EXTRACFLAGS)
 
-nn.o: EXTRACFLAGS=$(LAPACKCFLAGS) $(THREADCFLAGS) $(OPENMPFLAG)
+nn.o: EXTRACFLAGS=$(LAPACKCFLAGS) $(THREADCFLAGS) $(OPENMPFLAG)	$(ICCFLAGS)
 
-matrix.o: EXTRACFLAGS=$(LAPACKCFLAGS) $(THREADCFLAGS) $(EXTRAMATRIXFLAG) $(OPENMPFLAG)
+matrix.o: EXTRACFLAGS=$(LAPACKCFLAGS) $(THREADCFLAGS) $(EXTRAMATRIXFLAG) $(OPENMPFLAG) $(ICCFLAGS)
 
-kmeans.o: EXTRACFLAGS=$(THREADCFLAGS)
+kmeans.o: EXTRACFLAGS=$(THREADCFLAGS) $(ICCFLAGS)
 
-eigs.o: EXTRACFLAGS=$(LAPACKCFLAGS) $(LAPACKCFLAGS) $(EXTRAEIGSFLAG) $(OPENMPFLAG)
+eigs.o: EXTRACFLAGS=$(LAPACKCFLAGS) $(LAPACKCFLAGS) $(EXTRAEIGSFLAG) $(OPENMPFLAG) $(ICCFLAGS)
 
-machinedeps.o:  EXTRACFLAGS=$(OPENMPFLAG)
+machinedeps.o:  EXTRACFLAGS=$(OPENMPFLAG) $(ICCFLAGS)
 
 #############################
 # Dependencies

@@ -31,6 +31,8 @@ This file is part of Yael.
 #include "nn.h"
 #include "binheap.h"
 #include "sorting.h"
+#include "mkl.h"
+#include <complex.h>
 
 
 
@@ -49,7 +51,7 @@ This file is part of Yael.
 #define real float
 #define integer FINTEGER
 
-int sgemm_ (char *transa, char *transb, integer * m, integer *
+int __attribute__((target(mic))) sgemm_ (char *transa, char *transb, integer * m, integer *
             n, integer * k, real * alpha, const real * a, integer * lda,
             const real * b, integer * ldb, real * beta, real * c__,
             integer * ldc);
@@ -195,6 +197,7 @@ void compute_distances_1 (int d, int nb,
 #else
 
 #include <emmintrin.h>
+#include <immintrin.h>
 
 /* compute chi2 distance between two vectors */
 static float vec_chi2 (const float *a, const float *b, int n)
@@ -251,7 +254,7 @@ static void cross_distances_chi2_vec (int d, int na, int nb,
   for(j=0;j<nb;j++) {
     const float *al=a;
     for(i=0;i<na;i++) {
-      cl[i]=vec_chi2(al,bl,d);;
+      cl[i]=vec_chi2(al,bl,d);
       al+=lda;
     }
     cl+=ldc;

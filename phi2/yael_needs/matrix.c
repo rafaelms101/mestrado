@@ -10,6 +10,7 @@
 #include "sorting.h"
 #include "machinedeps.h"
 #include "eigs.h"
+#include "mkl.h"
 
 #define NEWA(type,n) (type*)malloc(sizeof(type)*(n))
 #define NEWAC(type,n) (type*)calloc(sizeof(type),(n))
@@ -42,13 +43,13 @@ int slarfb_ (char *side, char *trans, char *direct, char *storev, integer * m,
              integer * ldt, real * c__, integer * ldc, real * work,
              integer * ldwork);
 
-int ssyrk_(char *uplo, char *trans, integer *n, integer *k, 
+int ssyrk_(char *uplo, char *trans, integer *n, integer *k,
            real *alpha, real *a, integer *lda, real *beta, real *c__, integer *
            ldc);
 
 
-void sgemv_(const char *trans, integer *m, integer *n, real *alpha, 
-                   const real *a, integer *lda, const real *x, integer *incx, real *beta, real *y, 
+void sgemv_(const char *trans, integer *m, integer *n, real *alpha,
+                   const real *a, integer *lda, const real *x, integer *incx, real *beta, real *y,
                    integer *incy);
 
 
@@ -75,18 +76,18 @@ void fmat_mul_full(const float *left, const float *right,
                    const char *transp,
                    float *result) {
 
-  fmat_mul_full_nonpacked(left, right, m, n, k, transp, 
-                          (transp[0] == 'N' ? m : k), 
-                          (transp[1] == 'N' ? k : n), 
+  fmat_mul_full_nonpacked(left, right, m, n, k, transp,
+                          (transp[0] == 'N' ? m : k),
+                          (transp[1] == 'N' ? k : n),
                           result, m);
-                       
-  
+
+
 }
 
 void fmat_mul_full_nonpacked(const float *left, const float *right,
                              int mi, int ni, int ki,
                              const char *transp,
-                             int ld_left, int ld_right, 
+                             int ld_left, int ld_right,
                              float *result,
                              int ld_result) {
 
@@ -95,8 +96,8 @@ void fmat_mul_full_nonpacked(const float *left, const float *right,
   FINTEGER m=mi,n=ni,k=ki;
   FINTEGER lda = ld_left;
   FINTEGER ldb = ld_right;
-  FINTEGER ldc = ld_result; 
-  
+  FINTEGER ldc = ld_result;
+
   sgemm_ ((char*)transp, (char*)(transp+1), &m, &n, &k,
           &alpha, left, &lda, right, &ldb, &beta, result, &ldc);
 
