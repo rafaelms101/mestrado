@@ -30,55 +30,53 @@ void parallel_aggregator(int k, int w, int my_rank, int comm_sz, int tam_base){
 
 	dis = (float*)malloc(sizeof(float)*k*queryn);
 	ids = (int*)malloc(sizeof(int)*k*queryn);
-
 	int i=0;
 	while(i<queryn*w*(last_search-last_assign)){
-
-		MPI_Recv(&id, 1, MPI_INT, MPI_ANY_SOURCE , 100000, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		MPI_Recv(&rank, 1, MPI_INT, MPI_ANY_SOURCE , id, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		MPI_Recv(&tam, 1, MPI_INT, MPI_ANY_SOURCE, id, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
+		
+		MPI_Recv(&rank, 1, MPI_INT, MPI_ANY_SOURCE , 100000, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		MPI_Recv(&id, 1, MPI_INT, rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);	
+		MPI_Recv(&tam, 1, MPI_INT, rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		
 		q[(id-rank-1)/w].dis.mat = (float*)realloc(q[(id-rank-1)/w].dis.mat,sizeof(float)*(q[(id-rank-1)/w].dis.n+tam));
 		q[(id-rank-1)/w].idx.mat = (int*)realloc(q[(id-rank-1)/w].idx.mat,sizeof(int)*(q[(id-rank-1)/w].idx.n+tam));
-				
-		MPI_Recv(&q[(id-rank-1)/w].idx.mat[q[(id-rank-1)/w].idx.n], tam, MPI_INT, MPI_ANY_SOURCE, id, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-		MPI_Recv(&q[(id-rank-1)/w].dis.mat[q[(id-rank-1)/w].dis.n], tam, MPI_FLOAT, MPI_ANY_SOURCE, id, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
+			
+		MPI_Recv(&q[(id-rank-1)/w].idx.mat[q[(id-rank-1)/w].idx.n], tam, MPI_INT, rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		MPI_Recv(&q[(id-rank-1)/w].dis.mat[q[(id-rank-1)/w].dis.n], tam, MPI_FLOAT, rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		
 		q[(id-rank-1)/w].dis.n += tam;
 		q[(id-rank-1)/w].idx.n += tam;
-
 		in_q[(id-rank-1)/w]++;
-
+		
 		if(in_q[in]==w*(last_search-last_assign)){
 			ktmp = min(q[in].idx.n, k);
-		
+			
 			my_k_min(q[in], ktmp, dis2, ids2);
-		
-			ttam+=ktmp;
 
 			memcpy(&dis[0] + ttam, dis2, sizeof(float)*ktmp);
 			memcpy(&ids[0] + ttam, ids2, sizeof(int)*ktmp);
 			in++;
+			ttam+=ktmp;
 		}
+		
 		i++;
 	}
-
+	
 	while(in<queryn){
 		ktmp = min(q[in].idx.n, k);
 		
 		my_k_min(q[in], ktmp, dis2, ids2);
-		
-		ttam+=ktmp;
 
 		memcpy(&dis[0] + ttam, dis2, sizeof(float)*ktmp);
 		memcpy(&ids[0] + ttam, ids2, sizeof(int)*ktmp);
 		in++;
+		ttam+=ktmp;
 	}
+	
 
 	end=MPI_Wtime();
 
 	free(q);
+	free(in_q);
 	free(dis2);
 	free(ids2);
 	free(coaidx);

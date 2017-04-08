@@ -41,7 +41,7 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, MPI_Comm search_
 	MPI_Barrier(search_comm);
 	MPI_Bcast(&queryn, 1, MPI_INT, 0, search_comm);		
 	MPI_Bcast(&residual.d, 1, MPI_INT, 0, search_comm);
-    residual.n=queryn/1;
+	residual.n=queryn/1;
 	residual.mat = (float*)malloc(sizeof(float)*residual.n*residual.d);
 	int j=0;
 	while(j<queryn){
@@ -71,11 +71,11 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, MPI_Comm search_
 				
 				# pragma omp critical
 				{
-					MPI_Send(&id, 1, MPI_INT, last_aggregator, 100000, MPI_COMM_WORLD);
-					MPI_Send(&my_rank, 1, MPI_INT, last_aggregator, id, MPI_COMM_WORLD);
-					MPI_Send(&ktmp, 1, MPI_INT, last_aggregator, id, MPI_COMM_WORLD);
-					MPI_Send(&ids[0], ktmp, MPI_INT, last_aggregator, id, MPI_COMM_WORLD);
-					MPI_Send(&dis[0], ktmp, MPI_FLOAT, last_aggregator, id, MPI_COMM_WORLD);
+					MPI_Send(&my_rank, 1, MPI_INT, last_aggregator, 100000, MPI_COMM_WORLD);
+					MPI_Send(&id, 1, MPI_INT, last_aggregator, 0, MPI_COMM_WORLD);
+					MPI_Send(&ktmp, 1, MPI_INT, last_aggregator, 0, MPI_COMM_WORLD);
+					MPI_Send(&ids[0], ktmp, MPI_INT, last_aggregator, 0, MPI_COMM_WORLD);
+					MPI_Send(&dis[0], ktmp, MPI_FLOAT, last_aggregator, 0, MPI_COMM_WORLD);
 				}
 
 				free(dis);
