@@ -2,12 +2,14 @@
 
 static int last_assign, last_search, last_aggregator;
 
-void parallel_search (int nsq, int k, int comm_sz, int threads, MPI_Comm search_comm){
+void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Comm search_comm, char *dataset){
 
 	ivfpq_t ivfpq;
 	ivf_t *ivf;
 	mat residual;
-	int *coaidx;
+	int *coaidx, my_rank;
+
+	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
 	set_last (comm_sz, &last_assign, &last_search, &last_aggregator);
 
@@ -18,30 +20,55 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, MPI_Comm search_
 	ivfpq.coa_centroids=(float*)malloc(sizeof(float)*ivfpq.coa_centroidsd*ivfpq.coa_centroidsn);
 	MPI_Recv(&ivfpq.coa_centroids[0], ivfpq.coa_centroidsn*ivfpq.coa_centroidsd, MPI_FLOAT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	
-	//Recebe o trecho da lista invertida assinalada ao processo
 	ivf = (ivf_t*)malloc(sizeof(ivf_t)*ivfpq.coarsek);
-	for(int i=0;i<ivfpq.coarsek;i++){
-		
-		MPI_Recv(&ivf[i].codes.d, 1, MPI_INT, 0, 0, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 
-		MPI_Recv(&ivf[i].idstam, 1, MPI_INT, 0, 0, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
-
-		ivf[i].codes.n = ivf[i].idstam; 
-
-		ivf[i].ids = (int*)malloc(sizeof(int)*ivf[i].idstam);
-		MPI_Recv(&ivf[i].ids[0], ivf[i].idstam, MPI_INT, 0, 0, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
-		
-		ivf[i].codes.mat = (int*)malloc(sizeof(int)*ivf[i].codes.n*ivf[i].codes.d);
-		MPI_Recv(&ivf[i].codes.mat[0], ivf[i].codes.n*ivf[i].codes.d, MPI_INT, 0, 0, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
-		
+	for(int i=0; i<ivfpq.coarsek; i++){
+		ivf[i].ids = (int*)malloc(sizeof(int));
+		ivf[i].idstam = 0;
+		ivf[i].codes.mat = (int*)malloc(sizeof(int));
+		ivf[i].codes.n = 0;
+		ivf[i].codes.d = nsq;
 	}
-	
+
+	for(int i=0; i<=(tam/1000000); i++){
+		ivf_t *ivf2;
+		int aux;
+		mat vbase;
+		
+		
+		ivf2 = (ivf_t *)malloc(sizeof(ivf_t)*ivfpq.coarsek);
+		if(tam%1000000==0 && i==(tam/1000000))break;
+		vbase = pq_test_load_base(dataset, i, my_rank-last_assign);
+			
+		//Cria a lista invertida
+
+		ivfpq_assign(ivfpq, vbase, ivf2);
+		
+		for(int j=0; j<ivfpq.coarsek; j++){
+			for(int l=0; l<ivf2[j].idstam; l++){
+				ivf2[j].ids[l]+=1000000*i+tam*(my_rank-last_assign-1);
+			}
+			aux = ivf[j].idstam;
+			ivf[j].idstam += ivf2[j].idstam;
+			ivf[j].ids = (int*)realloc(ivf[j].ids,sizeof(int)*ivf[j].idstam);
+			memcpy (ivf[j].ids+aux, ivf2[j].ids, sizeof(int)*ivf2[j].idstam);
+			ivf[j].codes.n += ivf2[j].codes.n;
+			ivf[j].codes.mat = (int*)realloc(ivf[j].codes.mat,sizeof(int)*ivf[j].codes.n*ivf[j].codes.d);
+			memcpy (ivf[j].codes.mat+aux*ivf[i].codes.d, ivf2[j].codes.mat, sizeof(int)*ivf2[j].codes.n*ivf2[j].codes.d);
+			free(ivf2[j].ids);
+			free(ivf2[j].codes.mat);
+		}
+		
+		free(vbase.mat);
+		free(ivf2);
+	}	
+
 	int queryn;
 	
 	MPI_Barrier(search_comm);
 	MPI_Bcast(&queryn, 1, MPI_INT, 0, search_comm);		
 	MPI_Bcast(&residual.d, 1, MPI_INT, 0, search_comm);
-	residual.n=queryn/1;
+    residual.n=queryn/1;
 	residual.mat = (float*)malloc(sizeof(float)*residual.n*residual.d);
 	int j=0;
 	while(j<queryn){
@@ -50,16 +77,15 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, MPI_Comm search_
 		coaidx = (int*)malloc(sizeof(int)*residual.n);
 		MPI_Bcast(&coaidx[0], residual.n, MPI_INT, 0, search_comm);
 
-		# pragma omp parallel for num_threads(threads)
+		# pragma omp parallel for num_threads(threads) 
 		
 			for(int i=0; i<residual.n; i++){
 
 				dis_t q = ivfpq_search(ivf, &residual.mat[0]+i*residual.d, ivfpq.pq, coaidx[i]);
 				int ktmp = min(q.idx.n, k);
-				int id, my_rank;
+				int id;
 				MPI_Request request;
 
-				MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 				id = i+my_rank+1;
 
 				int *ids;
