@@ -69,13 +69,13 @@ data pq_test_load_vectors(char* dataset, int tam){
 				strcpy (f.groundtruth,"/scratch/04596/tg838951/siftbig_groundtruth_500M.ivecs");
 			}
 			else if(tam==1000000000){
-				strcpy (f.groundtruth,"/scratch/04596/tg838951/siftbig_groundtruth_1B.ivecs");
+				strcpy (f.groundtruth,"/scratch/04596/tg838951/siftbig_groundtruth_1000M.ivecs");
 			}
 			else{
 				strcpy (f.groundtruth,"/scratch/04596/tg838951/siftbig_groundtruth_100M.ivecs");
 			}
 			strcpy (f.train,"/scratch/04596/tg838951/siftbig_learn.bvecs");
-			v.train.n=tam/10;
+			v.train.n=tam/100;
 			v.train.d=128;
 			v.train.mat= fmat_new (v.train.d, v.train.n);
 			v.ids_gnd.n=10000;

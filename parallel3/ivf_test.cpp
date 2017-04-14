@@ -72,7 +72,7 @@ int main(int argc, char **argv){
 	
 		}
 		else if(my_rank<=last_assign){
-			parallel_assign (dataset, w, comm_sz, threads, search_comm);
+			parallel_assign (dataset, w, comm_sz,search_comm);
 		}
 		else if(my_rank<=last_search){
 			parallel_search (nsq, k, comm_sz, threads, tamt, search_comm, dataset);

@@ -1,6 +1,6 @@
 #include "ivf_assign.h"
 
-void parallel_assign (char *dataset, int w, int comm_sz, int threads, MPI_Comm search_comm){
+void parallel_assign (char *dataset, int w, int comm_sz, MPI_Comm search_comm){
 	mat vquery, residual;
 	ivfpq_t ivfpq;
 	int *coaidx, dest, rest,id, search_rank;
@@ -41,7 +41,7 @@ void parallel_assign (char *dataset, int w, int comm_sz, int threads, MPI_Comm s
 	
 	int i=0;
 
-	MPI_Barrier(search_comm);
+	
 	double start = MPI_Wtime();
     MPI_Bcast(&residual.n, 1, MPI_INT, 0, search_comm);
 	int tam=residual.n/1;
