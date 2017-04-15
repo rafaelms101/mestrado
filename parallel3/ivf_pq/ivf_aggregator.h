@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <mpi.h>
+#include <omp.h>
 extern "C"{
 	#include "../yael_needs/nn.h"
 }	

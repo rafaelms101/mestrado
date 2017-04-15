@@ -78,7 +78,7 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 		coaidx = (int*)malloc(sizeof(int)*residual.n);
 		MPI_Bcast(&coaidx[0], residual.n, MPI_INT, 0, search_comm);
 		
-		# pragma omp parallel for num_threads(threads) 
+		# pragma omp parallel for num_threads(threads) schedule(auto)
 		
 			for(int i=0; i<residual.n; i++){
 				
