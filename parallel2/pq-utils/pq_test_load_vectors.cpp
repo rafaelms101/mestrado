@@ -69,13 +69,13 @@ data pq_test_load_vectors(char* dataset, int tam){
 				strcpy (f.groundtruth,"/scratch/04596/tg838951/siftbig_groundtruth_500M.ivecs");
 			}
 			else if(tam==1000000000){
-				strcpy (f.groundtruth,"/scratch/04596/tg838951/siftbig_groundtruth_1B.ivecs");
+				strcpy (f.groundtruth,"/scratch/04596/tg838951/siftbig_groundtruth_1000M.ivecs");
 			}
 			else{
 				strcpy (f.groundtruth,"/scratch/04596/tg838951/siftbig_groundtruth_100M.ivecs");
 			}
 			strcpy (f.train,"/scratch/04596/tg838951/siftbig_learn.bvecs");
-			v.train.n=tam/10;
+			v.train.n=tam/100;
 			v.train.d=128;
 			v.train.mat= fmat_new (v.train.d, v.train.n);
 			v.ids_gnd.n=10000;
@@ -170,9 +170,12 @@ mat pq_test_load_query(char* dataset){
 	return vquery;
 }
 
-mat pq_test_load_base(char* dataset, int num, int offset){
+mat pq_test_load_base(char* dataset, int offset, int my_rank){
 
 	mat vbase;
+	char srank[4];
+
+	sprintf (srank, "%d",my_rank);
 
 	if(strcmp(dataset, "random")==0){
 
@@ -193,7 +196,7 @@ mat pq_test_load_base(char* dataset, int num, int offset){
 
 		if(strcmp(dataset, "siftsmall")==0){
 			strcpy (fbase,"../siftsmall/siftsmall_base.fvecs");
-			vbase.n=10000;
+			vbase.n=1000;
 			vbase.d=128;
 			vbase.mat= fmat_new (vbase.d, vbase.n);
 		}
@@ -215,7 +218,7 @@ mat pq_test_load_base(char* dataset, int num, int offset){
 			vbase.d=960;
 			vbase.mat= fmat_new (vbase.d, vbase.n);
 		}
-
+		strcat(fbase, srank);
 		if(strcmp(dataset, "siftbig")!=0){
 			fvecs_read (fbase, vbase.d, vbase.n, vbase.mat);
 		}

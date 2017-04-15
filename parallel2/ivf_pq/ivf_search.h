@@ -13,6 +13,7 @@
 	#include "../pq-utils/pq_test_load_vectors.h"
 	#include "../pq-utils/pq_new.h"
 	#include "../pq-utils/pq_search.h"
+	#include "ivf_training.h"
 	#include "myIVF.h"
 	#include "k_min.h"
 
@@ -24,7 +25,7 @@
 		mat residual;
 	}ivf_threads_t;
 
-	void parallel_search (int nsq, int k, int comm_sz, int threads, MPI_Comm search_comm);
+	void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Comm search_comm, char *dataset, int w);
 	dis_t ivfpq_search(ivf_t *ivf, float *residual, pqtipo pq, int centroid_idx);
 	int min(int a, int b);
 	float * sumidxtab2(mat D, matI ids, int offset);
