@@ -54,6 +54,7 @@ void parallel_aggregator(int k, int w, int my_rank, int comm_sz, int tam_base){
 				in_q[id-1-queryn*rank]++;
 				i++;
 			}
+			end=MPI_Wtime();
 		}	
 		else{
 			while(in<queryn){
@@ -76,7 +77,6 @@ void parallel_aggregator(int k, int w, int my_rank, int comm_sz, int tam_base){
 			}
 		}
 	}
-	end=MPI_Wtime();
 	
 	free(q);
 	free(in_q);

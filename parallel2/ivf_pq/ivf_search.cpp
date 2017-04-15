@@ -78,7 +78,8 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 
 	int **ids = (int**)malloc(sizeof(int *)*(residual.n/w));
 	float **dis = (float**)malloc(sizeof(float *)*(residual.n/w));
-	int *fila = (int *) calloc(residual.n/w, sizeof(int));
+	
+	std::list<query_id_t> fila;
 
 	# pragma omp parallel num_threads(threads)
 	{
@@ -86,6 +87,7 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 		if(omp_rank!=0){
 			for(int i=0; i<residual.n/w; i++){
 				if(i%(threads-1)+1==omp_rank){
+					query_id_t element;
 					dis_t qt;
 
 					qt.idx.mat = (int*) malloc(sizeof(int));
@@ -111,37 +113,46 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 						free(q.dis.mat);
 						free(q.idx.mat);					
 					}
-					int ktmp = min(qt.idx.n, k);
+					element.tam = min(qt.idx.n, k);
+					element.id = i;
 
-					ids[i] = (int*) malloc(sizeof(int)*ktmp);
-					dis[i] = (float*) malloc(sizeof(float)*ktmp);
+					ids[i] = (int*) malloc(sizeof(int)*element.tam);
+					dis[i] = (float*) malloc(sizeof(float)*element.tam);
 
-					my_k_min(qt, ktmp, &dis[i][0], &ids[i][0]);
+					my_k_min(qt, element.tam, &dis[i][0], &ids[i][0]);
 				
 					free(qt.dis.mat);
 					free(qt.idx.mat);
-					fila[i]=ktmp;
+					#pragma omp critical
+						fila.push_back(element);				
 				}
 			}
 		}	
 		else{
+			query_id_t element;
 			for(int i=0; i<residual.n/w; i++){
+				
+				while(fila.empty());
 
-				while(fila[i]==0);
+				element = fila.front();
+				#pragma omp critical
+					fila.pop_front();
 
-				int id = my_rank*(residual.n/w)+i+1;
+				int id = my_rank*(residual.n/w)+element.id+1;
 
 				MPI_Send(&my_rank, 1, MPI_INT, last_aggregator, 100000, MPI_COMM_WORLD);
 				MPI_Send(&id, 1, MPI_INT, last_aggregator, 0, MPI_COMM_WORLD);
-				MPI_Send(&fila[i], 1, MPI_INT, last_aggregator, id, MPI_COMM_WORLD);
-				MPI_Send(&ids[i][0], fila[i], MPI_INT, last_aggregator, id, MPI_COMM_WORLD);
-				MPI_Send(&dis[i][0], fila[i], MPI_FLOAT, last_aggregator, id, MPI_COMM_WORLD);
+				MPI_Send(&element.tam, 1, MPI_INT, last_aggregator, id, MPI_COMM_WORLD);
+				MPI_Send(&ids[element.id][0], element.tam, MPI_INT, last_aggregator, id, MPI_COMM_WORLD);
+				MPI_Send(&dis[element.id][0], element.tam, MPI_FLOAT, last_aggregator, id, MPI_COMM_WORLD);
 
-				free(ids[i]);
-				free(dis[i]);
+				free(ids[element.id]);
+				free(dis[element.id]);
 			}
 		}
 	}
+	free(ids);
+	free(dis);	
 	free(residual.mat);
 	free(ivfpq.pq.centroids);
 	free(ivfpq.coa_centroids);

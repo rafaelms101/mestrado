@@ -20,6 +20,15 @@ int main(int argc, char **argv){
 
 	int k,nsq, coarsek,	w, tamt, tam=0, comm_sz, my_rank,	threads;
 
+	threads  = atoi(argv[2]);
+
+	if(threads < 2){
+		cout << "Minimum of threads = 2" << endl;
+		return -1;
+	}
+
+	tam  = atoi(argv[3]);
+
 	char* dataset;
 
 	int last_assign,
@@ -53,8 +62,6 @@ int main(int argc, char **argv){
 	last_aggregator=comm_sz-1;
 
 	dataset = argv[1];
-	threads  = atoi(argv[2]);
-	tam  = atoi(argv[3]);
 	tamt = tam/(last_search-last_assign);
 	k = 1000;
 	nsq = 8;
