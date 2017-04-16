@@ -83,11 +83,11 @@ data pq_test_load_vectors(char* dataset, int tam){
 			ids_gnd= ivec_new (v.ids_gnd.n*v.ids_gnd.d);
 		}
 		else if(strcmp(dataset, "gist")==0){
-			strcpy (f.train,"/scratch/04596/tg838951/gist_learn.fvecs");
+			strcpy (f.train,"../gist/gist_learn.fvecs");
 			v.train.n=500000;
 			v.train.d=960;
 			v.train.mat= fmat_new (v.train.d, v.train.n);
-			strcpy (f.groundtruth,"/scratch/04596/tg838951/gist_groundtruth.ivecs");
+			strcpy (f.groundtruth,"../gist/gist_groundtruth.ivecs");
 			v.ids_gnd.n=1000;
 			v.ids_gnd.d=100;
 			ids_gnd= ivec_new (v.ids_gnd.n*v.ids_gnd.d);

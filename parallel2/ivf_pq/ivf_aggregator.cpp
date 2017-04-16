@@ -53,6 +53,7 @@ void parallel_aggregator(int k, int w, int my_rank, int comm_sz, int tam_base){
 				q[id-1-queryn*rank].idx.n += tam;
 				in_q[id-1-queryn*rank]++;
 				i++;
+				
 			}
 			end=MPI_Wtime();
 		}	

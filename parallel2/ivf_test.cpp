@@ -63,7 +63,7 @@ int main(int argc, char **argv){
 
 	dataset = argv[1];
 	tamt = tam/(last_search-last_assign);
-	k = 1000;
+	k = 100;
 	nsq = 8;
 	coarsek = 256;
 	w = 4;

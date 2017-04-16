@@ -26,8 +26,8 @@
 	}ivf_threads_t;
 
 	typedef struct query_id{
-		int *tam;
-		int *id;
+		int tam;
+		int id;
 	}query_id_t;
 
 	void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Comm search_comm, char *dataset, int w);
