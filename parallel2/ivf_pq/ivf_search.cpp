@@ -79,78 +79,96 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 	int **ids = (int**)malloc(sizeof(int *)*(residual.n/w));
 	float **dis = (float**)malloc(sizeof(float *)*(residual.n/w));
 	
-	std::list<query_id_t> fila;
-
+	query_id_t fila;
+	fila.tam = (int*)calloc(residual.n/w,sizeof(int));
+	fila.id = (int*)calloc(residual.n/w,sizeof(int));
+	int l=0, l2=0;
 	# pragma omp parallel num_threads(threads)
 	{
 		int omp_rank = omp_get_thread_num();
 		if(omp_rank!=0){
-			for(int i=0; i<residual.n/w; i++){
-				if(i%(threads-1)+1==omp_rank){
-					query_id_t element;
-					dis_t qt;
-
-					qt.idx.mat = (int*) malloc(sizeof(int));
-					qt.idx.n=0;
-					qt.idx.d=1;
-					qt.dis.mat = (float*) malloc(sizeof(float));
-					qt.dis.n=0;
-					qt.dis.d=1;	
-
-					for(int j=0; j<w; j++){
+			dis_t qt;
+			qt.idx.mat = (int*) malloc(sizeof(int));
+                        qt.dis.mat = (float*) malloc(sizeof(float));		
+			for(int i=omp_rank-1; i<residual.n/w; i+=(threads-1)){
 				
-						dis_t q = ivfpq_search(ivf, &residual.mat[0]+(i*w+j)*residual.d, ivfpq.pq, coaidx[i*w+j]);
-
-						qt.idx.mat = (int*) realloc(qt.idx.mat, sizeof(int)*(qt.idx.n+q.idx.n));
-						qt.dis.mat = (float*) realloc(qt.dis.mat, sizeof(float)*(qt.dis.n+q.dis.n));
-
-						memcpy(qt.idx.mat+qt.idx.n, q.idx.mat, sizeof(int)*q.idx.n);
-						memcpy(qt.dis.mat+qt.dis.n, q.dis.mat, sizeof(float)*q.dis.n);
+				int ktmp;
 				
-						qt.idx.n+=q.idx.n;
-						qt.dis.n+=q.dis.n;
 
-						free(q.dis.mat);
-						free(q.idx.mat);					
+				qt.idx.n=0;
+				qt.idx.d=1;
+				qt.dis.n=0;
+				qt.dis.d=1;	
+
+				for(int j=0; j<w; j++){
+					
+					dis_t q = ivfpq_search(ivf, &residual.mat[0]+(i*w+j)*residual.d, ivfpq.pq, coaidx[i*w+j]);
+					
+					qt.idx.mat = (int*) realloc(qt.idx.mat, sizeof(int)*(qt.idx.n+q.idx.n));
+					qt.dis.mat = (float*) realloc(qt.dis.mat, sizeof(float)*(qt.dis.n+q.dis.n));
+					
+					for(int m=0; m<q.idx.n;m++){
+						qt.idx.mat[qt.idx.n+m] = q.idx.mat[m];
+						qt.dis.mat[qt.dis.n+m] = q.dis.mat[m];
+						
+
 					}
-					element.tam = min(qt.idx.n, k);
-					element.id = i;
 
-					ids[i] = (int*) malloc(sizeof(int)*element.tam);
-					dis[i] = (float*) malloc(sizeof(float)*element.tam);
-
-					my_k_min(qt, element.tam, &dis[i][0], &ids[i][0]);
-				
-					free(qt.dis.mat);
-					free(qt.idx.mat);
-					#pragma omp critical
-						fila.push_back(element);				
+					//memcpy(&qt.idx.mat[qt.idx.n], &q.idx.mat[0], sizeof(int)*q.idx.n);
+					//memcpy(&qt.dis.mat[qt.dis.n], &q.dis.mat[0], sizeof(float)*q.dis.n);
+					
+					qt.idx.n+=q.idx.n;
+					qt.dis.n+=q.dis.n;
+					
+					free(q.dis.mat);
+					free(q.idx.mat);					
 				}
+
+				ktmp = min(qt.idx.n, k);
+
+				ids[i] = (int*) malloc(sizeof(int)*ktmp);
+				dis[i] = (float*) malloc(sizeof(float)*ktmp);
+
+				
+				my_k_min(qt, ktmp, &dis[i][0], &ids[i][0]);
+				
+				#pragma omp critical
+				{
+					fila.id[l]=i;
+					fila.tam[l]=ktmp;
+					l++;				
+						
+				}	
+				
+				
 			}
+			free(qt.dis.mat);
+                        free(qt.idx.mat);
 		}	
 		else{
-			query_id_t element;
+		
 			for(int i=0; i<residual.n/w; i++){
-				
-				while(fila.empty());
+			
+				while(fila.tam[l2]==0);
 
-				element = fila.front();
-				#pragma omp critical
-					fila.pop_front();
-
-				int id = my_rank*(residual.n/w)+element.id+1;
+	
+				int id = my_rank*(residual.n/w)+fila.id[l2]+1;
 
 				MPI_Send(&my_rank, 1, MPI_INT, last_aggregator, 100000, MPI_COMM_WORLD);
 				MPI_Send(&id, 1, MPI_INT, last_aggregator, 0, MPI_COMM_WORLD);
-				MPI_Send(&element.tam, 1, MPI_INT, last_aggregator, id, MPI_COMM_WORLD);
-				MPI_Send(&ids[element.id][0], element.tam, MPI_INT, last_aggregator, id, MPI_COMM_WORLD);
-				MPI_Send(&dis[element.id][0], element.tam, MPI_FLOAT, last_aggregator, id, MPI_COMM_WORLD);
+				MPI_Send(&fila.tam[l2], 1, MPI_INT, last_aggregator, id, MPI_COMM_WORLD);
+				MPI_Send(&ids[fila.id[l2]][0], fila.tam[l2], MPI_INT, last_aggregator, id, MPI_COMM_WORLD);
+				MPI_Send(&dis[fila.id[l2]][0], fila.tam[l2], MPI_FLOAT, last_aggregator, id, MPI_COMM_WORLD);
 
-				free(ids[element.id]);
-				free(dis[element.id]);
+				free(ids[fila.id[l2]]);
+				free(dis[fila.id[l2]]);
+				l2++;
 			}
 		}
 	}
+
+	free(fila.id);
+	free(fila.tam);
 	free(ids);
 	free(dis);	
 	free(residual.mat);

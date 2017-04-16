@@ -9,4 +9,4 @@
 #SBATCH --mail-type=begin  
 #SBATCH --mail-type=end    
 
-ibrun -n 103 -o 0 ./ivfpq_test siftbig 1 1000000000
+ibrun -n 103 -o 0 ./ivfpq_test siftbig 2 1000000000
