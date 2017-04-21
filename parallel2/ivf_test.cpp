@@ -22,10 +22,10 @@ int main(int argc, char **argv){
 
 	threads  = atoi(argv[2]);
 
-	if(threads < 2){
+	/*if(threads < 2){
 		cout << "Minimum of threads = 2" << endl;
 		return -1;
-	}
+	}*/
 
 	tam  = atoi(argv[3]);
 
@@ -63,7 +63,7 @@ int main(int argc, char **argv){
 
 	dataset = argv[1];
 	tamt = tam/(last_search-last_assign);
-	k = 100;
+	k = 1000;
 	nsq = 8;
 	coarsek = 256;
 	w = 4;

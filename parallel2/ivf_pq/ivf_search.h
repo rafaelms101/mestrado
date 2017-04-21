@@ -1,6 +1,6 @@
 #ifndef H_IVFSEARCH
 #define H_IVFSEARCH
-
+	
 	#include <stdio.h>
 	#include <stdlib.h>
 	#include <mpi.h>

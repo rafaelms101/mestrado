@@ -33,7 +33,7 @@ void parallel_assign (char *dataset, int w, int comm_sz, MPI_Comm search_comm){
 			bsxfunMINUS(&residual.mat[residual.d*id], vquery, ivfpq.coa_centroids, i, &coaidx[id], 1);
 		}
 	}
-
+	
 	for(int i=last_search+1; i<=last_aggregator; i++){
 		MPI_Send(&vquery.n, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
 		MPI_Send(&coaidx[0], vquery.n*w, MPI_INT, i, 0, MPI_COMM_WORLD);
@@ -50,7 +50,7 @@ void parallel_assign (char *dataset, int w, int comm_sz, MPI_Comm search_comm){
     MPI_Bcast(&coaidx[0]+i, residual.n, MPI_INT, 0, search_comm);
 	
 	double start2 = MPI_Wtime();	
-
+	
 	MPI_Send(&start, 1, MPI_DOUBLE, last_aggregator, 0, MPI_COMM_WORLD);
 	MPI_Send(&start2, 1, MPI_DOUBLE, last_aggregator, 0, MPI_COMM_WORLD);
 

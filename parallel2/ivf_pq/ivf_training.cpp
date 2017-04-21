@@ -13,13 +13,15 @@ void parallel_training (char *dataset, int coarsek, int nsq, int tam, int comm_s
 	strcpy (file,"bin/file_ivfpq.bin");
 	strcpy (file2,"bin/cent_ivfpq.bin");
 	strcpy (file3,"bin/coa_ivfpq.bin");
+	
+	printf("\nTraining ");
 
 	#ifdef TRAIN
-
+		printf(".");
 		v = pq_test_load_vectors(dataset, tam);
-
+		
 		ivfpq = ivfpq_new(coarsek, nsq, v.train);
-
+		printf(".");
 		FILE *arq, *arq2, *arq3;
 
 		arq = fopen(file, "wb");
@@ -46,6 +48,8 @@ void parallel_training (char *dataset, int coarsek, int nsq, int tam, int comm_s
     	fclose(arq2);
     	fclose(arq3);
 
+	printf(".");
+
     	free(v.train.mat);
     	free(ivfpq.pq.centroids);
 		free(ivfpq.coa_centroids);
@@ -53,7 +57,7 @@ void parallel_training (char *dataset, int coarsek, int nsq, int tam, int comm_s
 	#else	
 
     	int my_rank;
-
+		printf(".");
 		MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
 		v = pq_test_load_vectors(dataset, tam);
@@ -83,7 +87,7 @@ void parallel_training (char *dataset, int coarsek, int nsq, int tam, int comm_s
     		fread (&ivfpq.pq.centroids[0], sizeof(float), ivfpq.pq.centroidsn*ivfpq.pq.centroidsn, arq2);
     		ivfpq.coa_centroids = (float *) malloc(sizeof(float)*ivfpq.coa_centroidsn*ivfpq.coa_centroidsn);
     		fread (&ivfpq.coa_centroids[0], sizeof(float), ivfpq.coa_centroidsn*ivfpq.coa_centroidsn, arq3);
-
+		printf(".");
     		fclose(arq);
     		fclose(arq2);
     		fclose(arq3);
@@ -92,7 +96,7 @@ void parallel_training (char *dataset, int coarsek, int nsq, int tam, int comm_s
 
 			//Cria centroides a partir dos vetores de treinamento
 			ivfpq = ivfpq_new(coarsek, nsq, v.train);
-
+			printf(".");
 		#endif
 			
 		free(v.train.mat);
@@ -176,26 +180,28 @@ void ivfpq_assign(ivfpq_t ivfpq, mat vbase, ivf_t *ivf){
 	//acha os indices para o coarse quantizer
 	knn_full(2, vbase.n, ivfpq.coa_centroidsn, ivfpq.coa_centroidsd, k,
 					 ivfpq.coa_centroids, vbase.mat, NULL, assign, dis);
-	
+
 	//residuos
 	subtract(vbase, ivfpq.coa_centroids, assign, ivfpq.coa_centroidsd);
-	
+
 	matI codebook = pq_assign(ivfpq.pq, vbase);
 	
 	int *codeaux = (int*)malloc(sizeof(int)*codebook.d*codebook.n);
-	memcpy(codeaux, codebook.mat, sizeof(int)*codebook.n*codebook.d);
-		
-	int * hist = (int*) calloc(ivfpq.coarsek,sizeof(int)); 
-	histogram(assign, vbase.n ,ivfpq.coarsek, hist);
 	
+	memcpy(codeaux, codebook.mat, sizeof(int)*codebook.n*codebook.d);
+
+	int * hist = (int*) calloc(ivfpq.coarsek,sizeof(int)); 
+
+	histogram(assign, vbase.n ,ivfpq.coarsek, hist);
+
 	// -- Sort on assign, new codebook with sorted ids as identifiers for codebook
 	int* ids = (int*)malloc(sizeof(int)*vbase.n);
 	ivec_sort_index(assign, vbase.n, ids);
-	
+
 	for(int i=0; i<codebook.n; i++){
 		memcpy(codebook.mat+i*codebook.d, codeaux+codebook.d*ids[i], sizeof(int)*codebook.d);
 	}
-	
+
 	int pos = 0;
 	for (int i = 0; i < ivfpq.coarsek; i++) {
 		int nextpos;

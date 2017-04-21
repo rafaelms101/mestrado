@@ -4,6 +4,7 @@
 	#include <stdio.h>
 	#include <stdlib.h>
 	#include <mpi.h>
+	#include <omp.h>
 	extern "C"{
 		#include "../yael_needs/vector.h"
 		#include "../yael_needs/nn.h"
