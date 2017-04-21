@@ -38,11 +38,10 @@ void parallel_aggregator(int k, int w, int my_rank, int comm_sz, int tam_base){
 		
 		if(omp_rank==0){
 			while(i<queryn*(last_search-last_assign)){
-				printf("ag3 ");
 				MPI_Recv(&rank, 1, MPI_INT, MPI_ANY_SOURCE , 100000, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 				MPI_Recv(&id, 1, MPI_INT, rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);	
 				MPI_Recv(&tam, 1, MPI_INT, rank, id, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-				printf("ag4 ");
+	
 				q[id-1-queryn*rank].dis.mat = (float*)realloc(q[id-1-queryn*rank].dis.mat,sizeof(float)*(q[id-1-queryn*rank].dis.n+tam));
 				q[id-1-queryn*rank].idx.mat = (int*)realloc(q[id-1-queryn*rank].idx.mat,sizeof(int)*(q[id-1-queryn*rank].idx.n+tam));
 			
