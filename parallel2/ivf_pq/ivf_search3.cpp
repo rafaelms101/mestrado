@@ -84,7 +84,7 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 	MPI_Barrier(search_comm);
 	MPI_Bcast(&queryn, 1, MPI_INT, 0, search_comm);		
 	MPI_Bcast(&residual.d, 1, MPI_INT, 0, search_comm);
-	residual.n=queryn/1;
+    residual.n=queryn/1;
 	residual.mat = (float*)malloc(sizeof(float)*residual.n*residual.d);
 		
 	MPI_Bcast(&residual.mat[0], residual.d*residual.n, MPI_FLOAT, 0, search_comm);
@@ -93,121 +93,78 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 
 	int **ids = (int**)malloc(sizeof(int *)*(residual.n/w));
  	float **dis = (float**)malloc(sizeof(float *)*(residual.n/w));	
-	
+	//std::list<query_id_t> fila;
 	printf(".");
 	
 	double start2=MPI_Wtime();
-	int *fila_tam = (int *)calloc(residual.n/w, sizeof(int));
-	int *fila_id = (int *)malloc(sizeof(int)*residual.n/w);
-	for(int i=0; i<residual.n/w; i++){
-		fila_id[i]=-1;
-	}
+	std::list<query_id_t> fila;
+	# pragma omp parallel for num_threads(threads) schedule(auto)
 
-	int l=0;
-	printf(".");
-	# pragma omp parallel num_threads(threads)
-	{
-		int my_omp_rank = omp_get_thread_num ();
-		
-		#pragma omp single nowait
-		{
+		//int my_omp_rank = omp_get_thread_num ();
+		for(int i=0; i<queryn/w; i++){
+				
+			int ktmp;
+			dis_t qt;
+			dis_t q;	
+			
+			qt.idx.mat = (int*) malloc(sizeof(int));
+        		qt.dis.mat = (float*) malloc(sizeof(float));
+			qt.idx.n=0;
+			qt.idx.d=1;
+			qt.dis.n=0;
+			qt.dis.d=1;	
+			double a1=MPI_Wtime();
+			for(int j=0; j<w; j++){
+					
+				q = ivfpq_search(ivf, &residual.mat[0]+(i*w+j)*residual.d, ivfpq.pq, coaidx[i*w+j]);
+					
+				qt.idx.mat = (int*) realloc(qt.idx.mat, sizeof(int)*(qt.idx.n+q.idx.n));
+				qt.dis.mat = (float*) realloc(qt.dis.mat, sizeof(float)*(qt.dis.n+q.dis.n));
+				
+				memcpy(&qt.idx.mat[qt.idx.n], &q.idx.mat[0], sizeof(int)*q.idx.n);
+				memcpy(&qt.dis.mat[qt.dis.n], &q.dis.mat[0], sizeof(float)*q.dis.n);
+			
+				qt.idx.n+=q.idx.n;
+				qt.dis.n+=q.dis.n;
+				
+				free(q.dis.mat);
+				free(q.idx.mat);					
+			}
+			double a2=MPI_Wtime();
+			ktmp = min(qt.idx.n, k);
+			
+			ids[i] = (int*) malloc(sizeof(int)*ktmp);
+			dis[i] = (float*) malloc(sizeof(float)*ktmp);
+			double a3=MPI_Wtime();
+			my_k_min(qt, ktmp, &dis[i][0], &ids[i][0]);
 
-			query_id_t element;
-                        double b1;
-                        for(int i=0; i<residual.n/w; i++){
+			int id = my_rank*(residual.n/w)+i+1;
 
-                                while(fila_id[i]==-1);
-                                element.tam = fila_tam[i];
-				element.id = fila_id[i];
-                                if(i==0) b1=MPI_Wtime();
-                                
+			double a4=MPI_Wtime();
 
-                                int id = my_rank*(residual.n/w)+element.id+1;
-
+			#pragma omp critical
+                        {
                                 MPI_Send(&my_rank, 1, MPI_INT, last_aggregator, 100000, MPI_COMM_WORLD);
                                 MPI_Send(&id, 1, MPI_INT, last_aggregator, 0, MPI_COMM_WORLD);
-                                MPI_Send(&element.tam, 1, MPI_INT, last_aggregator, id, MPI_COMM_WORLD);
-                                MPI_Send(&ids[element.id][0], element.tam, MPI_INT, last_aggregator, id, MPI_COMM_WORLD);
-                                MPI_Send(&dis[element.id][0], element.tam, MPI_FLOAT, last_aggregator, id, MPI_COMM_WORLD);
-                       }
-                       double b2=MPI_Wtime();
-                       printf("z%g", b2*1000-b1*1000);
+                                MPI_Send(&ktmp, 1, MPI_INT, last_aggregator, id, MPI_COMM_WORLD);
+                                MPI_Send(&ids[i][0], ktmp, MPI_INT, last_aggregator, id, MPI_COMM_WORLD);
+                        	MPI_Send(&dis[i][0], ktmp, MPI_FLOAT, last_aggregator, id, MPI_COMM_WORLD);
+                        }
 
+                        free(ids[i]);
+			free(dis[i]);
+
+			double a5=MPI_Wtime();
+			free(qt.dis.mat);
+                       	free(qt.idx.mat);
+			printf("a%gb%gc%gd%g\n", a2*1000-a1*1000,a3*1000-a2*1000, a4*1000-a3*1000, a5*1000-a4*1000);
 		}
 
-		double f1=0, f2=0, f3=0, f4=0;
-			
-		#pragma omp for	schedule(dynamic) 
-			for(int i=0; i<queryn/w; i++){
-				//printf("%d\n", my_omp_rank);
-				query_id_t element;
-				int ktmp;
-				dis_t qt;
-				dis_t q;	
-			
-				qt.idx.mat = (int*) malloc(sizeof(int));
-        			qt.dis.mat = (float*) malloc(sizeof(float));
-				qt.idx.n=0;
-				qt.idx.d=1;
-				qt.dis.n=0;
-				qt.dis.d=1;	
-				double a1=MPI_Wtime();
-				for(int j=0; j<w; j++){
-					
-					q = ivfpq_search(ivf, &residual.mat[0]+(i*w+j)*residual.d, ivfpq.pq, coaidx[i*w+j]);
-					
-					qt.idx.mat = (int*) realloc(qt.idx.mat, sizeof(int)*(qt.idx.n+q.idx.n));
-					qt.dis.mat = (float*) realloc(qt.dis.mat, sizeof(float)*(qt.dis.n+q.dis.n));
-				
-					memcpy(&qt.idx.mat[qt.idx.n], &q.idx.mat[0], sizeof(int)*q.idx.n);
-					memcpy(&qt.dis.mat[qt.dis.n], &q.dis.mat[0], sizeof(float)*q.dis.n);
-				
-					qt.idx.n+=q.idx.n;
-					qt.dis.n+=q.dis.n;
-				
-					free(q.dis.mat);
-					free(q.idx.mat);					
-				}
-				double a2=MPI_Wtime();
-				ktmp = min(qt.idx.n, k);
-			
-				ids[i] = (int*) malloc(sizeof(int)*ktmp);
-				dis[i] = (float*) malloc(sizeof(float)*ktmp);
-				double a3=MPI_Wtime();
-				my_k_min(qt, ktmp, &dis[i][0], &ids[i][0]);
-				
-				element.tam=ktmp;
-				element.id=i;
-
-				double a4=MPI_Wtime();
-
-				#pragma omp atomic
-					fila_tam[l]+=element.tam;
-				#pragma omp atomic
-                                        fila_id[l]+=element.id+1;
-				#pragma omp atomic
-					l++;
-				double a5=MPI_Wtime();
-				free(qt.dis.mat);
-                        	free(qt.idx.mat);
-				//printf("a%gb%gc%gd%g\n", a2*1000-a1*1000,a3*1000-a2*1000, a4*1000-a3*1000, a5*1000-a4*1000);
-
-				f1 += a2*1000-a1*1000;
-				f2 += a3*1000-a2*1000;
-				f3 += a4*1000-a3*1000;
-				f4 += a5*1000-a4*1000;
-				
-			}
-			printf("\nfa%gfb%gfc%gfd%g\n",  f1, f2, f3, f4);
-		
-	}
-	
 	double end2=MPI_Wtime();
 
 	printf("\ntime%g\n", end2*1000-start2*1000);
 	printf(".");	
-	free(ids);
-	free(dis);
+
 	free(residual.mat);
 	free(ivfpq.pq.centroids);
 	free(ivfpq.coa_centroids);
