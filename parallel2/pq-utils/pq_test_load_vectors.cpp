@@ -206,19 +206,19 @@ mat pq_test_load_base(char* dataset, int offset, int my_rank){
 		}
 		else if(strcmp(dataset, "sift")==0){
 			strcpy (fbase,"../sift/sift_base.fvecs");
-			vbase.n=1000000;
+			vbase.n=100000;
 			vbase.d=128;
 			vbase.mat= fmat_new (vbase.d, vbase.n);
 		}
 		else if(strcmp(dataset, "siftbig")==0 ){
 			strcpy (fbase,"/pylon5/ac3uump/freire/siftbig_base.bvecs");
-			vbase.n=1000000;
+			vbase.n=100000;
 			vbase.d=128;
 			vbase.mat= (float*) malloc(sizeof(float)*vbase.d*vbase.n);
 		}
 		else if(strcmp(dataset, "gist")==0){
 			strcpy (fbase,"../gist/gist_base.fvecs");
-			vbase.n=1000000;
+			vbase.n=100000;
 			vbase.d=960;
 			vbase.mat= fmat_new (vbase.d, vbase.n);
 		}

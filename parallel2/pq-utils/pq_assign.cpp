@@ -23,7 +23,7 @@ matI pq_assign (pqtipo pq, mat v){
 
     mat vsub;
 
-    static matI code;
+    matI code;
 
     // definicao de variaveis
 
@@ -39,11 +39,16 @@ matI pq_assign (pqtipo pq, mat v){
     // criacao do codebook
 
     for (i = 0; i < pq.nsq ; i++) {
-        copySubVectors(vsub.mat, v, pq.ds,i, 0, (v.n)-1);
-        knn_full(2, vsub.n, pq.ks, pq.ds, 1 , pq.centroids+i*pq.centroidsn, vsub.mat, NULL , assigns, dis);
-        ivec_concat_transp(code,assigns,pq.nsq);
-        code.d++;
+	
+	copySubVectors(vsub.mat, v, pq.ds,i, 0, (v.n)-1);
+        
+	knn_full(2, vsub.n, pq.ks, pq.ds, 1 , pq.centroids+i*pq.centroidsn, vsub.mat, NULL , assigns, dis);
+        
+	ivec_concat_transp(code,assigns,pq.nsq);
+        
+	code.d++;
     }
+
 
     free(vsub.mat);
     free(assigns);

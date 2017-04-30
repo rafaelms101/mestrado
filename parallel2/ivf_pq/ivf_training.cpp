@@ -173,7 +173,7 @@ void copySubVectors2(float* vout, float* vin, int dim, int nvec, int subn){
 void ivfpq_assign(ivfpq_t ivfpq, mat vbase, ivf_t *ivf){
 	int k = 1;
 
-		
+			
 	int *assign = (int*)malloc(sizeof(int)*vbase.n);
 	float *dis = (float*)malloc(sizeof(float)*vbase.n);
 	
@@ -183,18 +183,23 @@ void ivfpq_assign(ivfpq_t ivfpq, mat vbase, ivf_t *ivf){
 	
 	//residuos
 	subtract(vbase, ivfpq.coa_centroids, assign, ivfpq.coa_centroidsd);
+	
 	matI codebook = pq_assign(ivfpq.pq, vbase);
 	int *codeaux = (int*) malloc(sizeof(int)*codebook.d*codebook.n);
 	memcpy(codeaux, codebook.mat, sizeof(int)*codebook.n*codebook.d);
 	int * hist = (int*) calloc(ivfpq.coarsek,sizeof(int)); 
+	
 	histogram(assign, vbase.n ,ivfpq.coarsek, hist);
+	
 	// -- Sort on assign, new codebook with sorted ids as identifiers for codebook
 	int* ids = (int*)malloc(sizeof(int)*vbase.n);
 	ivec_sort_index(assign, vbase.n, ids);
+	
 	for(int i=0; i<codebook.n; i++){
 		memcpy(codebook.mat+i*codebook.d, codeaux+codebook.d*ids[i], sizeof(int)*codebook.d);
 	}
 	int pos = 0;
+	
 	for (int i = 0; i < ivfpq.coarsek; i++) {
 		int nextpos;
 		
@@ -220,6 +225,7 @@ void ivfpq_assign(ivfpq_t ivfpq, mat vbase, ivf_t *ivf){
 		pos += hist[i];
 	}
 	
+	
 	free(codebook.mat);
 	
 	free(ids);
@@ -229,6 +235,7 @@ void ivfpq_assign(ivfpq_t ivfpq, mat vbase, ivf_t *ivf){
 	free(assign);
 	
 	free(dis);
+	
 }
 
 void histogram(const int* vec, int n, int range, int *hist){

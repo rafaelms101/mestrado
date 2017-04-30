@@ -85,7 +85,7 @@ int main(int argc, char **argv){
 			parallel_search (nsq, k, comm_sz, threads, tamt, search_comm, dataset, w);
 		}
 		else{
-			parallel_aggregator(k, w, my_rank, comm_sz, tam);
+			parallel_aggregator(k, w, my_rank, comm_sz, tam, threads);
 		}
 		MPI_Finalize();
 	

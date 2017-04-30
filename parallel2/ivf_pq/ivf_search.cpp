@@ -5,9 +5,8 @@ static int last_assign, last_search, last_aggregator;
 void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Comm search_comm, char *dataset, int w){
 
 	ivfpq_t ivfpq;
-	ivf_t *ivf;
 	mat residual;
-	int *coaidx, my_rank;
+	int *coaidx, my_rank, queryn;
 
 	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
@@ -19,199 +18,146 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 	MPI_Recv(&ivfpq.pq.centroids[0], ivfpq.pq.centroidsn*ivfpq.pq.centroidsd, MPI_FLOAT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	ivfpq.coa_centroids=(float*)malloc(sizeof(float)*ivfpq.coa_centroidsd*ivfpq.coa_centroidsn);
 	MPI_Recv(&ivfpq.coa_centroids[0], ivfpq.coa_centroidsn*ivfpq.coa_centroidsd, MPI_FLOAT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-	
+
 	printf("\nSearch ");
-	
-	ivf = (ivf_t*)malloc(sizeof(ivf_t)*ivfpq.coarsek);
-
-	for(int i=0; i<ivfpq.coarsek; i++){
-		ivf[i].ids = (int*)malloc(sizeof(int));
-		ivf[i].idstam = 0;
-		ivf[i].codes.mat = (int*)malloc(sizeof(int));
-		ivf[i].codes.n = 0;
-		ivf[i].codes.d = nsq;
-	}
-	printf(".");
-
-	double start=MPI_Wtime();
-	# pragma omp parallel num_threads(1) 
+	double start = MPI_Wtime();
+	#pragma omp parallel num_threads(threads)
 	{
+		ivf_t *ivf;
+		ivf = (ivf_t*)malloc(sizeof(ivf_t)*ivfpq.coarsek);
+		for(int i=0; i<ivfpq.coarsek; i++){
+			ivf[i].ids = (int*)malloc(sizeof(int));
+			ivf[i].idstam = 0;
+			ivf[i].codes.mat = (int*)malloc(sizeof(int));
+			ivf[i].codes.n = 0;
+			ivf[i].codes.d = nsq;
+		}
 		int my_omp_rank = omp_get_thread_num ();
-		
-		for(int i=0; i<=(tam/1000000); i++){
-			
-			if(tam%1000000==0 && i==(tam/1000000)) break;
 
+		for(int i=my_omp_rank; i<=(tam/100000); i+=threads){
+			if(tam%100000==0 && i==(tam/100000)) break;
+			
 			ivf_t *ivf2;
 			int aux;
-        		mat vbase;
+        	mat vbase;
 			ivf2 = (ivf_t *)malloc(sizeof(ivf_t)*ivfpq.coarsek);
+			
 			vbase = pq_test_load_base(dataset, i, my_rank-last_assign);
-	
-			//Cria a lista invertida
-				
+			
+			//Cria a lista invertida	
+			
 			ivfpq_assign(ivfpq, vbase, ivf2);
+			
 			
 			for(int j=0; j<ivfpq.coarsek; j++){
 				for(int l=0; l<ivf2[j].idstam; l++){
-					ivf2[j].ids[l]+=1000000*i+tam*(my_rank-last_assign-1);
+					ivf2[j].ids[l]+=100000*i+tam*(my_rank-last_assign-1);
 				}
+
 				aux = ivf[j].idstam;
 				
-				#pragma omp critical
-				{
-					ivf[j].idstam += ivf2[j].idstam;
-					ivf[j].ids = (int*)realloc(ivf[j].ids,sizeof(int)*ivf[j].idstam);
-					memcpy (ivf[j].ids+aux, ivf2[j].ids, sizeof(int)*ivf2[j].idstam);
-					ivf[j].codes.n += ivf2[j].codes.n;
-					ivf[j].codes.mat = (int*)realloc(ivf[j].codes.mat,sizeof(int)*ivf[j].codes.n*ivf[j].codes.d);
-					memcpy (ivf[j].codes.mat+aux*ivf[i].codes.d, ivf2[j].codes.mat, sizeof(int)*ivf2[j].codes.n*ivf2[j].codes.d);
-				}
+				ivf[j].idstam += ivf2[j].idstam;
+				ivf[j].ids = (int*)realloc(ivf[j].ids,sizeof(int)*ivf[j].idstam);
+				memcpy (ivf[j].ids+aux, ivf2[j].ids, sizeof(int)*ivf2[j].idstam);
+				ivf[j].codes.n += ivf2[j].codes.n;
+				ivf[j].codes.mat = (int*)realloc(ivf[j].codes.mat,sizeof(int)*ivf[j].codes.n*ivf[j].codes.d);
+				memcpy (ivf[j].codes.mat+aux*ivf[i].codes.d, ivf2[j].codes.mat, sizeof(int)*ivf2[j].codes.n*ivf2[j].codes.d);
+
 				free(ivf2[j].ids);
 				free(ivf2[j].codes.mat);
 			}
+			
 			free(vbase.mat);
-           		free(ivf2);
+           	free(ivf2);
 		}
-		
-	}
-	double end=MPI_Wtime();
-	printf("\ntime%g\n", end*1000-start*1000);
-	printf(".");
-
-	int queryn;
-	
-	MPI_Barrier(search_comm);
-	MPI_Bcast(&queryn, 1, MPI_INT, 0, search_comm);		
-	MPI_Bcast(&residual.d, 1, MPI_INT, 0, search_comm);
-	residual.n=queryn/1;
-	residual.mat = (float*)malloc(sizeof(float)*residual.n*residual.d);
-		
-	MPI_Bcast(&residual.mat[0], residual.d*residual.n, MPI_FLOAT, 0, search_comm);
-	coaidx = (int*)malloc(sizeof(int)*residual.n);
-	MPI_Bcast(&coaidx[0], residual.n, MPI_INT, 0, search_comm);
-
-	int **ids = (int**)malloc(sizeof(int *)*(residual.n/w));
- 	float **dis = (float**)malloc(sizeof(float *)*(residual.n/w));	
-	
-	printf(".");
-	
-	double start2=MPI_Wtime();
-	int *fila_tam = (int *)calloc(residual.n/w, sizeof(int));
-	int *fila_id = (int *)malloc(sizeof(int)*residual.n/w);
-	for(int i=0; i<residual.n/w; i++){
-		fila_id[i]=-1;
-	}
-
-	int l=0;
-	printf(".");
-	# pragma omp parallel num_threads(threads)
-	{
-		int my_omp_rank = omp_get_thread_num ();
-		
-		#pragma omp single nowait
-		{
-
-			query_id_t element;
-                        double b1;
-                        for(int i=0; i<residual.n/w; i++){
-
-                                while(fila_id[i]==-1);
-                                element.tam = fila_tam[i];
-				element.id = fila_id[i];
-                                if(i==0) b1=MPI_Wtime();
-                                
-
-                                int id = my_rank*(residual.n/w)+element.id+1;
-
-                                MPI_Send(&my_rank, 1, MPI_INT, last_aggregator, 100000, MPI_COMM_WORLD);
-                                MPI_Send(&id, 1, MPI_INT, last_aggregator, 0, MPI_COMM_WORLD);
-                                MPI_Send(&element.tam, 1, MPI_INT, last_aggregator, id, MPI_COMM_WORLD);
-                                MPI_Send(&ids[element.id][0], element.tam, MPI_INT, last_aggregator, id, MPI_COMM_WORLD);
-                                MPI_Send(&dis[element.id][0], element.tam, MPI_FLOAT, last_aggregator, id, MPI_COMM_WORLD);
-                       }
-                       double b2=MPI_Wtime();
-                       printf("z%g", b2*1000-b1*1000);
-
+		#pragma omp barrier
+		if(my_omp_rank==0){
+			double end = MPI_Wtime();
+			printf("\ntime%g\n", end*1000-start*1000);
+			MPI_Barrier(search_comm);
+			MPI_Bcast(&queryn, 1, MPI_INT, 0, search_comm);	
+			MPI_Bcast(&residual.d, 1, MPI_INT, 0, search_comm);
+    		residual.n=queryn;
+			residual.mat = (float*)malloc(sizeof(float)*residual.n*residual.d);
+			MPI_Bcast(&residual.mat[0], residual.d*residual.n, MPI_FLOAT, 0, search_comm);
+			coaidx = (int*)malloc(sizeof(int)*residual.n);
+			MPI_Bcast(&coaidx[0], residual.n, MPI_INT, 0, search_comm);
 		}
-
+		#pragma omp barrier
 		double f1=0, f2=0, f3=0, f4=0;
-			
-		#pragma omp for	schedule(dynamic) 
-			for(int i=0; i<queryn/w; i++){
-				//printf("%d\n", my_omp_rank);
-				query_id_t element;
-				int ktmp;
-				dis_t qt;
-				dis_t q;	
-			
-				qt.idx.mat = (int*) malloc(sizeof(int));
-        			qt.dis.mat = (float*) malloc(sizeof(float));
-				qt.idx.n=0;
-				qt.idx.d=1;
-				qt.dis.n=0;
-				qt.dis.d=1;	
-				double a1=MPI_Wtime();
-				for(int j=0; j<w; j++){
-					
-					q = ivfpq_search(ivf, &residual.mat[0]+(i*w+j)*residual.d, ivfpq.pq, coaidx[i*w+j]);
-					
-					qt.idx.mat = (int*) realloc(qt.idx.mat, sizeof(int)*(qt.idx.n+q.idx.n));
-					qt.dis.mat = (float*) realloc(qt.dis.mat, sizeof(float)*(qt.dis.n+q.dis.n));
-				
-					memcpy(&qt.idx.mat[qt.idx.n], &q.idx.mat[0], sizeof(int)*q.idx.n);
-					memcpy(&qt.dis.mat[qt.dis.n], &q.dis.mat[0], sizeof(float)*q.dis.n);
-				
-					qt.idx.n+=q.idx.n;
-					qt.dis.n+=q.dis.n;
-				
-					free(q.dis.mat);
-					free(q.idx.mat);					
-				}
-				double a2=MPI_Wtime();
-				ktmp = min(qt.idx.n, k);
-			
-				ids[i] = (int*) malloc(sizeof(int)*ktmp);
-				dis[i] = (float*) malloc(sizeof(float)*ktmp);
-				double a3=MPI_Wtime();
-				my_k_min(qt, ktmp, &dis[i][0], &ids[i][0]);
-				
-				element.tam=ktmp;
-				element.id=i;
-
-				double a4=MPI_Wtime();
-
-				#pragma omp atomic
-					fila_tam[l]+=element.tam;
-				#pragma omp atomic
-                                        fila_id[l]+=element.id+1;
-				#pragma omp atomic
-					l++;
-				double a5=MPI_Wtime();
-				free(qt.dis.mat);
-                        	free(qt.idx.mat);
-				//printf("a%gb%gc%gd%g\n", a2*1000-a1*1000,a3*1000-a2*1000, a4*1000-a3*1000, a5*1000-a4*1000);
-
-				f1 += a2*1000-a1*1000;
-				f2 += a3*1000-a2*1000;
-				f3 += a4*1000-a3*1000;
-				f4 += a5*1000-a4*1000;
-				
-			}
-			printf("\nfa%gfb%gfc%gfd%g\n",  f1, f2, f3, f4);
 		
-	}
-	
-	double end2=MPI_Wtime();
+		for(int i=0; i<queryn/w; i++){
+			int ktmp, *ids;
+			float *dis;
+			dis_t qt;
 
-	printf("\ntime%g\n", end2*1000-start2*1000);
+			qt.idx.mat = (int*) malloc(sizeof(int));
+			qt.dis.mat = (float*) malloc(sizeof(float));
+			qt.idx.n=0;
+			qt.idx.d=1;
+			qt.dis.n=0;
+			qt.dis.d=1;	
+			double a1=MPI_Wtime();
+
+			for(int j=0; j<w; j++){
+				dis_t q;
+
+				q = ivfpq_search(ivf, &residual.mat[0]+(i*w+j)*residual.d, ivfpq.pq, coaidx[i*w+j]);
+
+				qt.idx.mat = (int*) realloc(qt.idx.mat, sizeof(int)*(qt.idx.n+q.idx.n));
+				qt.dis.mat = (float*) realloc(qt.dis.mat, sizeof(float)*(qt.dis.n+q.dis.n));
+
+				memcpy(&qt.idx.mat[qt.idx.n], &q.idx.mat[0], sizeof(int)*q.idx.n);
+				memcpy(&qt.dis.mat[qt.dis.n], &q.dis.mat[0], sizeof(float)*q.dis.n);
+
+				qt.idx.n+=q.idx.n;
+				qt.dis.n+=q.dis.n;
+
+				free(q.dis.mat);
+				free(q.idx.mat);					
+			}
+
+			double a2=MPI_Wtime();
+			ktmp = min(qt.idx.n, k);
+
+			ids = (int*) malloc(sizeof(int)*ktmp);
+			dis = (float*) malloc(sizeof(float)*ktmp);
+			double a3=MPI_Wtime();
+			my_k_min(qt, ktmp, &dis[0], &ids[0]);
+
+			int id = my_rank*(residual.n/w)+i+1;
+
+			double a4=MPI_Wtime();
+
+			#pragma omp critical
+			{
+				MPI_Send(&my_rank, 1, MPI_INT, last_aggregator, 100000, MPI_COMM_WORLD);
+				MPI_Send(&id, 1, MPI_INT, last_aggregator, 0, MPI_COMM_WORLD);
+				MPI_Send(&ktmp, 1, MPI_INT, last_aggregator, id, MPI_COMM_WORLD);
+				MPI_Send(&ids[0], ktmp, MPI_INT, last_aggregator, id, MPI_COMM_WORLD);
+				MPI_Send(&dis[0], ktmp, MPI_FLOAT, last_aggregator, id, MPI_COMM_WORLD);
+			}
+
+			double a5=MPI_Wtime();
+			f1 += a2*1000-a1*1000;
+			f2 += a3*1000-a2*1000;
+			f3 += a4*1000-a3*1000;
+			f4 += a5*1000-a4*1000;
+
+			free(ids);
+			free(dis);
+			free(qt.dis.mat);
+			free(qt.idx.mat);
+		}
+		printf("a%gb%gc%gd%g\n",f1,f2,f3,f4);
+		free(ivf);
+	}
+
 	printf(".");	
-	free(ids);
-	free(dis);
+
 	free(residual.mat);
 	free(ivfpq.pq.centroids);
 	free(ivfpq.coa_centroids);
-	free(ivf);
 }
 
 dis_t ivfpq_search(ivf_t *ivf, float *residual, pqtipo pq, int centroid_idx){
