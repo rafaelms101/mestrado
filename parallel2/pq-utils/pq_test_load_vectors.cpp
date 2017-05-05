@@ -206,7 +206,7 @@ mat pq_test_load_base(char* dataset, int offset, int my_rank){
 		}
 		else if(strcmp(dataset, "sift")==0){
 			strcpy (fbase,"../sift/sift_base.fvecs");
-			vbase.n=100000;
+			vbase.n=1000000;
 			vbase.d=128;
 			vbase.mat= fmat_new (vbase.d, vbase.n);
 		}

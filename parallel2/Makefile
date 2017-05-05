@@ -3,8 +3,8 @@
 include makefile.inc
 
 CC=gcc -g
-CXX=g++ -DREAD_TRAIN -g
-MPICXX = mpiicpc -fopenmp -DREAD_TRAIN -g
+CXX=g++  -g
+MPICXX = mpic++ -DREAD_TRAIN -fopenmp  -g
 PQ_UTILS_DIR = ./pq-utils
 OBJDIR=./obj
 IVF_DIR = ./ivf_pq

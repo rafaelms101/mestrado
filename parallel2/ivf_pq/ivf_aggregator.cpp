@@ -37,7 +37,7 @@ void parallel_aggregator(int k, int w, int my_rank, int comm_sz, int tam_base, i
 		int omp_rank = omp_get_thread_num();
 		
 		if(omp_rank==0){
-			while(i<queryn*threads*(last_search-last_assign)){
+			while(i<queryn*(last_search-last_assign)){
 				MPI_Recv(&rank, 1, MPI_INT, MPI_ANY_SOURCE , 100000, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 				MPI_Recv(&id, 1, MPI_INT, rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);	
 				MPI_Recv(&tam, 1, MPI_INT, rank, id, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -59,7 +59,7 @@ void parallel_aggregator(int k, int w, int my_rank, int comm_sz, int tam_base, i
 		else{
 			while(in<queryn){
 				
-				if(in_q[in]==(last_search-last_assign)*threads){
+				if(in_q[in]==(last_search-last_assign)){
 					
 					ktmp = min(q[in].idx.n, k);
 			
