@@ -16,6 +16,7 @@ void parallel_training (char *dataset, int coarsek, int nsq, int tam, int comm_s
 	
 	printf("\nTraining ");
 
+	// Cria os centroides baseado em uma base de treinamento e os armazena em arquivos
 	#ifdef TRAIN
 		printf(".");
 		v = pq_test_load_vectors(dataset, tam);
@@ -48,12 +49,13 @@ void parallel_training (char *dataset, int coarsek, int nsq, int tam, int comm_s
     	fclose(arq2);
     	fclose(arq3);
 
-	printf(".");
+		printf(".");
 
     	free(v.train.mat);
     	free(ivfpq.pq.centroids);
 		free(ivfpq.coa_centroids);
 
+	//Le ou cria os centroides e os envia para os processos de assign
 	#else	
 
     	int my_rank;
@@ -62,6 +64,7 @@ void parallel_training (char *dataset, int coarsek, int nsq, int tam, int comm_s
 
 		v = pq_test_load_vectors(dataset, tam);
 
+		//Le os centroides de um arquivo
 		#ifdef READ_TRAIN
 
 			FILE *arq, *arq2, *arq3;
@@ -87,14 +90,13 @@ void parallel_training (char *dataset, int coarsek, int nsq, int tam, int comm_s
     		fread (&ivfpq.pq.centroids[0], sizeof(float), ivfpq.pq.centroidsn*ivfpq.pq.centroidsn, arq2);
     		ivfpq.coa_centroids = (float *) malloc(sizeof(float)*ivfpq.coa_centroidsn*ivfpq.coa_centroidsn);
     		fread (&ivfpq.coa_centroids[0], sizeof(float), ivfpq.coa_centroidsn*ivfpq.coa_centroidsn, arq3);
-		printf(".");
+			printf(".");
     		fclose(arq);
     		fclose(arq2);
     		fclose(arq3);
- 
+ 		
+ 		//Cria centroides a partir dos vetores de treinamento
 		#else
-
-			//Cria centroides a partir dos vetores de treinamento
 			ivfpq = ivfpq_new(coarsek, nsq, v.train);
 			printf(".");
 		#endif

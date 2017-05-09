@@ -32,6 +32,11 @@ typedef struct ivf{
 	matI codes;
 }ivf_t;
 
+typedef struct query_id{
+	int tam;
+	int id;
+}query_id_t;
+
 void set_last (int comm_sz, int *last_assign, int *last_search, int *last_aggregator);
 
 #endif
