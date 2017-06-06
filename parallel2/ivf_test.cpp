@@ -22,11 +22,6 @@ int main(int argc, char **argv){
 
 	threads  = atoi(argv[2]);
 
-	/*if(threads < 2){
-		cout << "Minimum of threads = 2" << endl;
-		return -1;
-	}*/
-
 	tam  = atoi(argv[3]);
 
 	char* dataset;

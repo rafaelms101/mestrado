@@ -5,7 +5,7 @@
  void Y(ivfpq_t ivfpq, ivf_t* ivf, int ds, int d, int nsq, int* qcoaidx, int id, int w ,float* y);
  void printCodes(ivf_t ivf);
 
-void ivfpq_search(ivfpq_t ivfpq, ivf_t *ivf, mat vquery, int k, int kl ,int w, int* ids, float* dis, mat vbase){
+void ivfpq_search(ivfpq_t ivfpq, ivf_t *ivf, mat vquery, int k, int kl ,int w, int* ids, float* dis){
 
 	int nq, d,ds, ks, nsq, nextdis, nextidx;
 	nq = vquery.n;        //number of queries

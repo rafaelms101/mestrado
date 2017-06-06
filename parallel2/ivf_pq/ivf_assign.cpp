@@ -27,37 +27,48 @@ void parallel_assign (char *dataset, int w, int comm_sz, MPI_Comm search_comm){
 	coadis = (float*)malloc(sizeof(float)*vquery.n*w);
 	knn_full(2, vquery.n, ivfpq.coa_centroidsn, ivfpq.coa_centroidsd, w, ivfpq.coa_centroids, vquery.mat, NULL, coaidx, coadis);
 	
+	free(coadis);
+
 	for(int i=0;i<vquery.n; i++){
 		for(int j=0;j<w;j++){
 			id=i*w+j;
 			bsxfunMINUS(&residual.mat[residual.d*id], vquery, ivfpq.coa_centroids, i, &coaidx[id], 1);
 		}
 	}
+
+	free(ivfpq.pq.centroids);
+	free(ivfpq.coa_centroids);
+
 	//Envia os identificadores dos centroides correspondentes a cada vetor da query para o agregador
 	for(int i=last_search+1; i<=last_aggregator; i++){
 		MPI_Send(&vquery.n, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
 		MPI_Send(&coaidx[0], vquery.n*w, MPI_INT, i, 0, MPI_COMM_WORLD);
 	}
-	
-	int i=0;
+	free(vquery.mat);
 
-	//Envia o resíduo para o processo de busca
+
+	int div=2;
+	int num_q=residual.n/div;
+
+	int finish=0;
+
 	MPI_Barrier(search_comm);
 	double start = MPI_Wtime();
-    MPI_Bcast(&residual.n, 1, MPI_INT, 0, search_comm);
-    MPI_Bcast(&residual.d, 1, MPI_INT, 0, search_comm);
-	
-    MPI_Bcast(&residual.mat[0]+i*residual.d, residual.d*residual.n, MPI_FLOAT, 0, search_comm);
-    MPI_Bcast(&coaidx[0]+i, residual.n, MPI_INT, 0, search_comm);	
-	
 	MPI_Send(&start, 1, MPI_DOUBLE, last_aggregator, 0, MPI_COMM_WORLD);
+	for(int j=0; j<div; j++){	
 
+		//Envia o resíduo para o processo de busca
+		MPI_Bcast(&num_q, 1, MPI_INT, 0, search_comm);
+		MPI_Bcast(&residual.d, 1, MPI_INT, 0, search_comm);
+	
+		MPI_Bcast(&residual.mat[0]+j*num_q*residual.d, residual.d*num_q, MPI_FLOAT, 0, search_comm);
+		MPI_Bcast(&coaidx[0]+j*num_q, num_q, MPI_INT, 0, search_comm);
+		if(j==div-1)finish=1;
+		MPI_Bcast(&finish, 1, MPI_INT, 0, search_comm);	
+	}
 	free(coaidx);
-	free(coadis);
 	free(residual.mat);
-	free(vquery.mat);
-	free(ivfpq.pq.centroids);
-	free(ivfpq.coa_centroids);
+
 }
 
 void bsxfunMINUS(float *mout, mat vin, float* vin2, int nq, int* qcoaidx, int ncoaidx){

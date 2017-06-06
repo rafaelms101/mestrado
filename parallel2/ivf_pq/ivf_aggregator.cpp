@@ -16,6 +16,8 @@ void parallel_aggregator(int k, int w, int my_rank, int comm_sz, int tam_base, i
 	coaidx = (int*)malloc(sizeof(int)*queryn*w);
 	MPI_Recv(&coaidx[0], queryn*w, MPI_INT, last_assign, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
+	MPI_Recv(&start, 1, MPI_DOUBLE, last_assign, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
 	q = (dis_t*)malloc(sizeof(dis_t)*queryn);
 	in_q = (int*)calloc(queryn,sizeof(in_q));
 
@@ -28,7 +30,7 @@ void parallel_aggregator(int k, int w, int my_rank, int comm_sz, int tam_base, i
 	
 	dis = (float*)malloc(sizeof(float));
 	ids = (int*)malloc(sizeof(int));
-	int i=0, finish=0;
+	int i=0, finish=0, fim=0;
 	
 	#pragma omp parallel num_threads(2)
 	{
@@ -36,27 +38,35 @@ void parallel_aggregator(int k, int w, int my_rank, int comm_sz, int tam_base, i
 		
 		if(omp_rank==0){//Recebe os resultados do vetor de busca
 			int num;
-			while(finish==0){
+			while(fim<last_search-last_assign){
 				float *dis2;
 				int *ids2;
 				int ttam=0;
 				
 				MPI_Recv(&rank, 1, MPI_INT, MPI_ANY_SOURCE , 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 				MPI_Recv(&num, 1, MPI_INT, rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+				
 				query_id_t *element = (query_id_t*)malloc(sizeof(query_id_t)*num);
 				MPI_Recv(&element[0], sizeof(query_id_t)*num, MPI_BYTE, rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+				
 				for(int j=0; j<num; j++){
 					ttam+=element[j].tam;
 					q[element[j].id].dis.mat = (float*)realloc(q[element[j].id].dis.mat,sizeof(float)*(q[element[j].id].dis.n+element[j].tam));
 					q[element[j].id].idx.mat = (int*)realloc(q[element[j].id].idx.mat,sizeof(int)*(q[element[j].id].idx.n+element[j].tam));
 				}
+				
 
 				dis2 = (float*)malloc(sizeof(float)*ttam);
 				ids2 = (int*)malloc(sizeof(int)*ttam);
-
+				//printf("3\n");
 				MPI_Recv(&ids2[0], ttam, MPI_INT, rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 				MPI_Recv(&dis2[0], ttam, MPI_FLOAT, rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 				MPI_Recv(&finish, 1, MPI_INT, rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+				if(finish==1){
+					fim++;
+					finish=0;
+				}
 				
 				ttam=0;
 				for(int j=0; j<num; j++){
@@ -67,9 +77,11 @@ void parallel_aggregator(int k, int w, int my_rank, int comm_sz, int tam_base, i
 					ttam+=element[j].tam;
 					in_q[element[j].id]++;
 				}
+				
 				free(ids2);
 				free(dis2);
-				free(element);	
+				free(element);
+					
 			}
 			end=MPI_Wtime();
 		}	
@@ -80,14 +92,10 @@ void parallel_aggregator(int k, int w, int my_rank, int comm_sz, int tam_base, i
 
 			while(in<queryn){	
 				if(in_q[in]==(last_search-last_assign)){
-					
 					ktmp = min(q[in].idx.n, k);
-			
 					my_k_min(q[in], ktmp, dis2, ids2);
-			
 					dis = (float*)realloc(dis,sizeof(float)*(ttam+ktmp));
 					ids = (int*)realloc(ids,sizeof(int)*(ttam+ktmp));
-			
 					memcpy(&dis[0] + ttam, dis2, sizeof(float)*ktmp);
 					memcpy(&ids[0] + ttam, ids2, sizeof(int)*ktmp);
 					free(q[in].dis.mat);
@@ -96,6 +104,7 @@ void parallel_aggregator(int k, int w, int my_rank, int comm_sz, int tam_base, i
 					ttam+=ktmp;
 				}
 			}
+			
 			free(dis2);
 			free(ids2);
 		}
@@ -107,8 +116,6 @@ void parallel_aggregator(int k, int w, int my_rank, int comm_sz, int tam_base, i
 	free(dis);
 	
 	ids = (int*)realloc(ids,sizeof(int)*k*queryn);	
-	
-	MPI_Recv(&start, 1, MPI_DOUBLE, last_assign, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	
 	FILE *fp;
 

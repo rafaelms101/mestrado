@@ -108,7 +108,10 @@ void parallel_training (char *dataset, int coarsek, int nsq, int tam, int comm_s
 			MPI_Send(&ivfpq, sizeof(ivfpq_t), MPI_BYTE, i, 0, MPI_COMM_WORLD);
 			MPI_Send(&ivfpq.pq.centroids[0], ivfpq.pq.centroidsn*ivfpq.pq.centroidsd, MPI_FLOAT, i, 0, MPI_COMM_WORLD);
 			MPI_Send(&ivfpq.coa_centroids[0], ivfpq.coa_centroidsd*ivfpq.coa_centroidsn, MPI_FLOAT, i, 0, MPI_COMM_WORLD);
-		}		
+		}
+
+		free(ivfpq.pq.centroids);
+		free(ivfpq.coa_centroids);		
 			
 		//Envia o ids_gnd para o agregador calcular as estatisticas da busca
 		for(int i=last_search+1; i<=last_aggregator; i++){

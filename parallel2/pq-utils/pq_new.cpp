@@ -52,6 +52,10 @@ pqtipo pq_new(int nsq, mat vtrain){
 		kmeans(ds, vtrain.n, ks, 100, vs, flags, seed, 1, centroids_tmp , NULL, NULL, NULL);
 		memcpy(pq.centroids+i*ks*ds, centroids_tmp, sizeof(float)*ks*ds);
 	}
+
+	free(vs);
+	free(centroids_tmp);
+
 	return pq;
 }
 

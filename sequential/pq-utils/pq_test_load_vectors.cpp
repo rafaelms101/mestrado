@@ -99,7 +99,7 @@ data pq_test_load_vectors(char* dataset){
 			}
 			else if(strcmp(dataset, "siftbig100M")==0){
 				v.base.n=100000000;
-				strcpy (f.groundtruth,"./siftbig/siftbig_groundtruth_100M.ivecs");
+				strcpy (f.groundtruth,"/pylon5/ac3uump/freire/siftbig_groundtruth_100M.ivecs");
 			}
 			else{
 				strcpy (f.groundtruth,"./siftbig/siftbig_groundtruth_1B.ivecs");

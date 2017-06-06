@@ -1,6 +1,6 @@
 #include "ivf_search.h"
 
-static int last_assign, last_search, last_aggregator;
+static int last_assign, last_search, last_aggregator, iter;
 
 void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Comm search_comm, char *dataset, int w){
 
@@ -71,32 +71,66 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 		}
 	}	
 
-	//Recebe os resíduos da query
 	double end = MPI_Wtime();
 	printf("\ntime%g\n", end*1000-start*1000);
-	MPI_Barrier(search_comm);
-	MPI_Bcast(&queryn, 1, MPI_INT, 0, search_comm);	
-	MPI_Bcast(&residual.d, 1, MPI_INT, 0, search_comm);
-    residual.n=queryn;
-	residual.mat = (float*)malloc(sizeof(float)*residual.n*residual.d);
-	MPI_Bcast(&residual.mat[0], residual.d*residual.n, MPI_FLOAT, 0, search_comm);
-	coaidx = (int*)malloc(sizeof(int)*residual.n);
-	MPI_Bcast(&coaidx[0], residual.n, MPI_INT, 0, search_comm);
 
-	std::list<query_id_t> fila;
-	float **dis = (float**)malloc(sizeof(float *)*(residual.n/w));
-	int **ids = (int**)malloc(sizeof(int *)*(residual.n/w));
+	//Recebe os resíduos da query
+
+	float **dis;
+	int **ids;
+	int finish_aux=0;
+	query_id_t *fila;
+	int count =0;
+
+	MPI_Barrier(search_comm);
 
 	#pragma omp parallel num_threads(threads+1)
 	{
-		int my_omp_rank = omp_get_thread_num ();
-		double f1=0, f2=0, f3=0, f4=0;
 
-		if(my_omp_rank!=threads){ //Faz a busca dos vetores da query na lista invertida 
+		while(1){
+			int my_omp_rank = omp_get_thread_num ();
+			double f1=0, f2=0, f3=0, f4=0;
+
+			if(my_omp_rank==0){
+				MPI_Bcast(&queryn, 1, MPI_INT, 0, search_comm);	
+				MPI_Bcast(&residual.d, 1, MPI_INT, 0, search_comm);
+    			residual.n=queryn;
+				residual.mat = (float*)malloc(sizeof(float)*residual.n*residual.d);
+				MPI_Bcast(&residual.mat[0], residual.d*residual.n, MPI_FLOAT, 0, search_comm);
+				coaidx = (int*)malloc(sizeof(int)*residual.n);
+				MPI_Bcast(&coaidx[0], residual.n, MPI_INT, 0, search_comm);
+				MPI_Bcast(&finish_aux, 1, MPI_INT, 0, search_comm);
+				
+				fila = (query_id_t*)malloc(sizeof(query_id_t)*(residual.n/w));
+			
+				for(int it=0; it<residual.n/w; it++){
+					fila[it].tam = 0;
+					fila[it].id = count;
+				}
+				iter =0;
+
+				dis = (float**)malloc(sizeof(float *)*(residual.n/w));
+				ids = (int**)malloc(sizeof(int *)*(residual.n/w));
+			}
+			#pragma omp barrier
+			if(my_omp_rank==threads){
+				
+				send_aggregator(residual.n, w, fila, ids, dis, finish_aux, count);
+				
+				count += iter;
+				free(dis);
+				free(ids);
+				free(coaidx);
+				free(residual.mat);
+				free(fila);
+				
+			}
+			else{ //Faz a busca dos vetores da query na lista invertida 
+
 				for(int i=my_omp_rank; i<queryn/w; i+=threads){
+
 					int ktmp;
 					dis_t qt;
-					query_id_t element;
 
 					qt.idx.mat = (int*) malloc(sizeof(int));
 					qt.dis.mat = (float*) malloc(sizeof(float));
@@ -108,7 +142,6 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 
 					for(int j=0; j<w; j++){
 						dis_t q;
-
 						q = ivfpq_search(ivf, &residual.mat[0]+(i*w+j)*residual.d, ivfpq.pq, coaidx[i*w+j]);
 
 						qt.idx.mat = (int*) realloc(qt.idx.mat, sizeof(int)*(qt.idx.n+q.idx.n));
@@ -119,9 +152,8 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 
 						qt.idx.n+=q.idx.n;
 						qt.dis.n+=q.dis.n;
-
 						free(q.dis.mat);
-						free(q.idx.mat);					
+						free(q.idx.mat);				
 					}
 
 					double a2=MPI_Wtime();
@@ -133,74 +165,31 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 					my_k_min(qt, ktmp, &dis[i][0], &ids[i][0]);
 
 					double a4=MPI_Wtime();
-
-					element.id=i;
-					element.tam=ktmp;
-
-					#pragma omp critical
-					{
-						fila.push_back(element);				
-					}
+			
+					#pragma omp atomic
+						fila[iter].id+=i;
+					#pragma omp atomic	
+						fila[iter].tam+=ktmp;
+					#pragma omp atomic
+						iter++;
 
 					double a5=MPI_Wtime();
 					f1 += a2*1000-a1*1000;
 					f2 += a3*1000-a2*1000;
 					f3 += a4*1000-a3*1000;
 					f4 += a5*1000-a4*1000;
-
 					free(qt.dis.mat);
 					free(qt.idx.mat);
 				}
-			printf("a%gb%gc%gd%g\n",f1,f2,f3,f4);
-		}
-		else{ //Envia os resultados para o agregador
-			int finish=0, i=0, num=0, ttam=0, *ids2 = (int*)malloc(sizeof(int));
-			float *dis2 = (float*)malloc(sizeof(float));
-			query_id_t *element = (query_id_t*)malloc(sizeof(query_id_t)*10);
-			while(i<residual.n/w){
-				while(fila.empty());
-				element[num] = fila.front();
-				#pragma omp critical
-					fila.pop_front();
-
-				ids2 = (int*)realloc(ids2,sizeof(int)*(ttam+element[num].tam));
-				dis2 = (float*)realloc(dis2,sizeof(float)*(ttam+element[num].tam));
-				memcpy(&ids2[0] + ttam, ids[element[num].id], sizeof(int)*element[num].tam);
-				memcpy(&dis2[0] + ttam, dis[element[num].id], sizeof(float)*element[num].tam);
-
-				free(ids[element[num].id]);
-				free(dis[element[num].id]);
-
-				ttam+=element[num].tam;
-				num++;
-
-				if(num==10 || num==residual.n/w-i){
-
-					if(num==residual.n/w-i)finish=1;
-
-					MPI_Send(&my_rank, 1, MPI_INT, last_aggregator, 1, MPI_COMM_WORLD);
-					MPI_Send(&num, 1, MPI_INT, last_aggregator, 0, MPI_COMM_WORLD);
-					MPI_Send(&element[0], sizeof(query_id_t)*num, MPI_BYTE, last_aggregator, 0, MPI_COMM_WORLD);
-					MPI_Send(&ids2[0], ttam, MPI_INT, last_aggregator, 0, MPI_COMM_WORLD);
-					MPI_Send(&dis2[0], ttam, MPI_FLOAT, last_aggregator, 0, MPI_COMM_WORLD);
-					MPI_Send(&finish, 1, MPI_INT, last_aggregator, 0, MPI_COMM_WORLD);
-					
-					i+=num;
-					num=0;
-					ttam=0;
-				}
+				printf("a%gb%gc%gd%g\n",f1,f2,f3,f4);
 			}
-			free(element);
-			free(ids2);
-			free(dis2);
+			if (finish_aux==1)break;
+			#pragma omp barrier
 		}
 	}
 	printf(".");	
 
-	free(dis);
-	free(ids);
 	free(ivf);
-	free(residual.mat);
 	free(ivfpq.pq.centroids);
 	free(ivfpq.coa_centroids);
 }
@@ -244,6 +233,57 @@ dis_t ivfpq_search(ivf_t *ivf, float *residual, pqtipo pq, int centroid_idx){
 	free (distab_temp);
 	free (distab.mat);
 	return q;
+}
+
+void send_aggregator(int residualn, int w, query_id_t *fila, int **ids, float **dis, int finish_aux, int count){
+
+	int i=0, num=0, ttam=0, *ids2, it=0, my_rank, finish=0;
+	float *dis2;
+	query_id_t *element;
+
+	ids2 = (int*)malloc(sizeof(int));
+	dis2 = (float*)malloc(sizeof(float));
+	element = (query_id_t*)malloc(sizeof(query_id_t)*10);
+	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+
+	while(i<residualn/w){
+	
+		while(it==iter);
+		element[num] = fila[it];
+	
+		ids2 = (int*)realloc(ids2,sizeof(int)*(ttam+element[num].tam));
+		dis2 = (float*)realloc(dis2,sizeof(float)*(ttam+element[num].tam));
+		
+		memcpy(&ids2[0] + ttam, ids[element[num].id-count], sizeof(int)*element[num].tam);
+		memcpy(&dis2[0] + ttam, dis[element[num].id-count], sizeof(float)*element[num].tam);
+		
+		free(ids[element[num].id-count]);
+		free(dis[element[num].id-count]);
+		
+		ttam+=element[num].tam;
+		num++;
+		it++;
+		if(num==10 || num==residualn/w-i){
+
+			if(num==residualn/w-i && finish_aux==1){
+				finish=1;
+			}
+
+			MPI_Send(&my_rank, 1, MPI_INT, last_aggregator, 1, MPI_COMM_WORLD);
+			MPI_Send(&num, 1, MPI_INT, last_aggregator, 0, MPI_COMM_WORLD);
+			MPI_Send(&element[0], sizeof(query_id_t)*num, MPI_BYTE, last_aggregator, 0, MPI_COMM_WORLD);
+			MPI_Send(&ids2[0], ttam, MPI_INT, last_aggregator, 0, MPI_COMM_WORLD);
+			MPI_Send(&dis2[0], ttam, MPI_FLOAT, last_aggregator, 0, MPI_COMM_WORLD);
+			MPI_Send(&finish, 1, MPI_INT, last_aggregator, 0, MPI_COMM_WORLD);
+					
+			i+=num;
+			num=0;
+			ttam=0;
+		}
+	}
+	free(element);
+	free(ids2);
+	free(dis2);
 }
 
 int min(int a, int b){
