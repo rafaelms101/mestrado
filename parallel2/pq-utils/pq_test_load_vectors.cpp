@@ -116,9 +116,11 @@ data pq_test_load_vectors(char* dataset, int tam){
 	return v;
 }
 
-mat pq_test_load_query(char* dataset){
+mat pq_test_load_query(char* dataset, int threads){
 
 	mat vquery;
+
+	char srank[4];
 
 	if(strcmp(dataset, "random")==0){
 
@@ -151,9 +153,15 @@ mat pq_test_load_query(char* dataset){
 		}
 		else if(strcmp(dataset, "siftbig")==0){
 			strcpy (fquery,"/pylon5/ac3uump/freire/siftbig_query.bvecs");
+
+			sprintf (srank, "%d",threads);
+	                strcat(fquery, srank);
+
+
 			vquery.n=10000;
 			vquery.d=128;
 			vquery.mat= fmat_new (vquery.d, vquery.n);
+			
 		}
 		else if(strcmp(dataset, "gist")==0){
 			strcpy (fquery,"../gist/gist_query.fvecs");

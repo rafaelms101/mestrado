@@ -38,10 +38,10 @@ data pq_test_load_vectors(char* dataset){
 	else {
 		namefile f;
 
-		f.base= (char*)malloc(sizeof(char)*40);
-		f.query= (char*) malloc(sizeof(char)*40);
-		f.train= (char*) malloc(sizeof(char)*40);
-		f.groundtruth= (char*) malloc(sizeof(char)*40);
+		f.base= (char*)malloc(sizeof(char)*60);
+		f.query= (char*) malloc(sizeof(char)*60);
+		f.train= (char*) malloc(sizeof(char)*60);
+		f.groundtruth= (char*) malloc(sizeof(char)*60);
 
 		if(strcmp(dataset, "siftsmall")==0){
 			strcpy (f.base,"./siftsmall/siftsmall_base.fvecs");
@@ -80,38 +80,39 @@ data pq_test_load_vectors(char* dataset){
 			ids_gnd= ivec_new (v.ids_gnd.n*v.ids_gnd.d);
 		}
 		else if(strcmp(dataset, "siftbig1M")==0 || strcmp(dataset, "siftbig2M")==0 || strcmp(dataset, "siftbig5M")==0 || strcmp(dataset, "siftbig10M")==0 || strcmp(dataset, "siftbig100M")==0 || strcmp(dataset, "siftbig1B")==0){
-			strcpy (f.base,"./siftbig/siftbig_base.bvecs");
+			strcpy (f.base,"/pylon5/ac3uump/freire/siftbig_base.bvecs1");
+			printf("a");
 			if(strcmp(dataset, "siftbig1M")==0){
 				v.base.n=1000000;
-				strcpy (f.groundtruth,"./siftbig/siftbig_groundtruth_1M.ivecs");
+				strcpy (f.groundtruth,"/pylon5/ac3uump/freire/siftbig_groundtruth_1M.ivecs");
 			}
 			else if(strcmp(dataset, "siftbig2M")==0){
 				v.base.n=2000000;
-				strcpy (f.groundtruth,"./siftbig/siftbig_groundtruth_2M.ivecs");
+				strcpy (f.groundtruth,"/pylon5/ac3uump/freire/siftbig_groundtruth_2M.ivecs");
 			}
 			else if(strcmp(dataset, "siftbig5M")==0){
 				v.base.n=5000000;
-				strcpy (f.groundtruth,"./siftbig/siftbig_groundtruth_5M.ivecs");
+				strcpy (f.groundtruth,"/pylon5/ac3uump/freire/siftbig_groundtruth_5M.ivecs");
 			}
 			else if(strcmp(dataset, "siftbig10M")==0){
 				v.base.n=10000000;
-				strcpy (f.groundtruth,"./siftbig/siftbig_groundtruth_10M.ivecs");
+				strcpy (f.groundtruth,"/pylon5/ac3uump/freire/siftbig_groundtruth_10M.ivecs");
 			}
 			else if(strcmp(dataset, "siftbig100M")==0){
 				v.base.n=100000000;
 				strcpy (f.groundtruth,"/pylon5/ac3uump/freire/siftbig_groundtruth_100M.ivecs");
 			}
 			else{
-				strcpy (f.groundtruth,"./siftbig/siftbig_groundtruth_1B.ivecs");
+				strcpy (f.groundtruth,"/pylon5/ac3uump/freire/siftbig_groundtruth_1B.ivecs");
 				v.base.n=1000000000;
 			}
 			v.base.d=128;
 			v.base.mat= fmat_new (v.base.d, v.base.n);
-			strcpy (f.query,"./siftbig/siftbig_query.bvecs");
+			strcpy (f.query,"/pylon5/ac3uump/freire/siftbig_query.bvecso");
 			v.query.n=10000;
 			v.query.d=128;
 			v.query.mat= fmat_new (v.query.d, v.query.n);
-			strcpy (f.train,"./siftbig/siftbig_learn.bvecs");
+			strcpy (f.train,"/pylon5/ac3uump/freire/siftbig_learn.bvecs");
 			v.train.n=100000;
 			v.train.d=128;
 			v.train.mat= fmat_new (v.train.d, v.train.n);

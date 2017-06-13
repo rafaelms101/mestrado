@@ -58,7 +58,7 @@ void parallel_aggregator(int k, int w, int my_rank, int comm_sz, int tam_base, i
 
 				dis2 = (float*)malloc(sizeof(float)*ttam);
 				ids2 = (int*)malloc(sizeof(int)*ttam);
-				//printf("3\n");
+				
 				MPI_Recv(&ids2[0], ttam, MPI_INT, rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 				MPI_Recv(&dis2[0], ttam, MPI_FLOAT, rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 				MPI_Recv(&finish, 1, MPI_INT, rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);

@@ -11,7 +11,8 @@
 #include "ivf_pq/ivf_search.h"
 
 int main(int argv, char **argc){
-  struct timeval start, end;
+
+	struct timeval start, end;
   	int k, kl=0,
   		nsq,
   		coarsek,
@@ -24,14 +25,17 @@ int main(int argv, char **argc){
 		cout << "Usage: ./pq_test <dataset>  <k>  <coarsek> <w>" << endl;
 		return -1;
 	}
-
+	
 	dataset = argc[1];
-
+	
   	k = atoi(argc[2]);
-  	nsq = 8;
-  	coarsek = atoi(argc[3]);
-  	w = atoi(argc[4]);
-
+  	
+	nsq = 8;
+  	
+	coarsek = atoi(argc[3]);
+  	
+	w = atoi(argc[4]);
+	
   gettimeofday(&start, NULL);
   v = pq_test_load_vectors(dataset);
   gettimeofday(&end, NULL);
