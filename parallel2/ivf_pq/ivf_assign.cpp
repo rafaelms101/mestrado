@@ -60,7 +60,6 @@ void parallel_assign (char *dataset, int w, int comm_sz, MPI_Comm search_comm,in
 		//Envia o resíduo para o processo de busca
 		MPI_Bcast(&num_q, 1, MPI_INT, 0, search_comm);
 		MPI_Bcast(&residual.d, 1, MPI_INT, 0, search_comm);
-	
 		MPI_Bcast(&residual.mat[0]+j*num_q*residual.d, residual.d*num_q, MPI_FLOAT, 0, search_comm);
 		MPI_Bcast(&coaidx[0]+j*num_q, num_q, MPI_INT, 0, search_comm);
 		if(j==div-1)finish=1;

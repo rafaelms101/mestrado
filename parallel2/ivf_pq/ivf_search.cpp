@@ -1,12 +1,13 @@
 #include "ivf_search.h"
 
 static int last_assign, last_search, last_aggregator, iter;
+omp_lock_t lock;
 
 void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Comm search_comm, char *dataset, int w){
 
 	ivfpq_t ivfpq;
 	mat residual;
-	int *coaidx, my_rank, queryn;
+	int *coaidx, my_rank;
 
 	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
@@ -41,7 +42,7 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 			
 			ivf_t *ivf2;
 			int aux;
-        		mat vbase;
+				mat vbase;
 			ivf2 = (ivf_t *)malloc(sizeof(ivf_t)*ivfpq.coarsek);
 			
 			vbase = pq_test_load_base(dataset, i, my_rank-last_assign);
@@ -67,7 +68,7 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 				free(ivf2[j].codes.mat);
 			}
 			free(vbase.mat);
-           	free(ivf2);
+			free(ivf2);
 		}
 	}	
 
@@ -93,10 +94,9 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 
 			if(my_omp_rank==0){
 		
-				MPI_Bcast(&queryn, 1, MPI_INT, 0, search_comm);	
+				MPI_Bcast(&residual.n, 1, MPI_INT, 0, search_comm);	
 				MPI_Bcast(&residual.d, 1, MPI_INT, 0, search_comm);
-    			
-				residual.n=queryn;
+
 				residual.mat = (float*)malloc(sizeof(float)*residual.n*residual.d);
 			
 				MPI_Bcast(&residual.mat[0], residual.d*residual.n, MPI_FLOAT, 0, search_comm);
@@ -113,11 +113,11 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 					fila[it].id = count;
 				}
 			
-				iter =0;
-			
+				iter = 0;
 				dis = (float**)malloc(sizeof(float *)*(residual.n/w));
 				ids = (int**)malloc(sizeof(int *)*(residual.n/w));
 			}
+
 			#pragma omp barrier
 			
 			if(my_omp_rank==threads){
@@ -133,7 +133,7 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 							}
 			else{ //Faz a busca dos vetores da query na lista invertida 
 				
-				for(int i=my_omp_rank; i<queryn/w; i+=threads){
+				for(int i=my_omp_rank; i<residual.n/w; i+=threads){
 					
 					int ktmp;
 					dis_t qt;
@@ -161,12 +161,10 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 						free(q.dis.mat);
 						free(q.idx.mat);				
 					}
-					
 
 					double a2=MPI_Wtime();
 					ktmp = min(qt.idx.n, k);
 					
-
 					ids[i] = (int*) malloc(sizeof(int)*ktmp);
 					dis[i] = (float*) malloc(sizeof(float)*ktmp);
 					double a3=MPI_Wtime();
@@ -174,13 +172,12 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 					
 					double a4=MPI_Wtime();
 			
-					#pragma omp atomic
-						fila[iter].id+=i;
-					#pragma omp atomic	
-						fila[iter].tam+=ktmp;
-					#pragma omp atomic
-						iter++;
-	
+					omp_set_lock(&lock);
+					fila[iter].id+=i;
+					fila[iter].tam+=ktmp;
+					iter++;
+					omp_unset_lock(&lock);
+
 					double a5=MPI_Wtime();
 					f1 += a2*1000-a1*1000;
 					f2 += a3*1000-a2*1000;
@@ -268,9 +265,7 @@ void send_aggregator(int residualn, int w, query_id_t *fila, int **ids, float **
 		it++;
 		if(num==10 || num==residualn/w-i){
 
-			if(num==residualn/w-i && finish_aux==1){
-				finish=1;
-			}
+			if(num==residualn/w-i && finish_aux==1);finish=1;
 
 			MPI_Send(&my_rank, 1, MPI_INT, last_aggregator, 1, MPI_COMM_WORLD);
 			MPI_Send(&num, 1, MPI_INT, last_aggregator, 0, MPI_COMM_WORLD);
@@ -283,7 +278,6 @@ void send_aggregator(int residualn, int w, query_id_t *fila, int **ids, float **
 			num=0;
 			ttam=0;
 		}
-	
 	}
 	free(element);
 	free(ids2);
@@ -318,12 +312,12 @@ float * sumidxtab2(mat D, matI ids, int offset){
 }
 
 int* imat_new_transp (const int *a, int ncol, int nrow){
- 	int i,j;
+	int i,j;
 	int *vt=(int*)malloc(sizeof(int)*ncol*nrow);
 
- 	for(i=0;i<ncol;i++)
-    	for(j=0;j<nrow;j++)
-   			vt[i*nrow+j]=a[j*ncol+i];
+	for(i=0;i<ncol;i++)
+		for(j=0;j<nrow;j++)
+			vt[i*nrow+j]=a[j*ncol+i];
 
-  	return vt;
+	return vt;
 }

@@ -155,13 +155,11 @@ mat pq_test_load_query(char* dataset, int threads){
 			strcpy (fquery,"/pylon5/ac3uump/freire/siftbig_query.bvecs");
 
 			sprintf (srank, "%d",threads);
-	                strcat(fquery, srank);
-
+	        strcat(fquery, srank);
 
 			vquery.n=10000;
 			vquery.d=128;
 			vquery.mat= fmat_new (vquery.d, vquery.n);
-			
 		}
 		else if(strcmp(dataset, "gist")==0){
 			strcpy (fquery,"../gist/gist_query.fvecs");
