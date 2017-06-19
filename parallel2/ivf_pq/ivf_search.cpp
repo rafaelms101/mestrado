@@ -1,6 +1,7 @@
 #include "ivf_search.h"
 
-static int last_assign, last_search, last_aggregator, iter;
+static int last_assign, last_search, last_aggregator;
+int iter;
 omp_lock_t lock;
 
 void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Comm search_comm, char *dataset, int w){
@@ -124,13 +125,15 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 				
 				send_aggregator(residual.n, w, fila, ids, dis, finish_aux, count);
 				
+				printf("hey");
+
 				count += iter;
 				free(dis);
 				free(ids);
 				free(coaidx);
 				free(residual.mat);
 				free(fila);
-							}
+			}
 			else{ //Faz a busca dos vetores da query na lista invertida 
 				
 				for(int i=my_omp_rank; i<residual.n/w; i+=threads){
@@ -175,10 +178,11 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 					omp_set_lock(&lock);
 					fila[iter].id+=i;
 					fila[iter].tam+=ktmp;
-					iter++;
+					iter++;	
 					omp_unset_lock(&lock);
 
 					double a5=MPI_Wtime();
+
 					f1 += a2*1000-a1*1000;
 					f2 += a3*1000-a2*1000;
 					f3 += a4*1000-a3*1000;
@@ -252,7 +256,9 @@ void send_aggregator(int residualn, int w, query_id_t *fila, int **ids, float **
 	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 	
 	while(i<residualn/w){
+
 		while(it==iter);
+
 		element[num] = fila[it];
 		ids2 = (int*)realloc(ids2,sizeof(int)*(ttam+element[num].tam));
 		dis2 = (float*)realloc(dis2,sizeof(float)*(ttam+element[num].tam));
@@ -265,7 +271,7 @@ void send_aggregator(int residualn, int w, query_id_t *fila, int **ids, float **
 		it++;
 		if(num==10 || num==residualn/w-i){
 
-			if(num==residualn/w-i && finish_aux==1);finish=1;
+			if(num==residualn/w-i && finish_aux==1)finish=1;
 
 			MPI_Send(&my_rank, 1, MPI_INT, last_aggregator, 1, MPI_COMM_WORLD);
 			MPI_Send(&num, 1, MPI_INT, last_aggregator, 0, MPI_COMM_WORLD);
