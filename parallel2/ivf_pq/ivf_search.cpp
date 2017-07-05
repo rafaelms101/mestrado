@@ -8,6 +8,8 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 	ivfpq_t ivfpq;
 	mat residual;
 	int *coaidx, my_rank;
+	double time;
+
 
 	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
@@ -21,7 +23,9 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 	MPI_Recv(&ivfpq.coa_centroids[0], ivfpq.coa_centroidsn*ivfpq.coa_centroidsd, MPI_FLOAT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
 	printf("\nSearch ");
-	double start = MPI_Wtime();
+	struct timeval start, end;
+
+	gettimeofday(&start, NULL);
 
 	ivf_t *ivf;
 	ivf = (ivf_t*)malloc(sizeof(ivf_t)*ivfpq.coarsek);
@@ -72,8 +76,10 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 		}
 	}	
 
-	double end = MPI_Wtime();
-	printf("\ntime%g\n", end*1000-start*1000);
+	gettimeofday(&end, NULL);
+	time = ((end.tv_sec * 1000000 + end.tv_usec)-(start.tv_sec * 1000000 + start.tv_usec))/1000;
+	
+	printf ("\nTempo de criacao da lista invertida: %g\n",time);	
 
 	//Recebe os resíduos da query
 
@@ -94,7 +100,7 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 
 		while(1){
 			int my_omp_rank = omp_get_thread_num ();
-			double f1=0, f2=0, f3=0, f4=0;
+			double f1=0, f2=0, f3=0, f4=0, g1=0, g2=0, g3=0;
 
 			if(my_omp_rank==0){
 		
@@ -141,11 +147,16 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 					qt.idx.d=1;
 					qt.dis.n=0;
 					qt.dis.d=1;	
-					double a1=MPI_Wtime();
+					
+					struct timeval a1, a2, a3, a4, a5, b1, b2;
+
+  					gettimeofday(&a1, NULL);
 					
 					for(int j=0; j<w; j++){
 						dis_t q;
-						q = ivfpq_search(ivf, &residual.mat[0]+(i*w+j)*residual.d, ivfpq.pq, coaidx[i*w+j]);
+						q = ivfpq_search(ivf, &residual.mat[0]+(i*w+j)*residual.d, ivfpq.pq, coaidx[i*w+j], &g1, &g2);
+
+						gettimeofday(&b1, NULL);
 
 						qt.idx.mat = (int*) realloc(qt.idx.mat, sizeof(int)*(qt.idx.n+q.idx.n));
 						qt.dis.mat = (float*) realloc(qt.dis.mat, sizeof(float)*(qt.dis.n+q.dis.n));
@@ -156,39 +167,47 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 						qt.idx.n+=q.idx.n;
 						qt.dis.n+=q.dis.n;
 						free(q.dis.mat);
-						free(q.idx.mat);				
+						free(q.idx.mat);
+
+						gettimeofday(&b2, NULL);
+
+						g3 += ((b2.tv_sec * 1000000 + b2.tv_usec)-(b1.tv_sec * 1000000 + b1.tv_usec));				
 					}
 
-					double a2=MPI_Wtime();
+					gettimeofday(&a2, NULL);
 					ktmp = min(qt.idx.n, k);
 					
 					ids[i] = (int*) malloc(sizeof(int)*ktmp);
 					dis[i] = (float*) malloc(sizeof(float)*ktmp);
-					double a3=MPI_Wtime();
+					gettimeofday(&a3, NULL);
+
 					my_k_min(qt, ktmp, &dis[i][0], &ids[i][0]);
 					
-					double a4=MPI_Wtime();
+					gettimeofday(&a4, NULL);
 			
 					element.id = i;
 					element.tam = ktmp;
 					sem_wait(&sem);
 					fila.push_back(element);
 					sem_post(&sem);
-					double a5=MPI_Wtime();
+					gettimeofday(&a5, NULL);
 
-					f1 += a2*1000-a1*1000;
-					f2 += a3*1000-a2*1000;
-					f3 += a4*1000-a3*1000;
-					f4 += a5*1000-a4*1000;
+					
+					f1 += ((a2.tv_sec * 1000000 + a2.tv_usec)-(a1.tv_sec * 1000000 + a1.tv_usec));
+					f2 += ((a3.tv_sec * 1000000 + a3.tv_usec)-(a2.tv_sec * 1000000 + a2.tv_usec));
+					f3 += ((a4.tv_sec * 1000000 + a4.tv_usec)-(a3.tv_sec * 1000000 + a3.tv_usec));
+					f4 += ((a5.tv_sec * 1000000 + a5.tv_usec)-(a4.tv_sec * 1000000 + a4.tv_usec));
+
 					free(qt.dis.mat);
 					free(qt.idx.mat);
 				}
-				printf("a%gb%gc%gd%g\n",f1,f2,f3,f4);
+				printf("f1 %g f2 %g f3 %g f4 %g g1 %g g2 %g g3 %g\n",f1/1000,f2/1000,f3/1000,f4/1000,g1/1000,g2/1000, g3/1000);
 			}
 			if (finish_aux==1)break;
 			#pragma omp barrier
 		}
-	}
+
+  	}
 	printf(".");	
 
 	sem_destroy(&sem);
@@ -197,14 +216,15 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 	free(ivfpq.coa_centroids);
 }
 
-dis_t ivfpq_search(ivf_t *ivf, float *residual, pqtipo pq, int centroid_idx){
+dis_t ivfpq_search(ivf_t *ivf, float *residual, pqtipo pq, int centroid_idx, double *g1, double *g2){
 	dis_t q;
 	int ds, ks, nsq;
+	struct timeval b1, b2, b3;
 
 	ds = pq.ds;
 	ks = pq.ks;
 	nsq = pq.nsq;
-	
+
 	mat distab;
 	distab.mat = (float*)malloc(sizeof(float)*ks*nsq);
 	distab.n = nsq;
@@ -221,13 +241,19 @@ dis_t ivfpq_search(ivf_t *ivf, float *residual, pqtipo pq, int centroid_idx){
 	q.idx.n = ivf[centroid_idx].codes.n;
 	q.idx.d = 1;
 	q.idx.mat = (int*)malloc(sizeof(int)*q.idx.n);
-	
+
+	gettimeofday(&b1, NULL);
+
 	for (int query = 0; query < nsq; query++) {
 		compute_cross_distances(ds, 1, distab.d, &residual[query*ds], &pq.centroids[query*ks*ds], distab_temp);
 		memcpy(distab.mat+query*ks, distab_temp, sizeof(float)*ks);
 	}
 
+	gettimeofday(&b2, NULL);
+
 	AUXSUMIDX = sumidxtab2(distab, ivf[centroid_idx].codes, 0);
+
+	gettimeofday(&b3, NULL);	
 
 	memcpy(q.idx.mat, ivf[centroid_idx].ids,  sizeof(int)*ivf[centroid_idx].idstam);
 	memcpy(q.dis.mat, AUXSUMIDX, sizeof(float)*ivf[centroid_idx].codes.n);
@@ -235,6 +261,10 @@ dis_t ivfpq_search(ivf_t *ivf, float *residual, pqtipo pq, int centroid_idx){
 	free (AUXSUMIDX);
 	free (distab_temp);
 	free (distab.mat);
+
+	*g1 += ((b2.tv_sec * 1000000 + b2.tv_usec)-(b1.tv_sec * 1000000 + b1.tv_usec));
+	*g2 += ((b3.tv_sec * 1000000 + b3.tv_usec)-(b2.tv_sec * 1000000 + b2.tv_usec));
+	
 	return q;
 }
 

@@ -38,8 +38,8 @@ data pq_test_load_vectors(char* dataset, int tam){
 		int *ids_gnd;
 		namefile f;
 
-		f.train= (char*) malloc(sizeof(char)*51);
-		f.groundtruth= (char*) malloc(sizeof(char)*51);
+		f.train= (char*) malloc(sizeof(char)*100);
+		f.groundtruth= (char*) malloc(sizeof(char)*100);
 
 		if(strcmp(dataset, "siftsmall")==0){
 			strcpy (f.train,"../siftsmall/siftsmall_learn.fvecs");
@@ -52,29 +52,29 @@ data pq_test_load_vectors(char* dataset, int tam){
 			ids_gnd= ivec_new (v.ids_gnd.n*v.ids_gnd.d);
 		}
 		else if(strcmp(dataset, "sift")==0){
-			strcpy (f.train,"../sift/sift_learn.fvecs");
+			strcpy (f.train,"/home/andreff/bases/sift/sift_learn.fvecs");
 			v.train.n=100000;
 			v.train.d=128;
 			v.train.mat= fmat_new (v.train.d, v.train.n);
-			strcpy (f.groundtruth,"../sift/sift_groundtruth.ivecs");
+			strcpy (f.groundtruth,"/home/andreff/bases/sift/sift_groundtruth.ivecs");
 			v.ids_gnd.n=10000;
 			v.ids_gnd.d=100;
 			ids_gnd= ivec_new (v.ids_gnd.n*v.ids_gnd.d);
 		}
 		else if(strcmp(dataset, "siftbig")==0 ){
 			if(tam==200000000){
-				strcpy (f.groundtruth,"/pylon5/ac3uump/freire/siftbig_groundtruth_200M.ivecs");
+				strcpy (f.groundtruth,"/home/andreff/bases/siftbig/siftbig_groundtruth_200M.ivecs");
 			}
 			else if(tam==500000000){
-				strcpy (f.groundtruth,"/pylon5/ac3uump/freire/siftbig_groundtruth_500M.ivecs");
+				strcpy (f.groundtruth,"/home/andreff/bases/siftbig/siftbig_groundtruth_500M.ivecs");
 			}
 			else if(tam==1000000000){
-				strcpy (f.groundtruth,"/pylon5/ac3uump/freire/siftbig_groundtruth_1000M.ivecs");
+				strcpy (f.groundtruth,"/home/andreff/bases/siftbig/siftbig_groundtruth_1000M.ivecs");
 			}
 			else{
-				strcpy (f.groundtruth,"/pylon5/ac3uump/freire/siftbig_groundtruth_100M.ivecs");
+				strcpy (f.groundtruth,"/home/andreff/bases/siftbig/siftbig_groundtruth_100M.ivecs");
 			}
-			strcpy (f.train,"/pylon5/ac3uump/freire/siftbig_learn.bvecs");
+			strcpy (f.train,"/home/andreff/bases/siftbig/siftbig_learn.bvecs");
 			v.train.n=tam/100;
 			v.train.d=128;
 			v.train.mat= fmat_new (v.train.d, v.train.n);
@@ -137,7 +137,7 @@ mat pq_test_load_query(char* dataset, int threads){
 	else {
 		char *fquery;
 
-		fquery= (char*) malloc(sizeof(char)*51);
+		fquery= (char*) malloc(sizeof(char)*100);
 
 		if(strcmp(dataset, "siftsmall")==0){
 			strcpy (fquery,"../siftsmall/siftsmall_query.fvecs");
@@ -146,13 +146,13 @@ mat pq_test_load_query(char* dataset, int threads){
 			vquery.mat= fmat_new (vquery.d, vquery.n);
 		}
 		else if(strcmp(dataset, "sift")==0){
-			strcpy (fquery,"../sift/sift_query.fvecs");
+			strcpy (fquery,"/home/andreff/bases/sift/sift_query.fvecs");
 			vquery.n=10000;
 			vquery.d=128;
 			vquery.mat= fmat_new (vquery.d, vquery.n);
 		}
 		else if(strcmp(dataset, "siftbig")==0){
-			strcpy (fquery,"/pylon5/ac3uump/freire/siftbig_query.bvecs");
+			strcpy (fquery,"/home/andreff/bases/siftbig/siftbig_query.bvecs");
 
 			sprintf (srank, "%d",threads);
 		        strcat(fquery, srank);
@@ -202,7 +202,7 @@ mat pq_test_load_base(char* dataset, int offset, int my_rank){
 	else {
 		char *fbase;
 
-		fbase= (char*) malloc(sizeof(char)*51);
+		fbase= (char*) malloc(sizeof(char)*100);
 
 		if(strcmp(dataset, "siftsmall")==0){
 			strcpy (fbase,"../siftsmall/siftsmall_base.fvecs");
@@ -211,13 +211,13 @@ mat pq_test_load_base(char* dataset, int offset, int my_rank){
 			vbase.mat= fmat_new (vbase.d, vbase.n);
 		}
 		else if(strcmp(dataset, "sift")==0){
-			strcpy (fbase,"../sift/sift_base.fvecs");
+			strcpy (fbase,"/home/andreff/bases/sift/sift_base.fvecs");
 			vbase.n=1000000;
 			vbase.d=128;
 			vbase.mat= fmat_new (vbase.d, vbase.n);
 		}
 		else if(strcmp(dataset, "siftbig")==0 ){
-			strcpy (fbase,"/pylon5/ac3uump/freire/siftbig_base.bvecs");
+			strcpy (fbase,"/home/andreff/bases/siftbig/siftbig_base.bvecs");
 			vbase.n=100000;
 			vbase.d=128;
 			vbase.mat= (float*) malloc(sizeof(float)*vbase.d*vbase.n);

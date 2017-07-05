@@ -13,8 +13,8 @@ void parallel_training (char *dataset, int coarsek, int nsq, int tam, int comm_s
 	strcpy (file,"bin/file_ivfpq.bin");
 	strcpy (file2,"bin/cent_ivfpq.bin");
 	strcpy (file3,"bin/coa_ivfpq.bin");
-	
-	printf("\nTraining ");
+
+
 
 	// Cria os centroides baseado em uma base de treinamento e os armazena em arquivos
 	#ifdef TRAIN
