@@ -13,33 +13,45 @@
 
 int main(int argc, char **argv){
 
-	if(argc < 2){
-		cout << "Usage: mpiexec -n ./ivfpq_test <dataset> <threads> <tam>" << endl;
+	if(argc < 5){
+		cout << "Usage: mpiexec -n ./ivfpq_test <dataset> <threads> <tam> <coarsek> <nsq>" << endl;
 		return -1;
 	}
 
-	int k,nsq, coarsek,	w, tamt, tam=0, comm_sz, my_rank,	threads;
-
-	threads  = atoi(argv[2]);
-
-	tam  = atoi(argv[3]);
-
+	int nsq, coarsek, tam, comm_sz, threads;
 	char* dataset;
 
-	int last_assign,
-		last_search,
-		last_aggregator;
-
-	MPI_Group world_group, search_group;
-	MPI_Comm search_comm;
-
-	#ifndef TRAIN
+	dataset = argv[1];
+	threads  = atoi(argv[2]);
+	tam  = atoi(argv[3]);
+	coarsek = atoi(argv[4]);
+	nsq = atoi(argv[5]);
+	comm_sz = 1;
 	
+	#ifdef TRAIN
+	
+		parallel_training (dataset, coarsek, nsq, tam, comm_sz);
+
+	#else
+		int k, w, tamt, my_rank;
+
+		k = 100;
+		w = 4;
+
+		MPI_Group world_group, search_group;
+		MPI_Comm search_comm;
+
 		MPI_Init(&argc, &argv);
 		MPI_Comm_size(MPI_COMM_WORLD, &comm_sz);
 		MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
-	
 		MPI_Comm_group(MPI_COMM_WORLD, &world_group);
+
+		int last_assign, last_search, last_aggregator;
+
+		last_assign=1;
+		last_search=comm_sz-2;
+		last_aggregator=comm_sz-1;
+		tamt = tam/(last_search-last_assign);
 
 		int n = comm_sz-2;
 		int ranks[n];
@@ -49,25 +61,6 @@ int main(int argc, char **argv){
 		
 		MPI_Group_incl(world_group, n, ranks, &search_group);
 		MPI_Comm_create_group(MPI_COMM_WORLD, search_group, 0, &search_comm);
-
-	#endif
-
-	last_assign=1;
-	last_search=comm_sz-2;
-	last_aggregator=comm_sz-1;
-
-	dataset = argv[1];
-	tamt = tam/(last_search-last_assign);
-	k = 100;
-	nsq = 8;
-	coarsek = 256;
-	w = 4;
-	
-	#ifdef TRAIN
-	
-		parallel_training (dataset, coarsek, nsq, tam, comm_sz);
-
-	#else
 
 		if (my_rank<last_assign){
 			parallel_training (dataset, coarsek, nsq, tam, comm_sz);
