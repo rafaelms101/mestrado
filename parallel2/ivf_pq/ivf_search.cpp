@@ -1,7 +1,7 @@
 #include "ivf_search.h"
 
 static int last_assign, last_search, last_aggregator;
-static sem_t sem;
+omp_lock_t lock;
 
 void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Comm search_comm, char *dataset, int w){
 
@@ -93,7 +93,7 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 
 	MPI_Barrier(search_comm);
 
-	sem_init(&sem, 0, 1);
+	omp_init_lock(&lock);
 
 	#pragma omp parallel num_threads(threads+1)
 	{
@@ -187,9 +187,9 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 			
 					element.id = i;
 					element.tam = ktmp;
-					sem_wait(&sem);
+					omp_set_lock(&lock);
 					fila.push_back(element);
-					sem_post(&sem);
+					omp_unset_lock(&lock);
 					gettimeofday(&a5, NULL);
 
 					
@@ -210,7 +210,7 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
   	}
 	printf(".");	
 
-	sem_destroy(&sem);
+	omp_destroy_lock(&lock);
 	free(ivf);
 	free(ivfpq.pq.centroids);
 	free(ivfpq.coa_centroids);
@@ -284,9 +284,9 @@ void send_aggregator(int residualn, int w, list<query_id_t> *fila, int **ids, fl
 		while(fila->empty());
 
 		element[num] = fila->front();
-		sem_wait(&sem);
+		omp_set_lock(&lock);
 		fila->pop_front();
-		sem_post(&sem);
+		omp_unset_lock(&lock);
 
 		ids2 = (int*)realloc(ids2,sizeof(int)*(ttam+element[num].tam));
 		dis2 = (float*)realloc(dis2,sizeof(float)*(ttam+element[num].tam));
