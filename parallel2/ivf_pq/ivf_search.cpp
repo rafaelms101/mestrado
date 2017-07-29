@@ -10,7 +10,6 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 	int *coaidx, my_rank;
 	double time;
 
-
 	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
 	set_last (comm_sz, &last_assign, &last_search, &last_aggregator);

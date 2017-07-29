@@ -22,7 +22,7 @@ int main(int argv, char** argc){
 	matI codebook;
 	data v;
 	pqtipo pq;
-	int tam;
+	int tam, coarsek;
 
 	if(argv < 2){
 		cout << "Usage: ./pq_test <dataset>" << endl;
@@ -39,12 +39,13 @@ int main(int argv, char** argc){
 	printf("Tempo load vectors: %d\n", tmili);
 	
 	nsq=8;
+	coarsek=256;
 	k=100;
 	dis = (float*)malloc(sizeof(float)*v.query.n*k);
 	ids = (int*)malloc(sizeof(int)*v.query.n*k);
 
 	gettimeofday(&inicio, NULL);
-	pq = pq_new(nsq, v.train);
+	pq = pq_new(nsq, v.train, coarsek);
 	gettimeofday(&final, NULL);
 	tmili = (int) (1000 * (final.tv_sec - inicio.tv_sec) + (final.tv_usec - inicio.tv_usec) / 1000);
 	printf("Tempo new: %d\n", tmili);

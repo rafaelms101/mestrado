@@ -10,95 +10,36 @@ void parallel_training (char *dataset, int coarsek, int nsq, int tam, int comm_s
 
 	set_last (comm_sz, &last_assign, &last_search, &last_aggregator);
 
+	v = pq_test_load_vectors(dataset, tam);
+
 	strcpy (file,"bin/file_ivfpq.bin");
 	strcpy (file2,"bin/cent_ivfpq.bin");
 	strcpy (file3,"bin/coa_ivfpq.bin");
 
-
-
 	// Cria os centroides baseado em uma base de treinamento e os armazena em arquivos
 	#ifdef TRAIN
-		printf(".");
-		v = pq_test_load_vectors(dataset, tam);
 		
 		ivfpq = ivfpq_new(coarsek, nsq, v.train);
-		printf(".");
-		FILE *arq, *arq2, *arq3;
-
-		arq = fopen(file, "wb");
-		arq2 = fopen(file2, "wb");
-		arq3 = fopen(file3, "wb");
-
-		if (arq == NULL){
-        	printf("Problemas na CRIACAO do arquivo\n");
-   			return;
-    	}
-
-    	fwrite (&ivfpq.pq.nsq, sizeof(int), 1, arq);
-    	fwrite (&ivfpq.pq.ks, sizeof(int), 1, arq);
-    	fwrite (&ivfpq.pq.ds, sizeof(int), 1, arq);
-    	fwrite (&ivfpq.pq.centroidsn, sizeof(int), 1, arq);
-    	fwrite (&ivfpq.pq.centroidsd, sizeof(int), 1, arq);
-    	fwrite (&ivfpq.coarsek, sizeof(int), 1, arq);
-    	fwrite (&ivfpq.coa_centroidsn, sizeof(int), 1, arq);
-    	fwrite (&ivfpq.coa_centroidsd, sizeof(int), 1, arq);
-    	fwrite (&ivfpq.pq.centroids[0], sizeof(float), ivfpq.pq.centroidsn*ivfpq.pq.centroidsn, arq2);
-    	fwrite (&ivfpq.coa_centroids[0], sizeof(float), ivfpq.coa_centroidsn*ivfpq.coa_centroidsn, arq3);
-
-    	fclose(arq);
-    	fclose(arq2);
-    	fclose(arq3);
-
-		printf(".");
+		write_cent(file, file2, file3, ivfpq);
 
     	free(v.train.mat);
     	free(ivfpq.pq.centroids);
 		free(ivfpq.coa_centroids);
 
 	//Le ou cria os centroides e os envia para os processos de assign
-	#else	
-
+	#else
     	int my_rank;
-		printf(".");
-		MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
-		v = pq_test_load_vectors(dataset, tam);
+		MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
 		//Le os centroides de um arquivo
 		#ifdef READ_TRAIN
 
-			FILE *arq, *arq2, *arq3;
-
-			arq = fopen(file, "rb");
-			arq2 = fopen(file2, "rb");
-			arq3 = fopen(file3, "rb");
-
-			if (arq == NULL){
-    			printf("Problemas na abertura do arquivo\n");
-    			return;
-			}
-
-			fread (&ivfpq.pq.nsq, sizeof(int), 1, arq);
-    		fread (&ivfpq.pq.ks, sizeof(int), 1, arq);
-    		fread (&ivfpq.pq.ds, sizeof(int), 1, arq);
-    		fread (&ivfpq.pq.centroidsn, sizeof(int), 1, arq);
-    		fread (&ivfpq.pq.centroidsd, sizeof(int), 1, arq);
-    		fread (&ivfpq.coarsek, sizeof(int), 1, arq);
-    		fread (&ivfpq.coa_centroidsn, sizeof(int), 1, arq);
-    		fread (&ivfpq.coa_centroidsd, sizeof(int), 1, arq);
-    		ivfpq.pq.centroids = (float *) malloc(sizeof(float)*ivfpq.pq.centroidsn*ivfpq.pq.centroidsn);
-    		fread (&ivfpq.pq.centroids[0], sizeof(float), ivfpq.pq.centroidsn*ivfpq.pq.centroidsn, arq2);
-    		ivfpq.coa_centroids = (float *) malloc(sizeof(float)*ivfpq.coa_centroidsn*ivfpq.coa_centroidsn);
-    		fread (&ivfpq.coa_centroids[0], sizeof(float), ivfpq.coa_centroidsn*ivfpq.coa_centroidsn, arq3);
-			printf(".");
-    		fclose(arq);
-    		fclose(arq2);
-    		fclose(arq3);
+			read_cent(file, file2, file3, &ivfpq);
  		
  		//Cria centroides a partir dos vetores de treinamento
 		#else
 			ivfpq = ivfpq_new(coarsek, nsq, v.train);
-			printf(".");
 		#endif
 			
 		free(v.train.mat);
@@ -147,12 +88,64 @@ ivfpq_t ivfpq_new(int coarsek, int nsq, mat vtrain){
 	subtract(vtrain, ivfpq.coa_centroids, assign, ivfpq.coa_centroidsd);
 
 	//aprendizagem do produto residual
-	ivfpq.pq = pq_new(nsq, vtrain);
+	ivfpq.pq = pq_new(nsq, vtrain, coarsek);
 
 	free(assign);
 	free(dis);
 
 	return ivfpq;
+}
+
+void write_cent(char *file, char *file2, char *file3, ivfpq_t ivfpq){
+	FILE *arq, *arq2, *arq3;
+
+	arq = fopen(file, "wb");
+	arq2 = fopen(file2, "wb");
+	arq3 = fopen(file3, "wb");
+
+	if (arq == NULL){
+       	printf("Problemas na CRIACAO do arquivo\n");
+   		return;
+    }
+
+    fwrite (&ivfpq.pq.nsq, sizeof(int), 1, arq);
+    fwrite (&ivfpq.pq.ks, sizeof(int), 1, arq);
+    fwrite (&ivfpq.pq.ds, sizeof(int), 1, arq);
+    fwrite (&ivfpq.pq.centroidsn, sizeof(int), 1, arq);
+    fwrite (&ivfpq.pq.centroidsd, sizeof(int), 1, arq);
+    fwrite (&ivfpq.coarsek, sizeof(int), 1, arq);
+    fwrite (&ivfpq.coa_centroidsn, sizeof(int), 1, arq);
+    fwrite (&ivfpq.coa_centroidsd, sizeof(int), 1, arq);
+    fwrite (&ivfpq.pq.centroids[0], sizeof(float), ivfpq.pq.centroidsn*ivfpq.pq.centroidsn, arq2);
+    fwrite (&ivfpq.coa_centroids[0], sizeof(float), ivfpq.coa_centroidsn*ivfpq.coa_centroidsn, arq3);
+
+    fclose(arq);
+    fclose(arq2);
+    fclose(arq3);
+}
+
+void read_cent(char *file, char *file2, char *file3, ivfpq_t *ivfpq){
+	FILE *arq, *arq2, *arq3;
+
+	arq = fopen(file, "rb");
+	arq2 = fopen(file2, "rb");
+	arq3 = fopen(file3, "rb");
+
+	fread (&ivfpq->pq.nsq, sizeof(int), 1, arq);
+    fread (&ivfpq->pq.ks, sizeof(int), 1, arq);
+    fread (&ivfpq->pq.ds, sizeof(int), 1, arq);
+    fread (&ivfpq->pq.centroidsn, sizeof(int), 1, arq);
+    fread (&ivfpq->pq.centroidsd, sizeof(int), 1, arq);
+    fread (&ivfpq->coarsek, sizeof(int), 1, arq);
+    fread (&ivfpq->coa_centroidsn, sizeof(int), 1, arq);
+    fread (&ivfpq->coa_centroidsd, sizeof(int), 1, arq);
+    ivfpq->pq.centroids = (float *) malloc(sizeof(float)*ivfpq->pq.centroidsn*ivfpq->pq.centroidsn);
+    fread (&ivfpq->pq.centroids[0], sizeof(float), ivfpq->pq.centroidsn*ivfpq->pq.centroidsn, arq2);
+    ivfpq->coa_centroids = (float *) malloc(sizeof(float)*ivfpq->coa_centroidsn*ivfpq->coa_centroidsn);
+    fread (&ivfpq->coa_centroids[0], sizeof(float), ivfpq->coa_centroidsn*ivfpq->coa_centroidsn, arq3);
+    fclose(arq);
+    fclose(arq2);
+    fclose(arq3);
 }
 
 void subtract(mat v, float* v2, int* idx, int c_d){
