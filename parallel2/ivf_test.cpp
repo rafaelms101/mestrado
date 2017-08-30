@@ -27,9 +27,9 @@ int main(int argc, char **argv){
 	coarsek = atoi(argv[4]);
 	nsq = atoi(argv[5]);
 	comm_sz = 1;
-	
+
 	#ifdef TRAIN
-	
+
 		parallel_training (dataset, coarsek, nsq, tam, comm_sz);
 
 	#else
@@ -58,13 +58,12 @@ int main(int argc, char **argv){
 		for(int i=0; i<n; i++){
 			ranks[i]=i+1;
 		}
-		
+
 		MPI_Group_incl(world_group, n, ranks, &search_group);
 		MPI_Comm_create_group(MPI_COMM_WORLD, search_group, 0, &search_comm);
 
 		if (my_rank<last_assign){
 			parallel_training (dataset, coarsek, nsq, tam, comm_sz);
-	
 		}
 		else if(my_rank<=last_assign){
 			parallel_assign (dataset, w, comm_sz,search_comm, threads);
@@ -76,7 +75,7 @@ int main(int argc, char **argv){
 			parallel_aggregator(k, w, my_rank, comm_sz, tam, threads);
 		}
 		MPI_Finalize();
-	
+
 	#endif
 
 	return 0;

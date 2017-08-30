@@ -62,7 +62,28 @@ data pq_test_load_vectors(char* dataset, int tam){
 			ids_gnd= ivec_new (v.ids_gnd.n*v.ids_gnd.d);
 		}
 		else if(strcmp(dataset, "siftbig")==0 ){
-			if(tam==200000000){
+			if(tam==1000000){
+				strcpy (f.groundtruth,"/home/andreff/bases/siftbig/siftbig_groundtruth_1M.ivecs");
+			}
+			else(tam==2000000){
+				strcpy (f.groundtruth,"/home/andreff/bases/siftbig/siftbig_groundtruth_2M.ivecs");
+			}
+			else(tam==5000000){
+				strcpy (f.groundtruth,"/home/andreff/bases/siftbig/siftbig_groundtruth_5M.ivecs");
+			}
+			else(tam==10000000){
+				strcpy (f.groundtruth,"/home/andreff/bases/siftbig/siftbig_groundtruth_10M.ivecs");
+			}
+			else(tam==20000000){
+				strcpy (f.groundtruth,"/home/andreff/bases/siftbig/siftbig_groundtruth_20M.ivecs");
+			}
+			else(tam==50000000){
+				strcpy (f.groundtruth,"/home/andreff/bases/siftbig/siftbig_groundtruth_50M.ivecs");
+			}
+			else(tam==100000000){
+				strcpy (f.groundtruth,"/home/andreff/bases/siftbig/siftbig_groundtruth_100M.ivecs");
+			}
+			else(tam==200000000){
 				strcpy (f.groundtruth,"/home/andreff/bases/siftbig/siftbig_groundtruth_200M.ivecs");
 			}
 			else if(tam==500000000){
@@ -72,7 +93,7 @@ data pq_test_load_vectors(char* dataset, int tam){
 				strcpy (f.groundtruth,"/home/andreff/bases/siftbig/siftbig_groundtruth_1000M.ivecs");
 			}
 			else{
-				strcpy (f.groundtruth,"/home/andreff/bases/siftbig/siftbig_groundtruth_100M.ivecs");
+				strcpy (f.groundtruth,"/home/andreff/bases/siftbig/siftbig_groundtruth_1M.ivecs");
 			}
 			strcpy (f.train,"/home/andreff/bases/siftbig/siftbig_learn.bvecs");
 			v.train.n=tam/100;
@@ -301,7 +322,7 @@ int my_bvecs_read (int offset, const char *fname, int d, int n, float *a){
 
 	fseek (f, b, SEEK_SET);
 	long i;
-	
+
 	for (i = 0; i < n; i++) {
 		int new_d;
 
