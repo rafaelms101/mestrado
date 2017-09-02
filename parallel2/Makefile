@@ -4,7 +4,8 @@ include makefile.inc
 
 CC=gcc -g
 CXX=g++  -g
-MPICXX = mpic++ -DREAD_TRAIN -fopenmp  -g
+MF = 
+MPICXX = mpic++ $(MF) -fopenmp  -g
 PQ_UTILS_DIR = ./pq-utils
 OBJDIR=./obj
 IVF_DIR = ./ivf_pq
@@ -18,7 +19,7 @@ ifeq "$(USEARPACK)" "yes"
   EXTRAMATRIXFLAG=-DHAVE_ARPACK
 endif
 
-ifeq "$(USEOPENMP)" "yes"
+ifeq "$(USEOPENMP)" "no"
   EXTRAMATRIXFLAG+=-fopenmp
   EXTRAYAELLDFLAG+=-fopenmp
 endif

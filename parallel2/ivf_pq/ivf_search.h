@@ -29,7 +29,7 @@
 	}ivf_threads_t;
 
 	void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Comm search_comm, char *dataset, int w);
-	void send_aggregator(int residualn, int w, list<query_id_t> *fila, int **ids, float **dis, int finish_aux, int count);
+	void send_aggregator(int residualn, int w, query_id_t *fila, int **ids, float **dis, int finish_aux, int count);
 	dis_t ivfpq_search(ivf_t *ivf, float *residual, pqtipo pq, int centroid_idx, double *g1, double *g2);
 	int min(int a, int b);
 	float * sumidxtab2(mat D, matI ids, int offset);

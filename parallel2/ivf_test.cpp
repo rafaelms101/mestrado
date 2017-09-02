@@ -13,12 +13,12 @@
 
 int main(int argc, char **argv){
 
-	if(argc < 5){
-		cout << "Usage: mpiexec -n ./ivfpq_test <dataset> <threads> <tam> <coarsek> <nsq>" << endl;
+	if(argc < 6){
+		cout << "Usage: mpiexec -n ./ivfpq_test <dataset> <threads> <tam> <coarsek> <nsq> <w>" << endl;
 		return -1;
 	}
 
-	int nsq, coarsek, tam, comm_sz, threads;
+	int nsq, coarsek, tam, comm_sz, threads, w;
 	char* dataset;
 
 	dataset = argv[1];
@@ -26,6 +26,7 @@ int main(int argc, char **argv){
 	tam  = atoi(argv[3]);
 	coarsek = atoi(argv[4]);
 	nsq = atoi(argv[5]);
+	w = atoi(argv[6]);
 	comm_sz = 1;
 
 	#ifdef TRAIN
@@ -33,10 +34,9 @@ int main(int argc, char **argv){
 		parallel_training (dataset, coarsek, nsq, tam, comm_sz);
 
 	#else
-		int k, w, tamt, my_rank;
+		int k, tamt, my_rank;
 
-		k = 100;
-		w = 4;
+		k = 1000;
 
 		MPI_Group world_group, search_group;
 		MPI_Comm search_comm;

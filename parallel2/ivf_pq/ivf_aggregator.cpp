@@ -115,7 +115,7 @@ void parallel_aggregator(int k, int w, int my_rank, int comm_sz, int tam_base, i
 	free(coaidx);
 	free(dis);
 	
-	ids = (int*)realloc(ids,sizeof(int)*k*queryn);	
+	//ids = (int*)realloc(ids,sizeof(int)*k*queryn);	
 	
 	FILE *fp;
 

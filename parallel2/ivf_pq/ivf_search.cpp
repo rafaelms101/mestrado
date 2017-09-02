@@ -1,7 +1,8 @@
 #include "ivf_search.h"
 
+int iter;
 static int last_assign, last_search, last_aggregator;
-omp_lock_t lock;
+static sem_t sem;
 
 void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Comm search_comm, char *dataset, int w){
 
@@ -86,13 +87,13 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 	int **ids;
 	int finish_aux=0;
 
-	std::list<query_id_t> fila;	
+	query_id_t *fila;
 
 	int count =0;
 
 	MPI_Barrier(search_comm);
 
-	omp_init_lock(&lock);
+	sem_init(&sem, 0, 1);
 
 	#pragma omp parallel num_threads(threads+1)
 	{
@@ -115,6 +116,15 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 				MPI_Bcast(&coaidx[0], residual.n, MPI_INT, 0, search_comm);
 				MPI_Bcast(&finish_aux, 1, MPI_INT, 0, search_comm);
 			
+				fila = (query_id_t*)malloc(sizeof(query_id_t)*(residual.n/w));
+			
+				for(int it=0; it<residual.n/w; it++){
+					fila[it].tam = 0;
+					fila[it].id = count;
+				}
+			
+				iter = 0;
+
 				dis = (float**)malloc(sizeof(float *)*(residual.n/w));
 				ids = (int**)malloc(sizeof(int *)*(residual.n/w));
 			}
@@ -123,17 +133,17 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 			
 			if(my_omp_rank==threads){
 				
-				send_aggregator(residual.n, w, &fila, ids, dis, finish_aux, count);
+				send_aggregator(residual.n, w, fila, ids, dis, finish_aux, count);
 
-				count += residual.n;
-
+				count += iter;
+				
 				free(dis);
 				free(ids);
 				free(coaidx);
 				free(residual.mat);
+				free(fila);
 			}
 			else{ //Faz a busca dos vetores da query na lista invertida 
-				
 				for(int i=my_omp_rank; i<residual.n/w; i+=threads){
 					
 					int ktmp;
@@ -155,8 +165,6 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 						dis_t q;
 						q = ivfpq_search(ivf, &residual.mat[0]+(i*w+j)*residual.d, ivfpq.pq, coaidx[i*w+j], &g1, &g2);
 
-						gettimeofday(&b1, NULL);
-
 						qt.idx.mat = (int*) realloc(qt.idx.mat, sizeof(int)*(qt.idx.n+q.idx.n));
 						qt.dis.mat = (float*) realloc(qt.dis.mat, sizeof(float)*(qt.dis.n+q.dis.n));
 
@@ -166,11 +174,7 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 						qt.idx.n+=q.idx.n;
 						qt.dis.n+=q.dis.n;
 						free(q.dis.mat);
-						free(q.idx.mat);
-
-						gettimeofday(&b2, NULL);
-
-						g3 += ((b2.tv_sec * 1000000 + b2.tv_usec)-(b1.tv_sec * 1000000 + b1.tv_usec));				
+						free(q.idx.mat);				
 					}
 
 					gettimeofday(&a2, NULL);
@@ -186,9 +190,11 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 			
 					element.id = i;
 					element.tam = ktmp;
-					omp_set_lock(&lock);
-					fila.push_back(element);
-					omp_unset_lock(&lock);
+					sem_wait(&sem);
+					fila[iter].id+=i;
+					fila[iter].tam+=ktmp;
+					iter++;
+					sem_post(&sem);
 					gettimeofday(&a5, NULL);
 
 					
@@ -200,7 +206,14 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 					free(qt.dis.mat);
 					free(qt.idx.mat);
 				}
-				printf("f1 %g f2 %g f3 %g f4 %g g1 %g g2 %g g3 %g\n",f1/1000,f2/1000,f3/1000,f4/1000,g1/1000,g2/1000, g3/1000);
+
+				FILE *fp;
+
+        			fp = fopen("testes.txt", "a");
+
+        			fprintf(fp, "Thread %d: ivfpq_search %g min %g k_min %g critical %g cross_distances %g sumidx %g\n",my_omp_rank, f1/1000,f2/1000,f3/1000,f4/1000,g1/1000,g2/1000);
+
+       				fclose(fp);
 			}
 			if (finish_aux==1)break;
 			#pragma omp barrier
@@ -209,7 +222,7 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
   	}
 	printf(".");	
 
-	omp_destroy_lock(&lock);
+	sem_destroy(&sem);
 	free(ivf);
 	free(ivfpq.pq.centroids);
 	free(ivfpq.coa_centroids);
@@ -267,7 +280,7 @@ dis_t ivfpq_search(ivf_t *ivf, float *residual, pqtipo pq, int centroid_idx, dou
 	return q;
 }
 
-void send_aggregator(int residualn, int w, list<query_id_t> *fila, int **ids, float **dis, int finish_aux, int count){
+void send_aggregator(int residualn, int w, query_id_t *fila, int **ids, float **dis, int finish_aux, int count){
 
 	int i=0, num=0, ttam=0, *ids2, it=0, my_rank, finish=0;
 	float *dis2;
@@ -280,12 +293,9 @@ void send_aggregator(int residualn, int w, list<query_id_t> *fila, int **ids, fl
 	
 	while(i<residualn/w){
 
-		while(fila->empty());
+		while(it==iter);
 
-		element[num] = fila->front();
-		omp_set_lock(&lock);
-		fila->pop_front();
-		omp_unset_lock(&lock);
+		element[num] = fila[it];
 
 		ids2 = (int*)realloc(ids2,sizeof(int)*(ttam+element[num].tam));
 		dis2 = (float*)realloc(dis2,sizeof(float)*(ttam+element[num].tam));
