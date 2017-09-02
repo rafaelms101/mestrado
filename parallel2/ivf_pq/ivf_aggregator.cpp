@@ -115,7 +115,7 @@ void parallel_aggregator(int k, int w, int my_rank, int comm_sz, int tam_base, i
 	free(coaidx);
 	free(dis);
 
-	//ids = (int*)realloc(ids,sizeof(int)*k*queryn);
+	ids = (int*)realloc(ids,sizeof(int)*k*queryn);
 
 	FILE *fp;
 
@@ -125,8 +125,12 @@ void parallel_aggregator(int k, int w, int my_rank, int comm_sz, int tam_base, i
 	fprintf(fp,"Tempo de busca: %g\n\n",end*1000-start*1000);
 
 	fclose(fp);
+	
+	printf("ue");
 
-	ids_gnd = pq_test_load_gdn(dataset);
+	ids_gnd = pq_test_load_gdn(dataset, tam_base);
+
+	printf("aa");
 
 	pq_test_compute_stats(ids, ids_gnd,k);
 

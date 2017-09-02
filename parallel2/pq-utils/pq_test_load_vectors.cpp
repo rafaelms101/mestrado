@@ -41,7 +41,7 @@ mat pq_test_load_train(char* dataset, int tam){
 	return vtrain;
 }
 
-matI pq_test_load_gdn(char* dataset){
+matI pq_test_load_gdn(char* dataset, int tam){
 	matI vids_gnd;
 	int *ids_gnd;
 	char *fgroundtruth;
