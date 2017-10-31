@@ -51,7 +51,7 @@ lapackcflags="-DFINTEGER=int"
 usearpack=no
 arpackldflags=/usr/lib64/libarpack.so.2
 
-useopenmp=yes
+useopenmp=no
 
 # dynamic libs: force an install path so that the user does not need
 # to set the LD_LIBRARY_PATH for yael
@@ -199,7 +199,7 @@ LAPACKCFLAGS=$lapackcflags
 USEARPACK=$usearpack
 ARPACKLDFLAGS=$arpackldflags
 
-USETHREADS=yes
+USETHREADS=no
 THREADCFLAGS=-DHAVE_THREADS
 
 SHAREDEXT=$sharedext

@@ -96,11 +96,13 @@ void k_min (mat disquerybase, int k, float *dis, int *ids){
 		n=1;
 	}
 	for (i=0; i<n; i++){
+		
 		fvec_k_min(disquerybase.mat, d, ids, k);
 		for(j=0; j<k; j++){
 			dis[j] = disquerybase.mat[ids[j]];
 			ids[j]++;
 		}
+
 		ids += k;
 		dis += k;
 		disquerybase.mat += d;

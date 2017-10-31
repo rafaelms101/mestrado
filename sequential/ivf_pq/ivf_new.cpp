@@ -24,7 +24,7 @@ ivfpq_t ivfpq_new(int coarsek, int nsq, mat vtrain){
 	subtract(vtrain, ivfpq.coa_centroids, assign, ivfpq.coa_centroidsd);
 
 	//aprendizagem do produto residual
-	ivfpq.pq = pq_new(nsq, vtrain);
+	ivfpq.pq = pq_new(nsq, vtrain, coarsek);
 
 	free(assign);
 	free(dis);

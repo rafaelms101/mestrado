@@ -32,7 +32,7 @@ typedef struct pqtipo{
 	int centroidsd;
 } pqtipo;
 
-pqtipo pq_new(int, mat);
+pqtipo pq_new(int, mat, int);
 
 void check_new();
 

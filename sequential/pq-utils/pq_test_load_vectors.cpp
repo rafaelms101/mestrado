@@ -3,7 +3,7 @@
 data pq_test_load_vectors(char* dataset){
 
 	data v;
-	int *ids_gnd;    
+	int *ids_gnd;
 
 	if(strcmp(dataset, "random")==0){
 
@@ -156,7 +156,7 @@ data pq_test_load_vectors(char* dataset){
 			v.ids_gnd.mat[i]=ids_gnd[i*v.ids_gnd.d];
 		}
 		v.ids_gnd.d=1;
-	}	
+	}
 	return v;
 }
 
@@ -170,7 +170,7 @@ void load_random (float *v, int n, int d){
 
 int ivecs_read (const char *fname, int d, int n, int *a){
 	FILE *f = fopen (fname, "r");
-	
+
 	if (!f) {
 		fprintf (stderr, "ivecs_read: could not open %s\n", fname);
 		perror ("");

@@ -39,9 +39,9 @@ static int compare_for_k_min (const void *v1, const void *v2)
 
 
 /*--------------------------------------------------------------------------
-  The following function are related to the Hoare selection algorithm (also know as quickselect). 
-  This is a "lazy" version of the qsort algorithm. 
-  It is used to find some quantile of the values in a table 
+  The following function are related to the Hoare selection algorithm (also know as quickselect).
+  This is a "lazy" version of the qsort algorithm.
+  It is used to find some quantile of the values in a table
 */
 
 #define PERM(i) (*perm[i])
@@ -80,7 +80,7 @@ static void hoare_selectp (const float **perm, int i0, int i1, int q)
     lim = i1 - 1;
   }
   if (lim == q)
-    return; 
+    return;
   else if (q < lim)
     hoare_selectp (perm, i0, lim, q);
   else
@@ -156,7 +156,7 @@ static void fvec_k_min_hoare (const float *val, int n, int *idx, int k)
   qsort (idx_ptr, k, sizeof (*idx_ptr), compare_for_k_min);
 
   for (i = 0; i < k; i++)
-    idx[i] = idx_ptr[i] - val; 
+    idx[i] = idx_ptr[i] - val;
 
   free (idx_ptr);
 }
@@ -186,20 +186,17 @@ void fvec_k_min (const float *val, int n, int *idx, int k)
 
   if (k == 1) {
     *idx = fvec_arg_min (val, n);
-    return; 
+    return;
   }
 
   /* TODO: find out where the limit really is */
-  if (n > 3 * k)
-    fvec_k_min_maxheap (val, n, idx, k); 
-  else
-    fvec_k_min_hoare (val, n, idx, k);
+  fvec_k_min_hoare (val, n, idx, k);
 }
 
 
 
 /*********************************************************************
- * Simple functions 
+ * Simple functions
  *********************************************************************/
 
 #ifdef HAVE_TLS
@@ -212,12 +209,12 @@ static int compare_for_sort_index_f (const void *v1, const void *v2)
 static int compare_for_sort_index_f (void *thunk, const void *v1, const void *v2)
 {
   const float *tab_to_sort_f=thunk;
-#else 
+#else
 #error "please provide some kind of thread-local storage"
 #endif
-  
+
   float dt = tab_to_sort_f[*(int *)v1] - tab_to_sort_f[*(int *)v2];
-  if (dt) 
+  if (dt)
     return dt>0 ? 1 : -1;
   return *(int *)v1 - *(int *)v2;
 }
@@ -227,7 +224,7 @@ static int compare_for_sort_index_f (void *thunk, const void *v1, const void *v2
 void fvec_sort_index(const float *tab,int n,int *perm) {
   int i;
 
-  for (i = 0 ; i < n ; i++) 
+  for (i = 0 ; i < n ; i++)
     perm[i] = i;
 
 #ifdef HAVE_TLS
@@ -250,22 +247,22 @@ static int compare_for_sort_index (const void *v1, const void *v2)
 static int compare_for_sort_index (void *thunk, const void *v1, const void *v2)
 {
   const int *tab_to_sort = thunk;
-#else 
+#else
 #error "please provide some kind of thread-local storage"
 #endif
-  
+
   int dt = tab_to_sort[*(int *)v1] - tab_to_sort[*(int *)v2];
-  if (dt) 
+  if (dt)
     return dt;
   return *(int *)v1 - *(int *)v2;
 }
 
 
-void ivec_sort_index (const int *tab, int n, int *perm) 
+void ivec_sort_index (const int *tab, int n, int *perm)
 {
   int i;
 
-  for (i = 0 ; i < n ; i++) 
+  for (i = 0 ; i < n ; i++)
     perm[i] = i;
 
 #ifdef HAVE_TLS
@@ -279,10 +276,10 @@ void ivec_sort_index (const int *tab, int n, int *perm)
 
 float fvec_median (float *f, int n)
 {
-  if(n == 0) 
-    return 0.0 / 0.0; 
+  if(n == 0)
+    return 0.0 / 0.0;
 
-  if (n == 1) 
+  if (n == 1)
     return f[0];
 
   int halfn = n / 2;
@@ -307,29 +304,29 @@ float fvec_median (float *f, int n)
 }
 
 
-int fvec_arg_max (const float *f, long n) 
+int fvec_arg_max (const float *f, long n)
 {
   assert (n > 0);
   float m = f[0];
   long i,i0 = 0;
-  for (i = 1 ; i < n ; i++) 
+  for (i = 1 ; i < n ; i++)
     if (f[i] > m) {
-      m = f[i]; 
-      i0 = i; 
+      m = f[i];
+      i0 = i;
     }
   return i0;
 }
 
 
-int fvec_arg_min (const float *f, long n) 
+int fvec_arg_min (const float *f, long n)
 {
   assert (n > 0);
   float m = f[0];
   long i, i0 = 0;
-  for (i = 1 ; i < n ; i++) 
+  for (i = 1 ; i < n ; i++)
     if(f[i] < m) {
-      m = f[i]; 
-      i0 = i; 
+      m = f[i];
+      i0 = i;
     }
   return i0;
 }

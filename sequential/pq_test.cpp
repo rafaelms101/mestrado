@@ -18,7 +18,7 @@ int main(int argv, char** argc){
 
 	float* dis;
 	char* dataset ;
-			
+
 	matI codebook;
 	data v;
 	pqtipo pq;
@@ -35,14 +35,14 @@ int main(int argv, char** argc){
 	gettimeofday(&final, NULL);
 	tmili = (int) (1000 * (final.tv_sec - inicio.tv_sec) + (final.tv_usec - inicio.tv_usec) / 1000);
 	printf("Tempo load vectors: %d\n", tmili);
-	
+
 	nsq=8;
 	k=100;
 	dis = (float*)malloc(sizeof(float)*v.query.n*k);
 	ids = (int*)malloc(sizeof(int)*v.query.n*k);
 
 	gettimeofday(&inicio, NULL);
-	pq = pq_new(nsq, v.train);
+	pq = pq_new(nsq, v.train, nsq);
 	gettimeofday(&final, NULL);
 	tmili = (int) (1000 * (final.tv_sec - inicio.tv_sec) + (final.tv_usec - inicio.tv_usec) / 1000);
 	printf("Tempo new: %d\n", tmili);

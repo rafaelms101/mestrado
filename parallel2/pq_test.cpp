@@ -9,7 +9,6 @@
 #include "pq-utils/pq_test_compute_stats.h"
 
 int main(int argv, char** argc){
-	/*
 	struct timeval inicio, final;
 
 	int nsq,
@@ -76,6 +75,6 @@ int main(int argv, char** argc){
 	free(v.base.mat);
 	free(v.query.mat);
 	free(v.train.mat);
-	*/
+
 	return 0;
 }
