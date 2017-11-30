@@ -12,7 +12,7 @@ IVF_DIR = ./ivf_pq
 OMP = -fopenmp
 PTHREAD = -lpthread
 
-all: pq_test_load_vectors.o pq_new.o pq_assign.o pq_search.o pq_test.o pq_test $(OBJDIR)/myIVF.o $(OBJDIR)/ivf_training.o $(OBJDIR)/ivf_assign.o $(OBJDIR)/ivf_search.o $(OBJDIR)/k_min.o ivfpq_test.o ivfpq_test
+all: pq_test_load_vectors.o pq_new.o pq_assign.o pq_search.o $(OBJDIR)/myIVF.o $(OBJDIR)/ivf_training.o $(OBJDIR)/ivf_assign.o $(OBJDIR)/ivf_search.o $(OBJDIR)/k_min.o ivfpq_test.o ivfpq_test
 
 ifeq "$(USEARPACK)" "yes"
   EXTRAYAELLDFLAG=$(ARPACKLDFLAGS)
@@ -51,13 +51,13 @@ $(OBJDIR)/pq_test_compute_stats.o: $(PQ_UTILS_DIR)/pq_test_compute_stats.cpp $(P
 pq_search.o:
 $(OBJDIR)/pq_search.o: $(PQ_UTILS_DIR)/pq_search.cpp $(PQ_UTILS_DIR)/pq_search.h $(PQ_UTILS_DIR)/pq_test_load_vectors.h $(PQ_UTILS_DIR)/pq_new.h yael_needs//matrix.h yael_needs//kmeans.h yael_needs//vector.h yael_needs//nn.h
 				$(CXX) $(cflags) -c $< -o $@ $(flags) $(extracflags) $(yaelcflags)
-
-pq_test.o:
-$(OBJDIR)/pq_test.o: pq_test.cpp yael_needs/vector.h yael_needs/kmeans.h $(PQ_UTILS_DIR)/pq_assign.h $(PQ_UTILS_DIR)/pq_new.h $(PQ_UTILS_DIR)/pq_test_load_vectors.h
-		$(CXX) $(cflags) -c $< -o $@ $(flags) $(extracflags) $(yaelcflags)
-
-pq_test: $(OBJDIR)/pq_test.o $(OBJDIR)/pq_assign.o $(PQ_UTILS_DIR)/pq_assign.h  $(OBJDIR)/pq_new.o $(PQ_UTILS_DIR)/pq_new.h $(OBJDIR)/pq_test_load_vectors.o $(PQ_UTILS_DIR)/pq_test_load_vectors.h $(OBJDIR)/pq_search.o $(PQ_UTILS_DIR)/pq_search.h $(OBJDIR)/pq_test_compute_stats.o $(PQ_UTILS_DIR)/pq_test_compute_stats.h
-	$(CXX) $(cflags) -o $@ $^ $(LDFLAGS) $(LAPACKLDFLAGS) $(THREADLDFLAGS) $(EXTRAYAELLDFLAG) $(YAELLDFLAGS)
+#
+#pq_test.o:
+#$(OBJDIR)/pq_test.o: pq_test.cpp yael_needs/vector.h yael_needs/kmeans.h $(PQ_UTILS_DIR)/pq_assign.h $(PQ_UTILS_DIR)/pq_new.h $(PQ_UTILS_DIR)/pq_test_load_vectors.h
+#		$(CXX) $(cflags) -c $< -o $@ $(flags) $(extracflags) $(yaelcflags)
+#
+#pq_test: $(OBJDIR)/pq_test.o $(OBJDIR)/pq_assign.o $(PQ_UTILS_DIR)/pq_assign.h  $(OBJDIR)/pq_new.o $(PQ_UTILS_DIR)/pq_new.h $(OBJDIR)/pq_test_load_vectors.o $(PQ_UTILS_DIR)/pq_test_load_vectors.h $(OBJDIR)/pq_search.o $(PQ_UTILS_DIR)/pq_search.h $(OBJDIR)/pq_test_compute_stats.o $(PQ_UTILS_DIR)/pq_test_compute_stats.h
+#	$(CXX) $(cflags) -o $@ $^ $(LDFLAGS) $(LAPACKLDFLAGS) $(THREADLDFLAGS) $(EXTRAYAELLDFLAG) $(YAELLDFLAGS)
 
 # IVF_TEST
 
@@ -76,7 +76,7 @@ $(OBJDIR)/ivf_search.o: $(IVF_DIR)/ivf_search.cpp $(IVF_DIR)/ivf_assign.h $(IVF_
 $(OBJDIR)/ivf_aggregator.o: $(IVF_DIR)/ivf_aggregator.cpp $(IVF_DIR)/ivf_search.h $(IVF_DIR)/ivf_assign.h $(IVF_DIR)/ivf_training.h $(IVF_DIR)/myIVF.h $(OBJDIR)/pq_search.o $(PQ_UTILS_DIR)/pq_search.h $(OBJDIR)/pq_assign.o $(PQ_UTILS_DIR)/pq_assign.h $(OBJDIR)/pq_new.o $(PQ_UTILS_DIR)/pq_new.h $(OBJDIR)/pq_test_load_vectors.o $(PQ_UTILS_DIR)/pq_test_load_vectors.h $(OBJDIR)/pq_test_compute_stats.o $(PQ_UTILS_DIR)/pq_test_compute_stats.h yael_needs/kmeans.h yael_needs/vector.h yael_needs/nn.h
 	$(MPICXX) $(cflags) -c $< -o $@ $(flags) $(extracflags) $(yaelcflags) $(PTHREAD)
 
-$(OBJDIR)/k_min.o: $(IVF_DIR)/k_min.cpp $(IVF_DIR)/k_min.h $(IVF_DIR)/ivf_aggregator.cpp $(IVF_DIR)/ivf_search.h $(IVF_DIR)/ivf_assign.h $(IVF_DIR)/ivf_training.h $(IVF_DIR)/myIVF.h $(OBJDIR)/pq_search.o $(PQ_UTILS_DIR)/pq_search.h $(OBJDIR)/pq_assign.o $(PQ_UTILS_DIR)/pq_assign.h $(OBJDIR)/pq_new.o $(PQ_UTILS_DIR)/pq_new.h $(OBJDIR)/pq_test_load_vectors.o $(PQ_UTILS_DIR)/pq_test_load_vectors.h $(OBJDIR)/pq_test_compute_stats.o $(PQ_UTILS_DIR)/pq_test_compute_stats.h yael_needs/kmeans.h yael_needs/vector.h yael_needs/nn.h
+$(OBJDIR)/k_min.o: $(IVF_DIR)/k_min.cpp $(IVF_DIR)/k_min.h $(IVF_DIR)/ivf_aggregator.cpp $(IVF_DIR)/ivf_search.h $(IVF_DIR)/ivf_assign.h $(IVF_DIR)/ivf_training.h $(IVF_DIR)/myIVF.h $(OBJDIR)/pq_search.o $(PQ_UTILS_DIR)/pq_search.h $(OBJDIR)/pq_assign.o $(PQ_UTILS_DIR)/pq_assign.h $(OBJDIR)/pq_new.o $(PQ_UTILS_DIR)/pq_new.h $(OBJDIR)/pq_test_load_vectors.o _load_vectors.h $(OBJDIR)/pq_test_compute_stats.o $(PQ_UTILS_DIR)/pq_test_compute_stats.h yael_needs/kmeans.h yael_needs/vector.h yael_needs/nn.h
 	$(CXX) $(cflags) -c $< -o $@ $(flags) $(extracflags) $(yaelcflags)
 
 ivfpq_test.o: ivf_test.cpp $(OBJDIR)/ivf_aggregator.o $(OBJDIR)/ivf_assign.o $(OBJDIR)/myIVF.o $(OBJDIR)/ivf_training.o $(OBJDIR)/ivf_search.o $(IVF_DIR)/ivf_search.h $(IVF_DIR)/ivf_training.h $(IVF_DIR)/myIVF.h $(IVF_DIR)/ivf_aggregator.h $(IVF_DIR)/ivf_assign.h $(OBJDIR)/pq_test_load_vectors.o $(PQ_UTILS_DIR)/pq_test_load_vectors.h $(OBJDIR)/pq_test_compute_stats.o $(PQ_UTILS_DIR)/pq_test_compute_stats.h $(OBJDIR)/pq_new.o $(PQ_UTILS_DIR)/pq_new.h $(OBJDIR)/pq_assign.o $(PQ_UTILS_DIR)/pq_assign.h $(OBJDIR)/pq_search.o $(PQ_UTILS_DIR)/pq_search.h

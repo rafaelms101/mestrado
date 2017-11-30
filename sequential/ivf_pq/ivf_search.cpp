@@ -1,3 +1,5 @@
+#include <time.h>
+#include <sys/time.h>
 #include "ivf_search.h"
 
 #define L2 2
@@ -5,7 +7,7 @@
 void Y(ivfpq_t ivfpq, ivf_t* ivf, int ds, int d, int nsq, int* qcoaidx, int id, int w ,float* y);
 void printCodes(ivf_t ivf);
 void ivfpq_search(ivfpq_t ivfpq, ivf_t *ivf, mat vquery, mat vbase, int k ,int kl, int w, int* ids, float* dis){
-
+	
     int nq, d,ds, ks, nsq, nextdis, nextidx;
 	nq = vquery.n;        //number of queries
 	d = vquery.d;         //Dimension
@@ -46,8 +48,15 @@ void ivfpq_search(ivfpq_t ivfpq, ivf_t *ivf, mat vquery, mat vbase, int k ,int k
 
 	float* y = (float *) malloc(sizeof(float)*d);
 	//nq =1 ;
+
+
+	double time=0;
+	
     //for each query search the closest vectors in database
     for (int query = 0; query < nq; query++) {
+
+	struct timeval start, end;
+
         copySubVectorsI(qcoaidx, coaidx, query, nq, w);
 
         //compute the w residual vectors
@@ -93,7 +102,13 @@ void ivfpq_search(ivfpq_t ivfpq, ivf_t *ivf, mat vquery, mat vbase, int k ,int k
         float* dis1 = (float*)malloc(sizeof(float)*ktmp);
     	int* ids1 = (int*)malloc(sizeof(int)*ktmp);
 
+	gettimeofday(&start, NULL);
+
         k_min(qdis, ktmp, dis1, ids1);
+
+	gettimeofday(&end, NULL);
+
+	time += difftime(end.tv_sec, start.tv_sec)+ (double) (end.tv_usec - start.tv_usec)/1000000;
 
         //RERANK
 
@@ -128,6 +143,9 @@ void ivfpq_search(ivfpq_t ivfpq, ivf_t *ivf, mat vquery, mat vbase, int k ,int k
       	free(qdis.mat);
 
     }
+
+    printf("KMIN TIME = %g", time);
+	
 
 	free(qcoaidx);
 	free(y);

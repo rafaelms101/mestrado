@@ -68,7 +68,8 @@ int main(int argv, char **argc){
 	gettimeofday(&start, NULL);
 	ivfpq_search(ivfpq, ivf, v.query, vbase, k, kl, w, ids, dis);
 	gettimeofday(&end, NULL);
-	printf("Searching %lfs\n", difftime(end.tv_sec, start.tv_sec)+ (double) (end.tv_usec - start.tv_usec)/1000000);
+
+	printf("Searching %lfs\n", difftime(end.tv_sec, start.tv_sec)+ (double) (end.tv_usec - start.tv_usec)/1000000);	
 
 	free(vbase.mat);
 

@@ -32,7 +32,7 @@ pqtipo pq_new(int nsq, mat vtrain, int coarsek){
 	flags |= 1;
 	flags |= KMEANS_QUIET;
 	ds=vtrain.d/nsq;
-	ks=coarsek;
+	ks=256;
 	pq.nsq = nsq;
 	pq.ks = ks;
 	pq.ds = ds;
