@@ -14,6 +14,8 @@ extern "C" {
 
 using namespace std;
 
+#define BASE_DIR "/pylon5/ac3uump/freire/database/siftbig/"
+
 typedef struct{
 	float *mat;
 	int n,d;
@@ -34,7 +36,7 @@ typedef struct{
 }namefile;
 
 mat pq_test_load_train(char* dataset, int tam);
-matI pq_test_load_gdn(char* dataset);
+matI pq_test_load_gdn(char* dataset, int tam);
 mat pq_test_load_query(char* dataset, int threads);
 mat pq_test_load_base(char* dataset, int offset, int my_rank);
 void load_random (float *v, int n, int d);

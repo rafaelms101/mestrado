@@ -94,14 +94,14 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 	MPI_Barrier(search_comm);
 
 	sem_init(&sem, 0, 1);
-
+	
 	#pragma omp parallel num_threads(threads+1)
 	{
-
+		
 		while(1){
 			int my_omp_rank = omp_get_thread_num ();
 			double f1=0, f2=0, f3=0, f4=0, g1=0, g2=0, g3=0;
-
+			
 			if(my_omp_rank==0){
 		
 				MPI_Bcast(&residual.n, 1, MPI_INT, 0, search_comm);	
@@ -128,7 +128,7 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 				dis = (float**)malloc(sizeof(float *)*(residual.n/w));
 				ids = (int**)malloc(sizeof(int *)*(residual.n/w));
 			}
-
+			
 			#pragma omp barrier
 			
 			if(my_omp_rank==threads){
@@ -220,7 +220,7 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 		}
 
   	}
-	printf(".");	
+	cout << "." << endl;
 
 	sem_destroy(&sem);
 	free(ivf);

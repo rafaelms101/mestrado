@@ -36,7 +36,7 @@ int main(int argc, char **argv){
 	#else
 		int k, tamt, my_rank;
 
-		k = 1000;
+		k = 100;
 
 		MPI_Group world_group, search_group;
 		MPI_Comm search_comm;

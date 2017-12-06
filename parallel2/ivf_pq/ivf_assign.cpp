@@ -42,7 +42,6 @@ void parallel_assign (char *dataset, int w, int comm_sz, MPI_Comm search_comm,in
 	//Envia os identificadores dos centroides correspondentes a cada vetor da query para o agregador
 	for(int i=last_search+1; i<=last_aggregator; i++){
 		MPI_Send(&vquery.n, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
-		MPI_Send(&coaidx[0], vquery.n*w, MPI_INT, i, 0, MPI_COMM_WORLD);
 	}
 	free(vquery.mat);
 
@@ -67,7 +66,7 @@ void parallel_assign (char *dataset, int w, int comm_sz, MPI_Comm search_comm,in
 	}
 	free(coaidx);
 	free(residual.mat);
-
+	
 }
 
 void bsxfunMINUS(float *mout, mat vin, float* vin2, int nq, int* qcoaidx, int ncoaidx){

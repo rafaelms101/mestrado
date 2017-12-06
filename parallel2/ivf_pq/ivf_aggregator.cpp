@@ -5,7 +5,7 @@ void parallel_aggregator(int k, int w, int my_rank, int comm_sz, int tam_base, i
 	dis_t *q;
 	matI ids_gnd;
 	float  *dis;
-	int *coaidx, *ids, rank, queryn, tam, l=0, ktmp, *in_q;
+	int  *ids, rank, queryn, tam, l=0, ktmp, *in_q;
 	double start=0, end;
 	char arquivo[15] = "testes.txt";
 
@@ -13,9 +13,7 @@ void parallel_aggregator(int k, int w, int my_rank, int comm_sz, int tam_base, i
 
 	//Recebe o vetor contendo os indices da lista invertida
 	MPI_Recv(&queryn, 1, MPI_INT, last_assign, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-	coaidx = (int*)malloc(sizeof(int)*queryn*w);
-	MPI_Recv(&coaidx[0], queryn*w, MPI_INT, last_assign, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
+	
 	MPI_Recv(&start, 1, MPI_DOUBLE, last_assign, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
 	q = (dis_t*)malloc(sizeof(dis_t)*queryn);
@@ -94,14 +92,18 @@ void parallel_aggregator(int k, int w, int my_rank, int comm_sz, int tam_base, i
 				if(in_q[in]==(last_search-last_assign)){
 					ktmp = min(q[in].idx.n, k);
 					my_k_min(q[in], ktmp, dis2, ids2);
-					dis = (float*)realloc(dis,sizeof(float)*(ttam+ktmp));
-					ids = (int*)realloc(ids,sizeof(int)*(ttam+ktmp));
+					dis = (float*)realloc(dis,sizeof(float)*(ttam+k));
+					ids = (int*)realloc(ids,sizeof(int)*(ttam+k));
 					memcpy(&dis[0] + ttam, dis2, sizeof(float)*ktmp);
 					memcpy(&ids[0] + ttam, ids2, sizeof(int)*ktmp);
+					for(int e=ttam+ktmp-1; e<ttam+k; e++){
+						dis[e]=-1;
+						ids[e]=-1;
+					}
 					free(q[in].dis.mat);
 					free(q[in].idx.mat);
 					in++;
-					ttam+=ktmp;
+					ttam+=k;
 				}
 			}
 
@@ -112,7 +114,6 @@ void parallel_aggregator(int k, int w, int my_rank, int comm_sz, int tam_base, i
 
 	free(q);
 	free(in_q);
-	free(coaidx);
 	free(dis);
 
 	//ids = (int*)realloc(ids,sizeof(int)*k*queryn);
@@ -125,11 +126,15 @@ void parallel_aggregator(int k, int w, int my_rank, int comm_sz, int tam_base, i
 	fprintf(fp,"Tempo de busca: %g\n\n",end*1000-start*1000);
 
 	fclose(fp);
+	ids_gnd = pq_test_load_gdn(dataset, tam_base);
 
-	ids_gnd = pq_test_load_gdn(dataset);
+	//for(int i=0; i<queryn;i++){
+	//	cout << ids[i] << "  " << ids_gnd.mat[i] << endl;
+//
+//	}
 
 	pq_test_compute_stats(ids, ids_gnd,k);
-
+	
 	free(ids_gnd.mat);
 	free(ids);
 }

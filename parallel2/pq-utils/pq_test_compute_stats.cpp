@@ -8,6 +8,8 @@ void pq_test_compute_stats (int *ids, matI ids_gnd, int k){
 
 	nn_ranks_pqc= (int*) malloc(sizeof(int)*ids_gnd.n);
 
+	
+
 	for (int i=0; i<ids_gnd.n; i++){
 		nn_ranks_pqc[i]=k+1;
 		for(int j=0; j<k; j++){
@@ -16,6 +18,7 @@ void pq_test_compute_stats (int *ids, matI ids_gnd, int k){
 			}
 		}
 	}
+
 	sort(nn_ranks_pqc, nn_ranks_pqc+ids_gnd.n);
 
 	for(int i=0; i<13; i++){
