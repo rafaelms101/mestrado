@@ -18,28 +18,28 @@ void parallel_training (char *dataset, int coarsek, int nsq, int tam, int comm_s
 
 	// Cria os centroides baseado em uma base de treinamento e os armazena em arquivos
 	#ifdef TRAIN
-		ivfpq = ivfpq_new(coarsek, nsq, vtrain);	
+		ivfpq = ivfpq_new(coarsek, nsq, vtrain);
 
 		write_cent(file, file2, file3, ivfpq);
 
 		free(vtrain.mat);
-    		free(ivfpq.pq.centroids);
+    	free(ivfpq.pq.centroids);
 		free(ivfpq.coa_centroids);
 
 	//Le ou cria os centroides e os envia para os processos de assign
 	#else
-    		int my_rank;
+    	int my_rank;
 
 		MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
-	
+
 		//Le os centroides de um arquivo
 		#ifdef READ_TRAIN
-			
+
 			read_cent(file, file2, file3, &ivfpq);
 
  		//Cria centroides a partir dos vetores de treinamento
 		#else
-			
+
 			ivfpq = ivfpq_new(coarsek, nsq, vtrain);
 		#endif
 		free(vtrain.mat);
@@ -100,7 +100,7 @@ void write_cent(char *file, char *file2, char *file3, ivfpq_t ivfpq){
   	return;
   }
 
-	fwrite (&ivfpq.pq.nsq, sizeof(int), 1, arq);
+  fwrite (&ivfpq.pq.nsq, sizeof(int), 1, arq);
   fwrite (&ivfpq.pq.ks, sizeof(int), 1, arq);
   fwrite (&ivfpq.pq.ds, sizeof(int), 1, arq);
   fwrite (&ivfpq.pq.centroidsn, sizeof(int), 1, arq);

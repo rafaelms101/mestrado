@@ -4,8 +4,9 @@ include makefile.inc
 
 CC=gcc -g
 CXX=g++  -g
-MF = 
-MPICXX = mpiicpc $(MF) -fopenmp  -g
+MF =
+IVF =
+MPICXX = mpiicpc $(MF) $(IDX) -fopenmp  -g
 PQ_UTILS_DIR = ./pq-utils
 OBJDIR=./obj
 IVF_DIR = ./ivf_pq

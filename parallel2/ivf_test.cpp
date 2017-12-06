@@ -18,7 +18,7 @@ int main(int argc, char **argv){
 		return -1;
 	}
 
-	int nsq, coarsek, tam, comm_sz, threads, w;
+	int nsq, coarsek, tam, comm_sz, threads, w, k, tamt;
 	char* dataset;
 
 	dataset = argv[1];
@@ -28,54 +28,77 @@ int main(int argc, char **argv){
 	nsq = atoi(argv[5]);
 	w = atoi(argv[6]);
 	comm_sz = 1;
+	k = 100;
 
 	#ifdef TRAIN
 
 		parallel_training (dataset, coarsek, nsq, tam, comm_sz);
 
 	#else
-		int k, tamt, my_rank;
+		#ifdef WRITE_IVF
+			MPI_Group world_group, search_group;
+			MPI_Comm search_comm;
 
-		k = 100;
+			MPI_Init(&argc, &argv);
+			MPI_Comm_size(MPI_COMM_WORLD, &comm_sz);
+			MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+			MPI_Comm_group(MPI_COMM_WORLD, &world_group);
 
-		MPI_Group world_group, search_group;
-		MPI_Comm search_comm;
+			int last_assign, last_search, last_aggregator;
 
-		MPI_Init(&argc, &argv);
-		MPI_Comm_size(MPI_COMM_WORLD, &comm_sz);
-		MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
-		MPI_Comm_group(MPI_COMM_WORLD, &world_group);
+			last_assign=0;
+			last_search=comm_sz-1;
 
-		int last_assign, last_search, last_aggregator;
+			tamt = tam/(last_search-last_assign);
 
-		last_assign=1;
-		last_search=comm_sz-2;
-		last_aggregator=comm_sz-1;
-		tamt = tam/(last_search-last_assign);
+			if(my_rank==0){
+				parallel_training (dataset, coarsek, nsq, tam, comm_sz);
+			}
+			else{
+				parallel_search (nsq, k, comm_sz, threads, tamt, search_comm, dataset, w);
+			}
 
-		int n = comm_sz-2;
-		int ranks[n];
-		for(int i=0; i<n; i++){
-			ranks[i]=i+1;
-		}
+		#else
+			int my_rank;
 
-		MPI_Group_incl(world_group, n, ranks, &search_group);
-		MPI_Comm_create_group(MPI_COMM_WORLD, search_group, 0, &search_comm);
+			MPI_Group world_group, search_group;
+			MPI_Comm search_comm;
 
-		if (my_rank<last_assign){
-			parallel_training (dataset, coarsek, nsq, tam, comm_sz);
-		}
-		else if(my_rank<=last_assign){
-			parallel_assign (dataset, w, comm_sz,search_comm, threads);
-		}
-		else if(my_rank<=last_search){
-			parallel_search (nsq, k, comm_sz, threads, tamt, search_comm, dataset, w);
-		}
-		else{
-			parallel_aggregator(k, w, my_rank, comm_sz, tam, threads, dataset);
-		}
-		MPI_Finalize();
+			MPI_Init(&argc, &argv);
+			MPI_Comm_size(MPI_COMM_WORLD, &comm_sz);
+			MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+			MPI_Comm_group(MPI_COMM_WORLD, &world_group);
 
+			int last_assign, last_search, last_aggregator;
+
+			last_assign=1;
+			last_search=comm_sz-2;
+			last_aggregator=comm_sz-1;
+			tamt = tam/(last_search-last_assign);
+
+			int n = comm_sz-2;
+			int ranks[n];
+			for(int i=0; i<n; i++){
+				ranks[i]=i+1;
+			}
+
+			MPI_Group_incl(world_group, n, ranks, &search_group);
+			MPI_Comm_create_group(MPI_COMM_WORLD, search_group, 0, &search_comm);
+
+			if (my_rank<last_assign){
+				parallel_training (dataset, coarsek, nsq, tam, comm_sz);
+			}
+			else if(my_rank<=last_assign){
+				parallel_assign (dataset, w, comm_sz,search_comm, threads);
+			}
+			else if(my_rank<=last_search){
+				parallel_search (nsq, k, comm_sz, threads, tamt, search_comm, dataset, w);
+			}
+			else{
+				parallel_aggregator(k, w, my_rank, comm_sz, tam, threads, dataset);
+			}
+			MPI_Finalize();
+		#endif
 	#endif
 
 	return 0;
