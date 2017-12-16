@@ -1,9 +1,10 @@
 #!/bin/bash
 #SBATCH -p RM
-#SBATCH -t 15:00:00
+#SBATCH -t 10:00:00
 #SBATCH -N 1
-#SBATCH --ntasks-per-node 7
+#SBATCH --ntasks-per-node 28
 
 # run MPI program
-mpirun -np 4 ./ivfpq_test siftbig 4 200000000 4096 8 8
+
+mpirun -np 4 ./ivfpq_test siftbig 24 500000000 4096 8 6
 

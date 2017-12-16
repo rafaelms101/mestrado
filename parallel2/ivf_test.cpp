@@ -36,6 +36,8 @@ int main(int argc, char **argv){
 
 	#else
 		#ifdef WRITE_IVF
+			int my_rank;
+		
 			MPI_Group world_group, search_group;
 			MPI_Comm search_comm;
 
@@ -57,6 +59,7 @@ int main(int argc, char **argv){
 			else{
 				parallel_search (nsq, k, comm_sz, threads, tamt, search_comm, dataset, w);
 			}
+			MPI_Finalize();
 
 		#else
 			int my_rank;
