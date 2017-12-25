@@ -1,4 +1,0 @@
-Thread 0: ivfpq_search 19138.7 min 6.123 k_min 12617.7 critical 2.774 cross_distances 1999.89 sumidx 16026.2
-w=6, tasks=4, tamanho da base=1000000
-Tempo de busca: 31795
-

@@ -32,7 +32,7 @@
 	void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Comm search_comm, char *dataset, int w);
 	void send_aggregator(int residualn, int w, query_id_t *fila, int **ids, float **dis, int finish_aux, int count);
 	ivf_t* create_ivf(ivfpq_t ivfpq, int threads, int tam, int my_rank, int nsq, char* dataset);
-	void write_ivf(ivfpq_t ivfpq, int threads, int tam, int my_rank, int nsq, char*dataset);
+	ivf_t* write_ivf(ivfpq_t ivfpq, int threads, int tam, int my_rank, int nsq, char*dataset);
 	ivf_t* read_ivf(ivfpq_t ivfpq, int tam, int my_rank);
 	dis_t ivfpq_search(ivf_t *ivf, float *residual, pqtipo pq, int centroid_idx, double *g1, double *g2);
 	int min(int a, int b);

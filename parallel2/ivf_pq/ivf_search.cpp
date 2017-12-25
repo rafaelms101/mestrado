@@ -22,159 +22,154 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 	ivfpq.coa_centroids=(float*)malloc(sizeof(float)*ivfpq.coa_centroidsd*ivfpq.coa_centroidsn);
 	MPI_Recv(&ivfpq.coa_centroids[0], ivfpq.coa_centroidsn*ivfpq.coa_centroidsd, MPI_FLOAT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-	#ifdef WRITE_IVF
-		write_ivf(ivfpq, threads, tam, my_rank, nsq, dataset);
-	#else
 		ivf_t *ivf;
 
+	#ifdef WRITE_IVF
+		ivf = write_ivf(ivfpq, threads, tam, my_rank, nsq, dataset);
+	#else
 		#ifdef READ_IVF
 			ivf = read_ivf(ivfpq, tam, my_rank);
 		#else
 			ivf = create_ivf(ivfpq, threads, tam, my_rank, nsq, dataset);
 		#endif
+	#endif
 
-		float **dis;
-		int **ids;
-		int finish_aux=0;
+	float **dis;
+	int **ids;
+	int finish_aux=0;
 
-		query_id_t *fila;
+	query_id_t *fila;
+	int count =0;
 
-		int count =0;
+	MPI_Barrier(search_comm);
 
-		MPI_Barrier(search_comm);
+	sem_init(&sem, 0, 1);
 
-		sem_init(&sem, 0, 1);
+	#pragma omp parallel num_threads(threads+1)
+	{
 
-		#pragma omp parallel num_threads(threads+1)
-		{
+		while(1){
+			int my_omp_rank = omp_get_thread_num ();
+			double f1=0, f2=0, f3=0, f4=0, g1=0, g2=0, g3=0;
+			if(my_omp_rank==0){
 
-			while(1){
-				int my_omp_rank = omp_get_thread_num ();
-				double f1=0, f2=0, f3=0, f4=0, g1=0, g2=0, g3=0;
+				MPI_Bcast(&residual.n, 1, MPI_INT, 0, search_comm);
+				MPI_Bcast(&residual.d, 1, MPI_INT, 0, search_comm);
 
-				if(my_omp_rank==0){
+				residual.mat = (float*)malloc(sizeof(float)*residual.n*residual.d);
 
-					MPI_Bcast(&residual.n, 1, MPI_INT, 0, search_comm);
-					MPI_Bcast(&residual.d, 1, MPI_INT, 0, search_comm);
+				MPI_Bcast(&residual.mat[0], residual.d*residual.n, MPI_FLOAT, 0, search_comm);
 
-					residual.mat = (float*)malloc(sizeof(float)*residual.n*residual.d);
+				coaidx = (int*)malloc(sizeof(int)*residual.n);
 
-					MPI_Bcast(&residual.mat[0], residual.d*residual.n, MPI_FLOAT, 0, search_comm);
+				MPI_Bcast(&coaidx[0], residual.n, MPI_INT, 0, search_comm);
+				MPI_Bcast(&finish_aux, 1, MPI_INT, 0, search_comm);
 
-					coaidx = (int*)malloc(sizeof(int)*residual.n);
+				fila = (query_id_t*)malloc(sizeof(query_id_t)*(residual.n/w));
 
-					MPI_Bcast(&coaidx[0], residual.n, MPI_INT, 0, search_comm);
-					MPI_Bcast(&finish_aux, 1, MPI_INT, 0, search_comm);
-
-					fila = (query_id_t*)malloc(sizeof(query_id_t)*(residual.n/w));
-
-					for(int it=0; it<residual.n/w; it++){
-						fila[it].tam = 0;
-						fila[it].id = count;
-					}
-
-					iter = 0;
-
-					dis = (float**)malloc(sizeof(float *)*(residual.n/w));
-					ids = (int**)malloc(sizeof(int *)*(residual.n/w));
+				for(int it=0; it<residual.n/w; it++){
+					fila[it].tam = 0;
+					fila[it].id = count;
 				}
 
-				#pragma omp barrier
+				iter = 0;
 
-				if(my_omp_rank==threads){
-
-					send_aggregator(residual.n, w, fila, ids, dis, finish_aux, count);
-
-					count += iter;
-
-					free(dis);
-					free(ids);
-					free(coaidx);
-					free(residual.mat);
-					free(fila);
-				}
-				else{ //Faz a busca dos vetores da query na lista invertida
-					for(int i=my_omp_rank; i<residual.n/w; i+=threads){
-
-						int ktmp;
-						dis_t qt;
-						query_id_t element;
-
-						qt.idx.mat = (int*) malloc(sizeof(int));
-						qt.dis.mat = (float*) malloc(sizeof(float));
-						qt.idx.n=0;
-						qt.idx.d=1;
-						qt.dis.n=0;
-						qt.dis.d=1;
-
-						struct timeval a1, a2, a3, a4, a5, b1, b2;
-
-						gettimeofday(&a1, NULL);
-
-						for(int j=0; j<w; j++){
-							dis_t q;
-							q = ivfpq_search(ivf, &residual.mat[0]+(i*w+j)*residual.d, ivfpq.pq, coaidx[i*w+j], &g1, &g2);
-
-							qt.idx.mat = (int*) realloc(qt.idx.mat, sizeof(int)*(qt.idx.n+q.idx.n));
-							qt.dis.mat = (float*) realloc(qt.dis.mat, sizeof(float)*(qt.dis.n+q.dis.n));
-
-							memcpy(&qt.idx.mat[qt.idx.n], &q.idx.mat[0], sizeof(int)*q.idx.n);
-							memcpy(&qt.dis.mat[qt.dis.n], &q.dis.mat[0], sizeof(float)*q.dis.n);
-
-							qt.idx.n+=q.idx.n;
-							qt.dis.n+=q.dis.n;
-							free(q.dis.mat);
-							free(q.idx.mat);
-						}
-
-						gettimeofday(&a2, NULL);
-						ktmp = min(qt.idx.n, k);
-
-						ids[i] = (int*) malloc(sizeof(int)*ktmp);
-						dis[i] = (float*) malloc(sizeof(float)*ktmp);
-						gettimeofday(&a3, NULL);
-
-						my_k_min(qt, ktmp, &dis[i][0], &ids[i][0]);
-
-						gettimeofday(&a4, NULL);
-
-						element.id = i;
-						element.tam = ktmp;
-						sem_wait(&sem);
-						fila[iter].id+=i;
-						fila[iter].tam+=ktmp;
-						iter++;
-						sem_post(&sem);
-						gettimeofday(&a5, NULL);
-
-
-						f1 += ((a2.tv_sec * 1000000 + a2.tv_usec)-(a1.tv_sec * 1000000 + a1.tv_usec));
-						f2 += ((a3.tv_sec * 1000000 + a3.tv_usec)-(a2.tv_sec * 1000000 + a2.tv_usec));
-						f3 += ((a4.tv_sec * 1000000 + a4.tv_usec)-(a3.tv_sec * 1000000 + a3.tv_usec));
-						f4 += ((a5.tv_sec * 1000000 + a5.tv_usec)-(a4.tv_sec * 1000000 + a4.tv_usec));
-
-						free(qt.dis.mat);
-						free(qt.idx.mat);
-					}
-
-					FILE *fp;
-
-					fp = fopen("testes.txt", "a");
-
-					fprintf(fp, "Thread %d: ivfpq_search %g min %g k_min %g critical %g cross_distances %g sumidx %g\n",my_omp_rank, f1/1000,f2/1000,f3/1000,f4/1000,g1/1000,g2/1000);
-
-					fclose(fp);
-				}
-				if (finish_aux==1)break;
-				#pragma omp barrier
+				dis = (float**)malloc(sizeof(float *)*(residual.n/w));
+				ids = (int**)malloc(sizeof(int *)*(residual.n/w));
 			}
 
-		}
-		cout << "." << endl;
+			#pragma omp barrier
 
-		sem_destroy(&sem);
-		free(ivf);
-	#endif
+			if(my_omp_rank==threads){
+
+				send_aggregator(residual.n, w, fila, ids, dis, finish_aux, count);
+
+				count += iter;
+
+				free(dis);
+				free(ids);
+				free(coaidx);
+				free(residual.mat);
+				free(fila);
+			}
+			else{ //Faz a busca dos vetores da query na lista invertida
+				for(int i=my_omp_rank; i<residual.n/w; i+=threads){
+
+					int ktmp;
+					dis_t qt;
+					query_id_t element;
+
+					qt.idx.mat = (int*) malloc(sizeof(int));
+					qt.dis.mat = (float*) malloc(sizeof(float));
+					qt.idx.n=0;
+					qt.idx.d=1;
+					qt.dis.n=0;
+					qt.dis.d=1;
+
+					struct timeval a1, a2, a3, a4, a5, b1, b2;
+
+					gettimeofday(&a1, NULL);
+
+					for(int j=0; j<w; j++){
+						dis_t q;
+						q = ivfpq_search(ivf, &residual.mat[0]+(i*w+j)*residual.d, ivfpq.pq, coaidx[i*w+j], &g1, &g2);
+
+						qt.idx.mat = (int*) realloc(qt.idx.mat, sizeof(int)*(qt.idx.n+q.idx.n));
+						qt.dis.mat = (float*) realloc(qt.dis.mat, sizeof(float)*(qt.dis.n+q.dis.n));
+
+						memcpy(&qt.idx.mat[qt.idx.n], &q.idx.mat[0], sizeof(int)*q.idx.n);
+						memcpy(&qt.dis.mat[qt.dis.n], &q.dis.mat[0], sizeof(float)*q.dis.n);
+
+						qt.idx.n+=q.idx.n;
+						qt.dis.n+=q.dis.n;
+						free(q.dis.mat);
+						free(q.idx.mat);
+					}
+
+					gettimeofday(&a2, NULL);
+					ktmp = min(qt.idx.n, k);
+
+					ids[i] = (int*) malloc(sizeof(int)*ktmp);
+					dis[i] = (float*) malloc(sizeof(float)*ktmp);
+					gettimeofday(&a3, NULL);
+
+					my_k_min(qt, ktmp, &dis[i][0], &ids[i][0]);
+
+					gettimeofday(&a4, NULL);
+
+					element.id = i;
+					element.tam = ktmp;
+					sem_wait(&sem);
+					fila[iter].id+=i;
+					fila[iter].tam+=ktmp;
+					iter++;
+					sem_post(&sem);
+					gettimeofday(&a5, NULL);
+
+					f1 += ((a2.tv_sec * 1000000 + a2.tv_usec)-(a1.tv_sec * 1000000 + a1.tv_usec));
+					f2 += ((a3.tv_sec * 1000000 + a3.tv_usec)-(a2.tv_sec * 1000000 + a2.tv_usec));
+					f3 += ((a4.tv_sec * 1000000 + a4.tv_usec)-(a3.tv_sec * 1000000 + a3.tv_usec));
+					f4 += ((a5.tv_sec * 1000000 + a5.tv_usec)-(a4.tv_sec * 1000000 + a4.tv_usec));
+
+					free(qt.dis.mat);
+					free(qt.idx.mat);
+				}
+				FILE *fp;
+
+				fp = fopen("testes.txt", "a");
+
+				fprintf(fp, "Thread %d: ivfpq_search %g min %g k_min %g critical %g cross_distances %g sumidx %g\n",my_omp_rank, f1/1000,f2/1000,f3/1000,f4/1000,g1/1000,g2/1000);
+
+				fclose(fp);
+			}
+			if (finish_aux==1)break;
+			#pragma omp barrier
+		}
+
+	}
+	cout << "." << endl;
+	sem_destroy(&sem);
+	free(ivf);
 	free(ivfpq.pq.centroids);
 	free(ivfpq.coa_centroids);
 }
@@ -344,13 +339,13 @@ ivf_t* create_ivf(ivfpq_t ivfpq, int threads, int tam, int my_rank, int nsq, cha
 	return ivf;
 }
 
-void write_ivf(ivfpq_t ivfpq, int threads, int tam, int my_rank, int nsq, char* dataset){
+ivf_t* write_ivf(ivfpq_t ivfpq, int threads, int tam, int my_rank, int nsq, char* dataset){
 	ivf_t* ivf;
 	FILE *fp;
 	char name_arq[50];
 	ivf = create_ivf(ivfpq, threads, tam, my_rank, nsq, dataset);
 
-	sprintf(name_arq, "/pylon5/ac3uump/freire/ivf/ivf_%d_%d_%d.bin", ivfpq.coarsek, tam, my_rank-last_assign);
+	sprintf(name_arq, "/home/andreff/ivf/ivf_%d_%d_%d.bin", ivfpq.coarsek, tam, my_rank-last_assign);
 	fp = fopen(name_arq,"wb");
 	fwrite(&ivfpq.coarsek, sizeof(int), 1, fp);
 	for(int i=0; i<ivfpq.coarsek; i++){
@@ -362,7 +357,7 @@ void write_ivf(ivfpq_t ivfpq, int threads, int tam, int my_rank, int nsq, char* 
 	}
 
 	fclose(fp);
-	free(ivf);
+	return ivf;
 }
 
 ivf_t* read_ivf(ivfpq_t ivfpq, int tam, int my_rank){
@@ -371,7 +366,7 @@ ivf_t* read_ivf(ivfpq_t ivfpq, int tam, int my_rank){
 	char name_arq[50];
 	int coarsek;
 
-	sprintf(name_arq, "/pylon5/ac3uump/freire/ivf/ivf_%d_%d_%d.bin", ivfpq.coarsek, tam, my_rank-last_assign);
+	sprintf(name_arq, "/home/andreff/ivf/ivf_%d_%d_%d.bin", ivfpq.coarsek, tam, my_rank-last_assign);
 	fp = fopen(name_arq,"rb");
 	fread(&coarsek, sizeof(int), 1, fp);
 
