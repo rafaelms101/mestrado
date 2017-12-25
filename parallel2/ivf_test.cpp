@@ -14,11 +14,11 @@
 int main(int argc, char **argv){
 
 	if(argc < 6){
-		cout << "Usage: mpiexec -n ./ivfpq_test <dataset> <threads> <tam> <coarsek> <nsq> <w>" << endl;
+		cout << "Usage: mpiexec -n ./ivfpq_test <dataset> <threads> <tam> <coarsek> <nsq> <w> <threads_training>" << endl;
 		return -1;
 	}
 
-	int nsq, coarsek, tam, comm_sz, threads, w, k, tamt;
+	int nsq, coarsek, tam, comm_sz, threads, w, k, tamt, threads_training;
 	char* dataset;
 
 	dataset = argv[1];
@@ -27,13 +27,19 @@ int main(int argc, char **argv){
 	coarsek = atoi(argv[4]);
 	nsq = atoi(argv[5]);
 	w = atoi(argv[6]);
+	threads_training = atoi(argv[7]);
 	comm_sz = 1;
 	k = 100;
 
 	#ifdef TRAIN
 
-		parallel_training (dataset, coarsek, nsq, tam, comm_sz);
-
+		struct timeval start, end;
+		gettimeofday(&start, NULL);
+		parallel_training (dataset, coarsek, nsq, tam, comm_sz, threads_training);
+		gettimeofday(&end, NULL);
+		double time = ((end.tv_sec * 1000000 + end.tv_usec)-(start.tv_sec * 1000000 + start.tv_usec));
+		cout << time << endl;		
+	
 	#else
 		#ifdef WRITE_IVF
 			int my_rank;
@@ -54,7 +60,7 @@ int main(int argc, char **argv){
 			tamt = tam/(last_search-last_assign);
 
 			if(my_rank==0){
-				parallel_training (dataset, coarsek, nsq, tam, comm_sz);
+				parallel_training (dataset, coarsek, nsq, tam, comm_sz, threads_training);
 			}
 			else{
 				parallel_search (nsq, k, comm_sz, threads, tamt, search_comm, dataset, w);
@@ -89,7 +95,7 @@ int main(int argc, char **argv){
 			MPI_Comm_create_group(MPI_COMM_WORLD, search_group, 0, &search_comm);
 
 			if (my_rank<last_assign){
-				parallel_training (dataset, coarsek, nsq, tam, comm_sz);
+				parallel_training (dataset, coarsek, nsq, tam, comm_sz, threads_training);
 			}
 			else if(my_rank<=last_assign){
 				parallel_assign (dataset, w, comm_sz,search_comm, threads);

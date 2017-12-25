@@ -15,9 +15,9 @@
 	#include "../pq-utils/pq_assign.h"
 	#include "myIVF.h"
 
-	void parallel_training (char *dataset, int coarsek, int nsq, int tam, int comm_sz);
+	void parallel_training (char *dataset, int coarsek, int nsq, int tam, int comm_sz, int threads);
 	void subtract(mat v, float* v2, int* idx, int c_d);
-	ivfpq_t ivfpq_new(int coarsek, int nsq, mat vtrain);
+	ivfpq_t ivfpq_new(int coarsek, int nsq, mat vtrain, int threads);
 	void write_cent(char *file, char *file2, char *file3, ivfpq_t ivfpq);
 	void read_cent(char *file, char *file2, char *file3, ivfpq_t *ivfpq);
 	void copySubVectorsI(int* qcoaidx, int* coaidx, int query, int nq,int w);

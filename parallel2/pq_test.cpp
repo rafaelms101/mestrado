@@ -49,7 +49,7 @@ int main(int argv, char** argc){
 	ids = (int*)malloc(sizeof(int)*v.query.n*k);
 
 	gettimeofday(&inicio, NULL);
-	pq = pq_new(nsq, v.train, coarsek);
+	pq = pq_new(nsq, v.train, coarsek,1);
 	gettimeofday(&final, NULL);
 	tmili = (int) (1000 * (final.tv_sec - inicio.tv_sec) + (final.tv_usec - inicio.tv_usec) / 1000);
 	printf("Tempo new: %d\n", tmili);

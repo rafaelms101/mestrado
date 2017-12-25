@@ -3,7 +3,7 @@
 // nsq: numero de subquantizadores (m no paper)
 // vtrain: estrutura de vetores, contendo os dados de treinamento
 
-pqtipo pq_new(int nsq, mat vtrain, int coarsek){
+pqtipo pq_new(int nsq, mat vtrain, int coarsek, int threads){
 
 	// ds: dimensao dos subvetores
 	// ks: numero de centroides por subquantizador
@@ -31,6 +31,7 @@ pqtipo pq_new(int nsq, mat vtrain, int coarsek){
 	flags = flags | KMEANS_INIT_BERKELEY;
 	flags |= 1;
 	flags |= KMEANS_QUIET;
+	flags |= threads;
 	ds=vtrain.d/nsq;
 	ks=coarsek;
 	pq.nsq = nsq;

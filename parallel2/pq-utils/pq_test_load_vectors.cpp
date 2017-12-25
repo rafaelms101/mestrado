@@ -158,9 +158,6 @@ mat pq_test_load_query(char* dataset, int threads){
 	else if(strcmp(dataset, "siftbig")==0){
 		strcpy (fquery, BASE_DIR);
 		strcat (fquery,"siftbig_query.bvecs");
-		//sprintf (srank, "%d",threads);
-    //strcat(fquery, srank);
-
 		vquery.n=10000;
 		vquery.d=128;
 		vquery.mat= fmat_new (vquery.d, vquery.n);

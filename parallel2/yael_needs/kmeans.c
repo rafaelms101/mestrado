@@ -228,6 +228,8 @@ static int kmeans_core (int d, int n, int k, int niter, int nt, int flags, int v
 		tmp_cumsum = ivec_new(k); 
 	}                          
 
+	printf("Numero de threads: %d\n", nt);
+
 	int tot_nreassign=0;
 
 	for (iter = 1 ; iter <= niter ; iter++) {
