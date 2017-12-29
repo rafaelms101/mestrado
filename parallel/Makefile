@@ -3,8 +3,10 @@
 include makefile.inc
 
 CC=gcc -g
-CXX=g++ -DREAD_TRAIN -g
-MPICXX = mpic++ -DREAD_TRAIN -g
+CXX=g++  -g
+MF =
+IVF =
+MPICXX = mpic++ $(MF) $(IVF) -fopenmp  -g
 PQ_UTILS_DIR = ./pq-utils
 OBJDIR=./obj
 IVF_DIR = ./ivf_pq
@@ -13,12 +15,13 @@ PTHREAD = -lpthread
 
 all: pq_test_load_vectors.o pq_new.o pq_assign.o pq_search.o pq_test.o pq_test $(OBJDIR)/myIVF.o $(OBJDIR)/ivf_training.o $(OBJDIR)/ivf_assign.o $(OBJDIR)/ivf_search.o $(OBJDIR)/k_min.o ivfpq_test.o ivfpq_test
 
+
 ifeq "$(USEARPACK)" "yes"
   EXTRAYAELLDFLAG=$(ARPACKLDFLAGS)
   EXTRAMATRIXFLAG=-DHAVE_ARPACK
 endif
 
-ifeq "$(USEOPENMP)" "yes"
+ifeq "$(USEOPENMP)" "no"
   EXTRAMATRIXFLAG+=-fopenmp
   EXTRAYAELLDFLAG+=-fopenmp
 endif
@@ -52,11 +55,13 @@ $(OBJDIR)/pq_search.o: $(PQ_UTILS_DIR)/pq_search.cpp $(PQ_UTILS_DIR)/pq_search.h
 				$(CXX) $(cflags) -c $< -o $@ $(flags) $(extracflags) $(yaelcflags)
 
 pq_test.o:
+
 $(OBJDIR)/pq_test.o: pq_test.cpp yael_needs/vector.h yael_needs/kmeans.h $(PQ_UTILS_DIR)/pq_assign.h $(PQ_UTILS_DIR)/pq_new.h $(PQ_UTILS_DIR)/pq_test_load_vectors.h
-		$(CXX) $(cflags) -c $< -o $@ $(flags) $(extracflags) $(yaelcflags)
+	$(CXX) $(cflags) -c $< -o $@ $(flags) $(extracflags) $(yaelcflags)
 
 pq_test: $(OBJDIR)/pq_test.o $(OBJDIR)/pq_assign.o $(PQ_UTILS_DIR)/pq_assign.h  $(OBJDIR)/pq_new.o $(PQ_UTILS_DIR)/pq_new.h $(OBJDIR)/pq_test_load_vectors.o $(PQ_UTILS_DIR)/pq_test_load_vectors.h $(OBJDIR)/pq_search.o $(PQ_UTILS_DIR)/pq_search.h $(OBJDIR)/pq_test_compute_stats.o $(PQ_UTILS_DIR)/pq_test_compute_stats.h
 	$(CXX) $(cflags) -o $@ $^ $(LDFLAGS) $(LAPACKLDFLAGS) $(THREADLDFLAGS) $(EXTRAYAELLDFLAG) $(YAELLDFLAGS)
+
 
 # IVF_TEST
 

@@ -1,0 +1,11 @@
+#!/bin/bash
+#SBATCH -p RM
+#SBATCH -t 47:00:00
+#SBATCH -N 1
+#SBATCH --ntasks-per-node 28
+
+# run MPI program
+
+cd yael_needs/; make clean; make; cd ..; make clean; make MF=-DREAD_TRAIN IVF=-DWRITE_IVF;
+mpirun -n 2 ./ivfpq_test siftbig 24 2000000000 16384 8 6 1
+

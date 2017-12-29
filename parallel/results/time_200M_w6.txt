@@ -1,0 +1,64 @@
+Thread 23: ivfpq_search 65904.7 min 14.829 k_min 44576.9 critical 0.275 cross_distances 1715.62 sumidx 53808.3
+Thread 11: ivfpq_search 69171.5 min 9.78 k_min 47162.2 critical 0.266 cross_distances 1796.01 sumidx 54884.6
+Thread 21: ivfpq_search 71056.3 min 0.366 k_min 45949.7 critical 71.637 cross_distances 2692.48 sumidx 55022
+Thread 18: ivfpq_search 70064.1 min 37.017 k_min 48333.6 critical 0.272 cross_distances 1978.01 sumidx 56285.8
+Thread 16: ivfpq_search 71347.5 min 0.375 k_min 47682.4 critical 41.609 cross_distances 2196.75 sumidx 55202.1
+Thread 2: ivfpq_search 71801.2 min 0.373 k_min 48897.4 critical 45.44 cross_distances 2398.45 sumidx 55840.3
+Thread 7: ivfpq_search 72124.9 min 0.382 k_min 49028.8 critical 4.837 cross_distances 2222.24 sumidx 56559.8
+Thread 5: ivfpq_search 73549.6 min 0.37 k_min 48705.3 critical 8.389 cross_distances 1888.53 sumidx 58969
+Thread 20: ivfpq_search 75748.7 min 0.385 k_min 46910.4 critical 19.004 cross_distances 1820.62 sumidx 59986.7
+Thread 4: ivfpq_search 73633.1 min 18.383 k_min 49518.8 critical 0.284 cross_distances 1341.56 sumidx 59340.6
+Thread 12: ivfpq_search 72746.4 min 0.425 k_min 50647.9 critical 20.733 cross_distances 1902.16 sumidx 58144.5
+Thread 1: ivfpq_search 74672.1 min 0.379 k_min 49031.4 critical 0.271 cross_distances 2525.11 sumidx 58438.1
+Thread 19: ivfpq_search 74959.3 min 70.408 k_min 49074.5 critical 0.29 cross_distances 2697.09 sumidx 60288.7
+Thread 15: ivfpq_search 75036.1 min 0.374 k_min 49501.4 critical 26.883 cross_distances 2765.55 sumidx 59385.2
+Thread 13: ivfpq_search 73627.4 min 18.796 k_min 51321.7 critical 0.282 cross_distances 1741.14 sumidx 57992.9
+Thread 10: ivfpq_search 74722.6 min 85.795 k_min 51158.5 critical 57.225 cross_distances 2104.4 sumidx 58178.4
+Thread 8: ivfpq_search 77095.2 min 0.382 k_min 49352.4 critical 0.286 cross_distances 1671.34 sumidx 62470.3
+Thread 17: ivfpq_search 73640.9 min 6.626 k_min 52953.3 critical 1.05 cross_distances 1767.36 sumidx 58123.4
+Thread 6: ivfpq_search 75457.3 min 53.454 k_min 51094.2 critical 0.247 cross_distances 2426.08 sumidx 59749.1
+Thread 3: ivfpq_search 75281 min 0.381 k_min 51887.4 critical 25.136 cross_distances 1849.5 sumidx 60922.6
+Thread 22: ivfpq_search 77158.8 min 36.792 k_min 50265.3 critical 0.31 cross_distances 2291.22 sumidx 58710.8
+Thread 9: ivfpq_search 77004.3 min 0.4 k_min 52131.5 critical 0.27 cross_distances 2434.13 sumidx 61984.4
+Thread 14: ivfpq_search 79979.6 min 8.77 k_min 51609.7 critical 0.29 cross_distances 2342.74 sumidx 63243.9
+Thread 0: ivfpq_search 84046.2 min 0.414 k_min 57399.4 critical 0.288 cross_distances 2496.86 sumidx 64230.9
+w=6, tasks=4, tamanho da base=200000000
+Tempo de busca: 143251
+
+Thread 1: ivfpq_search 68251.1 min 43.341 k_min 46835.9 critical 0.388 cross_distances 1780.67 sumidx 54990
+Thread 15: ivfpq_search 68716.2 min 48.501 k_min 46243.3 critical 1.65 cross_distances 1867.79 sumidx 55362
+Thread 7: ivfpq_search 69440.4 min 0.594 k_min 49781.4 critical 0.379 cross_distances 1905.6 sumidx 55385.9
+Thread 12: ivfpq_search 73686.3 min 0.546 k_min 47633.3 critical 0.399 cross_distances 2151.15 sumidx 58416.2
+Thread 5: ivfpq_search 73681.4 min 0.541 k_min 49333.2 critical 2.738 cross_distances 2458.87 sumidx 58166.6
+Thread 14: ivfpq_search 74115.4 min 0.508 k_min 50426.7 critical 1.882 cross_distances 2237.4 sumidx 58751.3
+Thread 11: ivfpq_search 74351.8 min 0.536 k_min 50425.8 critical 0.406 cross_distances 1849.8 sumidx 59167.2
+Thread 4: ivfpq_search 73393.5 min 0.594 k_min 51756.6 critical 0.4 cross_distances 2102.56 sumidx 58941.4
+Thread 2: ivfpq_search 74192.7 min 0.534 k_min 52042.7 critical 0.395 cross_distances 2277.48 sumidx 60030.8
+Thread 3: ivfpq_search 75976.1 min 0.561 k_min 50762.4 critical 0.383 cross_distances 2145.36 sumidx 60229.7
+Thread 9: ivfpq_search 76386.7 min 0.521 k_min 50685.2 critical 0.403 cross_distances 2345.02 sumidx 61200.6
+Thread 6: ivfpq_search 75600.2 min 11.443 k_min 52018.5 critical 0.376 cross_distances 1897.38 sumidx 60544.4
+Thread 10: ivfpq_search 76666.3 min 0.625 k_min 52652.4 critical 0.399 cross_distances 2413.83 sumidx 61072.4
+Thread 13: ivfpq_search 77032.7 min 0.563 k_min 52792.5 critical 0.387 cross_distances 2180.65 sumidx 60119.4
+Thread 8: ivfpq_search 78837.7 min 0.583 k_min 53137.4 critical 1.632 cross_distances 2147.25 sumidx 61775.3
+Thread 0: ivfpq_search 88878 min 0.744 k_min 60651.3 critical 0.428 cross_distances 2637.38 sumidx 69139.3
+w=6, tasks=4, tamanho da base=200000000
+Tempo de busca: 151223
+
+Thread 1: ivfpq_search 74065.2 min 1.082 k_min 52062.3 critical 0.836 cross_distances 2268.36 sumidx 60317.3
+Thread 4: ivfpq_search 73862.9 min 1.112 k_min 52424.7 critical 0.794 cross_distances 2235.72 sumidx 59739.7
+Thread 5: ivfpq_search 74623.5 min 1.056 k_min 52954.5 critical 0.836 cross_distances 2311.05 sumidx 60560.5
+Thread 7: ivfpq_search 75369.6 min 1.033 k_min 53487.6 critical 0.828 cross_distances 2378.32 sumidx 61672.9
+Thread 3: ivfpq_search 75311.6 min 1.121 k_min 53740.3 critical 0.819 cross_distances 2439.43 sumidx 60652.5
+Thread 2: ivfpq_search 77402.4 min 1.313 k_min 54391.2 critical 0.794 cross_distances 2266.38 sumidx 62659.1
+Thread 6: ivfpq_search 77566.7 min 1.043 k_min 54570.2 critical 0.814 cross_distances 2442.39 sumidx 62565.5
+Thread 0: ivfpq_search 95145.8 min 1.462 k_min 67735.1 critical 0.888 cross_distances 2830.74 sumidx 77500.1
+w=6, tasks=4, tamanho da base=200000000
+Tempo de busca: 163739
+
+Thread 0: ivfpq_search 495559 min 8.299 k_min 356338 critical 7.9 cross_distances 16315.1 sumidx 416324
+w=6, tasks=4, tamanho da base=200000000
+Tempo de busca: 855806
+
+Thread 0: ivfpq_search 322957 min 7.852 k_min 250226 critical 6.082 cross_distances 10830.8 sumidx 278202
+w=4, tasks=4, tamanho da base=200000000
+Tempo de busca: 575182

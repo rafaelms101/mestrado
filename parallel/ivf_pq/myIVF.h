@@ -13,9 +13,6 @@ extern "C" {
 	#include "../yael_needs/kmeans.h"
 }
 
-#define SEARCH 99
-#define FINISH 100
-
 typedef struct {
 	mat dis;
 	matI idx;
@@ -31,9 +28,15 @@ typedef struct ivfpq{
 
 typedef struct ivf{
 	int* ids;
+	float* dis;
 	int idstam;
 	matI codes;
 }ivf_t;
+
+typedef struct query_id{
+	int tam;
+	int id;
+}query_id_t;
 
 void set_last (int comm_sz, int *last_assign, int *last_search, int *last_aggregator);
 

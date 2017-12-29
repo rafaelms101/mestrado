@@ -9,6 +9,5 @@
 #include "pq_test_load_vectors.h"
 
 void pq_test_compute_stats (int *ids, matI ids_gnd, int k);
-void pq_test_compute_stats2 (int *ids, matI ids_gnd, int k);
 
 #endif

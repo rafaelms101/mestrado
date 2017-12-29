@@ -7,6 +7,7 @@
 #include "pq-utils/pq_new.h"
 #include "pq-utils/pq_search.h"
 #include "pq-utils/pq_test_compute_stats.h"
+#include "pq-utils/pq_test_load_vectors.h"
 
 int main(int argv, char** argc){
 	struct timeval inicio, final;
@@ -22,7 +23,7 @@ int main(int argv, char** argc){
 	matI codebook;
 	data v;
 	pqtipo pq;
-	int tam;
+	int tam, coarsek;
 
 	if(argv < 2){
 		cout << "Usage: ./pq_test <dataset>" << endl;
@@ -33,18 +34,22 @@ int main(int argv, char** argc){
 	tam=atoi(argc[2]);
 
 	gettimeofday(&inicio, NULL);
-	v = pq_test_load_vectors(dataset,tam,0);
+	v.train = pq_test_load_train(dataset,tam);
+	//v.ids_gnd = pq_test_load_gnd(dataset,tam);
+	v.query = pq_test_load_query(dataset,1);
+	v.base = pq_test_load_base(dataset, 0,1);
 	gettimeofday(&final, NULL);
 	tmili = (int) (1000 * (final.tv_sec - inicio.tv_sec) + (final.tv_usec - inicio.tv_usec) / 1000);
 	printf("Tempo load vectors: %d\n", tmili);
 	
 	nsq=8;
+	coarsek=256;
 	k=100;
 	dis = (float*)malloc(sizeof(float)*v.query.n*k);
 	ids = (int*)malloc(sizeof(int)*v.query.n*k);
 
 	gettimeofday(&inicio, NULL);
-	pq = pq_new(nsq, v.train);
+	pq = pq_new(nsq, v.train, coarsek,1);
 	gettimeofday(&final, NULL);
 	tmili = (int) (1000 * (final.tv_sec - inicio.tv_sec) + (final.tv_usec - inicio.tv_usec) / 1000);
 	printf("Tempo new: %d\n", tmili);

@@ -1,12 +1,8 @@
 #!/bin/bash
-#SBATCH -J ivfpq200           
-#SBATCH -o ivfpq200.o%j  
-#SBATCH -N 103
-#SBATCH -n 103     
-#SBATCH -p normal     
-#SBATCH -t 3:00:00        
-#SBATCH --mail-user=andreff@outlook.com
-#SBATCH --mail-type=begin  
-#SBATCH --mail-type=end    
+#SBATCH -p RM
+#SBATCH -t 2:00:00
+#SBATCH -N 4
+#SBATCH --ntasks-per-node 2
 
-ibrun -n 103 -o 0 ./ivfpq_test siftbig 14 200000000
+
+mpiexec -n 4 ./ivfpq_test siftbig 2 10000000
