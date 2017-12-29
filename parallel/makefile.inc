@@ -9,8 +9,8 @@ LDFLAGS=-g -fPIC
 PYTHONCFLAGS = -I/usr/include/python2.7
 
 YAELCONF=linux64
-YAELCFLAGS=-I/home/andreff/pqnns-unb/parallel2
-YAELLDFLAGS=-L/home/andreff/pqnns-unb/parallel2/yael_needs -Wl,-rpath,/home/andreff/pqnns-unb/parallel2/yael_needs -lyael
+YAELCFLAGS=-I/home/freire/pqnns-unb/parallel
+YAELLDFLAGS=-L/home/freire/pqnns-unb/parallel/yael_needs -Wl,-rpath,/home/freire/pqnns-unb/parallel/yael_needs -lyael
 
 
 SWIG=swig -python

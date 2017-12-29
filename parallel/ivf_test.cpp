@@ -42,7 +42,7 @@ int main(int argc, char **argv){
 		cout << "Training time: "<< time << endl;
 
 	#else
-		int my_rank, last_assign, last_search, last_aggregator, n_group, ;
+		int my_rank, last_assign, last_search, last_aggregator, n_group;
 
 		MPI_Group world_group, search_group;
 		MPI_Comm search_comm;

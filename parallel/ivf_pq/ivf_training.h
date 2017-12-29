@@ -15,10 +15,6 @@
 	#include "../pq-utils/pq_assign.h"
 	#include "myIVF.h"
 
-	typedef struct {
-		float dis;
-		int ids;
-	}dist;
 
 	void parallel_training (char *dataset, int coarsek, int nsq, int tam, int comm_sz, int threads);
 	void subtract(mat v, float* v2, int* idx, int c_d);
@@ -29,7 +25,5 @@
 	void copySubVectors2(float* vout, float* vin, int dim, int nvec, int subn);
 	void ivfpq_assign(ivfpq_t ivfpq, mat vbase, ivf_t *ivf);
 	void histogram(const int* vec, int n, int range, int *hist);
-	void int_sort_dis (const int *assign, int n, int *ids, float *dis);
-	int compare (const void * a, const void * b);
 
 #endif

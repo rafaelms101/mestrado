@@ -164,7 +164,7 @@ void copySubVectors2(float* vout, float* vin, int dim, int nvec, int subn){
 
 void ivfpq_assign(ivfpq_t ivfpq, mat vbase, ivf_t *ivf){
 	int k = 1;
-	/*const*/int *assign = (int*)malloc(sizeof(int)*vbase.n);
+	int *assign = (int*)malloc(sizeof(int)*vbase.n);
 	float *dis = (float*)malloc(sizeof(float)*vbase.n);
 
 	//acha os indices para o coarse quantizer
@@ -175,24 +175,18 @@ void ivfpq_assign(ivfpq_t ivfpq, mat vbase, ivf_t *ivf){
 	subtract(vbase, ivfpq.coa_centroids, assign, ivfpq.coa_centroidsd);
 
 	matI codebook = pq_assign(ivfpq.pq, vbase);
-	int *codeaux = (int*) malloc(sizeof(int)*codebook.d*codebook.n);
-	memcpy(codeaux, codebook.mat, sizeof(int)*codebook.n*codebook.d);
 	int * hist = (int*) calloc(ivfpq.coarsek,sizeof(int));
 
 	histogram(assign, vbase.n ,ivfpq.coarsek, hist);
 
 	// -- Sort on assign, new codebook with sorted ids as identifiers for codebook
 	int* ids = (int*)malloc(sizeof(int)*vbase.n);
-	//ivec_sort_index(assign, vbase.n, ids);
-	int_sort_dis (assign, vbase.n, ids, dis)
-
-	for(int i=0; i<codebook.n; i++){
-		memcpy(codebook.mat+i*codebook.d, codeaux+codebook.d*ids[i], sizeof(int)*codebook.d);
-	}
+	ivec_sort_index(assign, vbase.n, ids);
+	
 	int pos = 0;
 
 	for (int i = 0; i < ivfpq.coarsek; i++) {
-		int nextpos;
+		int *ids_aux1, *ids_aux2;
 
 		ivf[i].ids = (int*)malloc(sizeof(int)*hist[i]);
 		ivf[i].dis = (float*)malloc(sizeof(float)*hist[i]);
@@ -200,16 +194,27 @@ void ivfpq_assign(ivfpq_t ivfpq, mat vbase, ivf_t *ivf){
 		ivf[i].codes.mat = (int*)malloc(sizeof(int)*hist[i]*ivfpq.pq.nsq);
 		ivf[i].codes.n = hist[i];
 		ivf[i].codes.d = ivfpq.pq.nsq;
+			
+		ids_aux1 = (int*) malloc(sizeof(int)*ivf[i].idstam);
+		ids_aux2 = (int*) malloc(sizeof(int)*ivf[i].idstam);
 
-		nextpos = pos+hist[i];
+		memcpy(ids_aux1, &ids[pos], sizeof(int)*hist[i]);
 
-		memcpy(ivf[i].ids, &ids[pos], sizeof(int)*hist[i]);
-
-		for (int p = pos; p < nextpos; p++) {
-			copySubVectorsI(ivf[i].codes.mat + (p-pos)*ivf[i].codes.d, codebook.mat, p, 0,  ivf[i].codes.d);
+		for (int p = 0; p < ivf[i].idstam; p++){
+			ivf[i].dis[p] = dis[ids_aux1[p]];
 		}
 
-		pos += hist[i];
+		fvec_sort_index(ivf[i].dis, ivf[i].idstam, ids_aux2);
+
+		for (int p = 0; p < ivf[i].idstam; p++){
+			ivf[i].ids[p] = ids_aux1[ids_aux2[p]];
+			ivf[i].dis[p] = dis[ivf[i].ids[p]];
+			copySubVectorsI(ivf[i].codes.mat + p*(ivf[i].codes.d), codebook.mat, ivf[i].ids[p], 0,  ivf[i].codes.d);
+		}
+		pos+=ivf[i].idstam;
+
+		free(ids_aux1);
+		free(ids_aux2);
 	}
 	free(codebook.mat);
 	free(ids);
@@ -223,31 +228,4 @@ void histogram(const int* vec, int n, int range, int *hist){
 	for(int j=0; j<n; j++){
 		hist[vec[j]]++;
 	}
-}
-
-int compare (const void * a, const void * b){
-  return ( *(dist*)a.ids - *(dist*)b.ids );
-}
-
-void int_sort_dis (const int *assign, int n, int *ids, float *dis){
-  int i;
-	dist *tab;
-
-	tab = (dist*)malloc(sizeof(dist)*n);
-
-  for (i = 0 ; i < n ; i++){
-    tab[i].ids = ids[i];
-		tab[i].dis = dis[i];
-		printf("a%db%g\n", ids[i], dis[i]);
-	}
-
-  qsort (tab, n, sizeof(int), compare);
-
-	for (i = 0 ; i < n ; i++){
-    ids[i] = tab[i].ids;
-		dis[i] = tab[i].dis;
-		printf("a%db%g\n", ids[i], dis[i]);
-	}
-
-	free(tab);
 }
