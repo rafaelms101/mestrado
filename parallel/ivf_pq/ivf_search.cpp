@@ -314,16 +314,10 @@ ivf_t* create_ivf(ivfpq_t ivfpq, int threads, int tam, int my_rank, int nsq, cha
 				for(int l=0; l<ivf2[j].idstam; l++){
 					ivf2[j].ids[l]+=1000000*i+tam*(my_rank-last_assign-1);
 				}
-
 				aux = ivf[j].idstam;
 				#pragma omp critical
 				{
-					ivf[j].idstam += ivf2[j].idstam;
-					ivf[j].ids = (int*)realloc(ivf[j].ids,sizeof(int)*ivf[j].idstam);
-					memcpy (ivf[j].ids+aux, ivf2[j].ids, sizeof(int)*ivf2[j].idstam);
-					ivf[j].codes.n += ivf2[j].codes.n;
-					ivf[j].codes.mat = (int*)realloc(ivf[j].codes.mat,sizeof(int)*ivf[j].codes.n*ivf[j].codes.d);
-					memcpy (ivf[j].codes.mat+aux*ivf[i].codes.d, ivf2[j].codes.mat, sizeof(int)*ivf2[j].codes.n*ivf2[j].codes.d);
+					merge_ivf(ivf[j], ivf2[j]);
 				}
 				free(ivf2[j].ids);
 				free(ivf2[j].codes.mat);
@@ -338,6 +332,62 @@ ivf_t* create_ivf(ivfpq_t ivfpq, int threads, int tam, int my_rank, int nsq, cha
 	printf ("\nTempo de criacao da lista invertida: %g\n",time);
 
 	return ivf;
+}
+
+void merge_ivf(ivf_t *ivf, ivf_t ivf2){
+	ivf_t ivf_aux;
+	int iter1=0, iter2=0, i=0;
+
+	ivf_aux.idstam = ivf->idstam;
+	ivf_aux.codes.n = ivf->codes.n;
+	ivf_aux.codes.d = ivf->codes.d;
+	ivf_aux.ids = (int*)malloc(sizeof(int)*ivf_aux.idstam);
+	ivf_aux.dis = (float*)malloc(sizeof(float)*ivf_aux.idstam);
+	ivf_aux.codes.mat = = (int*)malloc(sizeof(int)*ivf_aux.codes.n*ivf_aux.codes.d);
+
+	memcpy (ivf_aux.ids, ivf->ids, sizeof(int)*tam_aux);
+	memcpy (ivf_aux.dis, ivf->dis, sizeof(int)*tam_aux);
+	memcpy (ivf_aux.codes.mat, ivf->codes.mat, sizeof(int)*ivf_aux.codes.n*ivf_aux.codes.d);
+
+	ivf->idstam += ivf2.idstam;
+	ivf->ids = (int*)realloc(ivf->ids,sizeof(int)*ivf->idstam);
+	ivf->dis = (int*)realloc(ivf->dis,sizeof(int)*ivf->idstam);
+	ivf->codes.n += ivf2->codes.n;
+	ivf->codes.mat = (int*)realloc(ivf->codes.mat,sizeof(int)*ivf->codes.n*ivf->codes.d);
+
+	while(iter1<ivf_aux.idstam && iter2<ivf2.idstam){
+		float aux1 , aux2;
+
+		if(iter1<ivf_aux.idstam){
+			aux1 = ivf_aux.dis[iter1];
+		}
+		else{
+			aux1 = FLT_MAX;
+		}
+		if(iter2<ivf2.idstam){
+			aux2 = ivf2.dis[iter2];
+		}
+		else{
+			aux2 = FLT_MAX;
+		}
+
+		if(aux1<aux2){
+			ivf->ids[i] = ivf_aux.ids[iter1];
+			ivf->dis[i] = ivf_aux.dis[iter1];
+			memcpy(&ivf->codes.mat[ivf.codes.d*i], &ivf_aux.codes.mat[ivf_aux.codes.d*iter1], sizeof(int)*ivf_aux.codes.d);
+			iter1++;
+		}
+		else{
+			ivf->ids[i] = ivf2.ids[iter2];
+			ivf->dis[i] = ivf2.dis[iter2];
+			memcpy(&ivf->codes.mat[ivf.codes.d*i], &ivf2.codes.mat[ivf2.codes.d*iter2], sizeof(int)*ivf2.codes.d);
+			iter2++;
+		}
+		i++;
+	}
+	free(ivf_aux.ids);
+	free(ivf_aux.dis);
+	free(ivf_aux.codes.mat);
 }
 
 ivf_t* write_ivf(ivfpq_t ivfpq, int threads, int tam, int my_rank, int nsq, char* dataset){
