@@ -25,7 +25,8 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 		ivf_t *ivf;
 
 	#ifdef WRITE_IVF
-		ivf = write_ivf(ivfpq, threads, tam, my_rank, nsq, dataset);
+		write_ivf(ivfpq, threads, tam, my_rank, nsq, dataset);
+		ivf = read_ivf(ivfpq, tam, my_rank);
 	#else
 		#ifdef READ_IVF
 			ivf = read_ivf(ivfpq, tam, my_rank);
@@ -293,13 +294,13 @@ ivf_t* create_ivf(ivfpq_t ivfpq, int threads, int tam, int my_rank, int nsq, cha
 	}
 	lim = tam/1000000;
 	if(tam%1000000!=0){
-		lim = (tam/1000000) + 1;	
+		lim = (tam/1000000) + 1;
 	}
 
 	//Cria a lista invertida correspondente ao trecho da base assinalado a esse processo
 	#pragma omp parallel for num_threads(threads) schedule(dynamic)
 		for(int i=0; i<lim; i++){
-						
+
 			ivf_t *ivf2;
 			int aux;
 				mat vbase;
@@ -339,25 +340,93 @@ ivf_t* create_ivf(ivfpq_t ivfpq, int threads, int tam, int my_rank, int nsq, cha
 	return ivf;
 }
 
-ivf_t* write_ivf(ivfpq_t ivfpq, int threads, int tam, int my_rank, int nsq, char* dataset){
+void write_ivf(ivfpq_t ivfpq, int threads, int tam, int my_rank, int nsq, char* dataset){
 	ivf_t* ivf;
 	FILE *fp;
 	char name_arq[50];
-	ivf = create_ivf(ivfpq, threads, tam, my_rank, nsq, dataset);
+	struct timeval start, end;
+	double time;
+	int lim;
 
-	sprintf(name_arq, "/home/andreff/ivf/ivf_%d_%d_%d.bin", ivfpq.coarsek, tam, my_rank-last_assign);
-	fp = fopen(name_arq,"wb");
-	fwrite(&ivfpq.coarsek, sizeof(int), 1, fp);
+	printf("\nIndexing\n");
+
+	gettimeofday(&start, NULL);
+
+	ivf = (ivf_t*)malloc(sizeof(ivf_t)*ivfpq.coarsek);
 	for(int i=0; i<ivfpq.coarsek; i++){
-		fwrite(&ivf[i].idstam, sizeof(int), 1, fp);
-		fwrite(&ivf[i].ids[0], sizeof(int), ivf[i].idstam, fp);
-		fwrite(&ivf[i].codes.n, sizeof(int), 1, fp);
-		fwrite(&ivf[i].codes.d, sizeof(int), 1, fp);
-		fwrite(&ivf[i].codes.mat[0], sizeof(int), ivf[i].codes.n*ivf[i].codes.d, fp);
+		ivf[i].ids = (int*)malloc(sizeof(int));
+		ivf[i].idstam = 0;
+		ivf[i].codes.mat = (int*)malloc(sizeof(int));
+		ivf[i].codes.n = 0;
+		ivf[i].codes.d = nsq;
+	}
+	lim = tam/1000000;
+	if(tam%1000000!=0){
+		lim = (tam/1000000) + 1;
 	}
 
-	fclose(fp);
-	return ivf;
+	//Cria a lista invertida correspondente ao trecho da base assinalado a esse processo
+	#pragma omp parallel for num_threads(threads) schedule(dynamic)
+		for(int i=0; i<lim; i++){
+
+			ivf_t *ivf2;
+			int aux;
+			mat vbase;
+			ivf2 = (ivf_t *)malloc(sizeof(ivf_t)*ivfpq.coarsek);
+
+			vbase = pq_test_load_base(dataset, i, my_rank-last_assign);
+
+			ivfpq_assign(ivfpq, vbase, ivf2);
+
+			for(int j=0; j<ivfpq.coarsek; j++){
+				for(int l=0; l<ivf2[j].idstam; l++){
+					ivf2[j].ids[l]+=1000000*i+tam*(my_rank-last_assign-1);
+				}
+
+				aux = ivf[j].idstam;
+				#pragma omp critical
+				{
+					ivf[j].idstam += ivf2[j].idstam;
+					ivf[j].ids = (int*)realloc(ivf[j].ids,sizeof(int)*ivf[j].idstam);
+					memcpy (ivf[j].ids+aux, ivf2[j].ids, sizeof(int)*ivf2[j].idstam);
+					ivf[j].codes.n += ivf2[j].codes.n;
+					ivf[j].codes.mat = (int*)realloc(ivf[j].codes.mat,sizeof(int)*ivf[j].codes.n*ivf[j].codes.d);
+					memcpy (ivf[j].codes.mat+aux*ivf[i].codes.d, ivf2[j].codes.mat, sizeof(int)*ivf2[j].codes.n*ivf2[j].codes.d);
+
+					if(i%2==0 || i == lim-1){
+						sprintf(name_arq, "/home/andreff/ivf/ivf_%d_%d_%d_%d.bin", ivfpq.coarsek, tam, my_rank-last_assign, j);
+						fp = fopen(name_arq,"wb");
+						fwrite(&ivfpq.coarsek, sizeof(int), 1, fp);
+						fwrite(&ivf[j].idstam, sizeof(int), 1, fp);
+						fwrite(&ivf[j].ids[0], sizeof(int), ivf[j].idstam, fp);
+						fwrite(&ivf[j].codes.n, sizeof(int), 1, fp);
+						fwrite(&ivf[j].codes.d, sizeof(int), 1, fp);
+						fwrite(&ivf[j].codes.mat[0], sizeof(int), ivf[j].codes.n*ivf[j].codes.d, fp);
+						fclose(fp);
+
+						free(ivf[j].ids);
+						free(ivf[j].codes.mat);
+
+						ivf[j].ids = (int*)malloc(sizeof(int));
+						ivf[j].idstam = 0;
+						ivf[j].codes.mat = (int*)malloc(sizeof(int));
+						ivf[j].codes.n = 0;
+						ivf[j].codes.d = nsq;
+					}
+				}
+				free(ivf2[j].ids);
+				free(ivf2[j].codes.mat);
+			}
+			free(vbase.mat);
+			free(ivf2);
+		}
+
+	gettimeofday(&end, NULL);
+	time = ((end.tv_sec * 1000000 + end.tv_usec)-(start.tv_sec * 1000000 + start.tv_usec))/1000;
+
+	printf ("\nTempo de criacao da lista invertida: %g\n",time);
+
+	free(ivf);
 }
 
 ivf_t* read_ivf(ivfpq_t ivfpq, int tam, int my_rank){
@@ -366,23 +435,27 @@ ivf_t* read_ivf(ivfpq_t ivfpq, int tam, int my_rank){
 	char name_arq[50];
 	int coarsek;
 
-	sprintf(name_arq, "/home/andreff/ivf/ivf_%d_%d_%d.bin", ivfpq.coarsek, tam, my_rank-last_assign);
-	fp = fopen(name_arq,"rb");
-	fread(&coarsek, sizeof(int), 1, fp);
-
 	ivf = (ivf_t*)malloc(sizeof(ivf_t)*ivfpq.coarsek);
 
+	ivf[j].ids = (int*)malloc(sizeof(int));
+	ivf[j].idstam = 0;
+	ivf[j].codes.mat = (int*)malloc(sizeof(int));
+	ivf[j].codes.n = 0;
+	ivf[j].codes.d = nsq;
+
 	for(int i=0; i<ivfpq.coarsek; i++){
-		fread(&ivf[i].idstam, sizeof(int), 1, fp);
-		ivf[i].ids = (int*)malloc(sizeof(int)*ivf[i].idstam);
-		fread(&ivf[i].ids[0], sizeof(int), ivf[i].idstam, fp);
-		fread(&ivf[i].codes.n, sizeof(int), 1, fp);
-		fread(&ivf[i].codes.d, sizeof(int), 1, fp);
-		ivf[i].codes.mat = (int*)malloc(sizeof(int)*ivf[i].codes.n*ivf[i].codes.d);
-		fread(&ivf[i].codes.mat[0], sizeof(int), ivf[i].codes.n*ivf[i].codes.d, fp);
+		sprintf(name_arq, "/home/andreff/ivf/ivf_%d_%d_%d_%d.bin", ivfpq.coarsek, tam, my_rank-last_assign, i);
+		fp = fopen(name_arq,"rb");
+		while(fread(&coarsek, sizeof(int), 1, fp) == ivfpq.coarsek){
+			fread(&ivf[i].idstam, sizeof(int), 1, fp);
+			ivf[i].ids = (int*)malloc(sizeof(int)*ivf[i].idstam);
+			fread(&ivf[i].ids[0], sizeof(int), ivf[i].idstam, fp);
+			fread(&ivf[i].codes.n, sizeof(int), 1, fp);
+			fread(&ivf[i].codes.d, sizeof(int), 1, fp);
+			ivf[i].codes.mat = (int*)malloc(sizeof(int)*ivf[i].codes.n*ivf[i].codes.d);
+			fread(&ivf[i].codes.mat[0], sizeof(int), ivf[i].codes.n*ivf[i].codes.d, fp);
+		}
 	}
-
-
 	return ivf;
 }
 

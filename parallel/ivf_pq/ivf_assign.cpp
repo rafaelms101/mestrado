@@ -26,8 +26,6 @@ void parallel_assign (char *dataset, int w, int comm_sz, MPI_Comm search_comm,in
 	coaidx = (int*)malloc(sizeof(int)*vquery.n*w);
 	coadis = (float*)malloc(sizeof(float)*vquery.n*w);
 	knn_full(2, vquery.n, ivfpq.coa_centroidsn, ivfpq.coa_centroidsd, w, ivfpq.coa_centroids, vquery.mat, NULL, coaidx, coadis);
-	
-	free(coadis);
 
 	for(int i=0;i<vquery.n; i++){
 		for(int j=0;j<w;j++){
@@ -54,19 +52,21 @@ void parallel_assign (char *dataset, int w, int comm_sz, MPI_Comm search_comm,in
 	MPI_Barrier(search_comm);
 	double start = MPI_Wtime();
 	MPI_Send(&start, 1, MPI_DOUBLE, last_aggregator, 0, MPI_COMM_WORLD);
-	for(int j=0; j<div; j++){	
+	for(int j=0; j<div; j++){
 
 		//Envia o resíduo para o processo de busca
 		MPI_Bcast(&num_q, 1, MPI_INT, 0, search_comm);
 		MPI_Bcast(&residual.d, 1, MPI_INT, 0, search_comm);
 		MPI_Bcast(&residual.mat[0]+j*num_q*residual.d, residual.d*num_q, MPI_FLOAT, 0, search_comm);
 		MPI_Bcast(&coaidx[0]+j*num_q, num_q, MPI_INT, 0, search_comm);
+		MPI_Bcast(&coadis[0]+j*num_q, num_q, MPI_FLOAT, 0, search_comm);
 		if(j==div-1)finish=1;
-		MPI_Bcast(&finish, 1, MPI_INT, 0, search_comm);	
+		MPI_Bcast(&finish, 1, MPI_INT, 0, search_comm);
 	}
 	free(coaidx);
+	free(coadis);
 	free(residual.mat);
-	
+
 }
 
 void bsxfunMINUS(float *mout, mat vin, float* vin2, int nq, int* qcoaidx, int ncoaidx){

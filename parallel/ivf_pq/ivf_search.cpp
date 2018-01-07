@@ -63,6 +63,7 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 				coaidx = (int*)malloc(sizeof(int)*residual.n);
 
 				MPI_Bcast(&coaidx[0], residual.n, MPI_INT, 0, search_comm);
+				MPI_Bcast(&coadis[0], residual.n, MPI_FLOAT, 0, search_comm);
 				MPI_Bcast(&finish_aux, 1, MPI_INT, 0, search_comm);
 
 				fila = (query_id_t*)malloc(sizeof(query_id_t)*(residual.n/w));
