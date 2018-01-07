@@ -318,9 +318,10 @@ ivf_t* create_ivf(ivfpq_t ivfpq, int threads, int tam, int my_rank, int nsq, cha
 				aux = ivf[j].idstam;
 				#pragma omp critical
 				{
-					merge_ivf(ivf[j], ivf2[j]);
+					merge_ivf(&ivf[j], ivf2[j]);
 				}
 				free(ivf2[j].ids);
+				free(ivf2[j].dis);
 				free(ivf2[j].codes.mat);
 			}
 			free(vbase.mat);
@@ -344,19 +345,19 @@ void merge_ivf(ivf_t *ivf, ivf_t ivf2){
 	ivf_aux.codes.d = ivf->codes.d;
 	ivf_aux.ids = (int*)malloc(sizeof(int)*ivf_aux.idstam);
 	ivf_aux.dis = (float*)malloc(sizeof(float)*ivf_aux.idstam);
-	ivf_aux.codes.mat = = (int*)malloc(sizeof(int)*ivf_aux.codes.n*ivf_aux.codes.d);
+	ivf_aux.codes.mat = (int*)malloc(sizeof(int)*ivf_aux.codes.n*ivf_aux.codes.d);
 
-	memcpy (ivf_aux.ids, ivf->ids, sizeof(int)*tam_aux);
-	memcpy (ivf_aux.dis, ivf->dis, sizeof(int)*tam_aux);
+	memcpy (ivf_aux.ids, ivf->ids, sizeof(int)*ivf_aux.idstam);
+	memcpy (ivf_aux.dis, ivf->dis, sizeof(int)*ivf_aux.idstam);
 	memcpy (ivf_aux.codes.mat, ivf->codes.mat, sizeof(int)*ivf_aux.codes.n*ivf_aux.codes.d);
 
 	ivf->idstam += ivf2.idstam;
 	ivf->ids = (int*)realloc(ivf->ids,sizeof(int)*ivf->idstam);
-	ivf->dis = (int*)realloc(ivf->dis,sizeof(int)*ivf->idstam);
-	ivf->codes.n += ivf2->codes.n;
+	ivf->dis = (float*)realloc(ivf->dis,sizeof(float)*ivf->idstam);
+	ivf->codes.n += ivf2.codes.n;
 	ivf->codes.mat = (int*)realloc(ivf->codes.mat,sizeof(int)*ivf->codes.n*ivf->codes.d);
 
-	while(iter1<ivf_aux.idstam && iter2<ivf2.idstam){
+	while(iter1<ivf_aux.idstam || iter2<ivf2.idstam){
 		float aux1 , aux2;
 
 		if(iter1<ivf_aux.idstam){
@@ -375,17 +376,18 @@ void merge_ivf(ivf_t *ivf, ivf_t ivf2){
 		if(aux1<aux2){
 			ivf->ids[i] = ivf_aux.ids[iter1];
 			ivf->dis[i] = ivf_aux.dis[iter1];
-			memcpy(&ivf->codes.mat[ivf.codes.d*i], &ivf_aux.codes.mat[ivf_aux.codes.d*iter1], sizeof(int)*ivf_aux.codes.d);
+			memcpy(&ivf->codes.mat[ivf->codes.d*i], &ivf_aux.codes.mat[ivf_aux.codes.d*iter1], sizeof(int)*ivf_aux.codes.d);
 			iter1++;
 		}
 		else{
 			ivf->ids[i] = ivf2.ids[iter2];
 			ivf->dis[i] = ivf2.dis[iter2];
-			memcpy(&ivf->codes.mat[ivf.codes.d*i], &ivf2.codes.mat[ivf2.codes.d*iter2], sizeof(int)*ivf2.codes.d);
+			memcpy(&ivf->codes.mat[ivf->codes.d*i], &ivf2.codes.mat[ivf2.codes.d*iter2], sizeof(int)*ivf2.codes.d);
 			iter2++;
 		}
 		i++;
 	}
+
 	free(ivf_aux.ids);
 	free(ivf_aux.dis);
 	free(ivf_aux.codes.mat);

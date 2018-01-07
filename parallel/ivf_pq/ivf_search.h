@@ -7,7 +7,7 @@
 	#include <sys/time.h>
 	#include <omp.h>
 	#include <list>
-	#include <limits.h>
+	#include <float.h>
 	#include <semaphore.h>
 	#include <string.h>
 	extern "C"{
