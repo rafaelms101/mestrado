@@ -22,6 +22,7 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 	ivfpq.coa_centroids=(float*)malloc(sizeof(float)*ivfpq.coa_centroidsd*ivfpq.coa_centroidsn);
 	MPI_Recv(&ivfpq.coa_centroids[0], ivfpq.coa_centroidsn*ivfpq.coa_centroidsd, MPI_FLOAT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
+
 	ivf_t *ivf, *ivf2;
 
 	#ifdef WRITE_IVF
@@ -29,25 +30,9 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 
 		ivf = read_ivf(ivfpq, tam, my_rank);
 	#else
-		#ifdef READ_IVF
-			//ivf2 = create_ivf(ivfpq, threads, tam, my_rank, nsq, dataset);
-			
+		#ifdef READ_IVF		
 			ivf = read_ivf(ivfpq, tam, my_rank);
-
-			/*for(int lo=0; lo<ivfpq.coarsek;lo++){
-				if(ivf[lo].idstam == ivf2[lo].idstam)printf("idstam certo\n");
-				if(ivf[lo].codes.n == ivf2[lo].codes.n)printf("codesn certo\n");
-				if(ivf[lo].codes.d == ivf2[lo].codes.d)printf("codesd certo\n");
-				for(int la=0; la<ivf[lo].idstam; la++){
-					if(ivf[lo].ids[la] != ivf2[lo].ids[la])printf("fail ivf %d ids %d\n", lo, la);
-				}
-				for(int la=0; la<ivf[lo].codes.n*ivf[lo].codes.d; la++){
-                                        if(ivf[lo].codes.mat[la] != ivf2[lo].codes.mat[la])printf("fail ivf %d codes %d\n", lo, la);
-                                }
-			}
-
-			printf("\n\n\n");*/
-
+			
 		#else
 			ivf = create_ivf(ivfpq, threads, tam, my_rank, nsq, dataset);
 		#endif
@@ -360,7 +345,7 @@ ivf_t* create_ivf(ivfpq_t ivfpq, int threads, int tam, int my_rank, int nsq, cha
 
 void write_ivf(ivfpq_t ivfpq, int threads, int tam, int my_rank, int nsq, char* dataset){
 	FILE *fp;
-	char name_arq[50];
+	char name_arq[100];
 	struct timeval start, end;
 	double time;
 	int lim, i;
@@ -397,7 +382,7 @@ void write_ivf(ivfpq_t ivfpq, int threads, int tam, int my_rank, int nsq, char* 
 				aux = ivf[j].idstam;
 				#pragma omp critical
 				{	
-					sprintf(name_arq, "/home/andreff/ivf/ivf_%d_%d_%d_%d.bin", ivfpq.coarsek, tam, my_rank-last_assign, j);
+					sprintf(name_arq, "/pylon5/ac3uump/freire/ivf/ivf_%d_%d_%d.bin", ivfpq.coarsek, tam, j);
 					fp = fopen(name_arq,"ab");
 					fwrite(&ivfpq.coarsek, sizeof(int), 1, fp);
 					fwrite(&ivf[j].idstam, sizeof(int), 1, fp);
@@ -423,21 +408,21 @@ ivf_t* read_ivf(ivfpq_t ivfpq, int tam, int my_rank){
 
 	ivf_t* ivf;
 	FILE *fp;
-	char name_arq[50];
+	char name_arq[100];
 	int coarsek;
 
 	ivf = (ivf_t*)malloc(sizeof(ivf_t)*ivfpq.coarsek);
 
 	for(int i=0; i<ivfpq.coarsek; i++){
 		int idstam, codesn, codesd;
-
+		
 		ivf[i].ids = (int*)malloc(sizeof(int));
 		ivf[i].idstam = 0;
 		ivf[i].codes.mat = (int*)malloc(sizeof(int));
 		ivf[i].codes.n = 0;
 		ivf[i].codes.d = ivfpq.pq.nsq;
 		
-		sprintf(name_arq, "/home/andreff/ivf/ivf_%d_%d_%d_%d.bin", ivfpq.coarsek, tam, my_rank-last_assign, i);
+		sprintf(name_arq, "/pylon5/ac3uump/freire/ivf/ivf_%d_%d_%d.bin", ivfpq.coarsek, tam, i);
 		fp = fopen(name_arq,"rb");
 		
 		for(int j=0; j<tam/1000000; j++){

@@ -3,9 +3,9 @@
 void parallel_training (char *dataset, int coarsek, int nsq, int tam, int comm_sz, int threads){
 	mat vtrain;
 	ivfpq_t ivfpq;
-	char file[50];
-	char file2[50];
-	char file3[50];
+	char file[100];
+	char file2[100];
+	char file3[100];
 	static int last_assign, last_search, last_aggregator;
 
 	set_last (comm_sz, &last_assign, &last_search, &last_aggregator);
@@ -13,7 +13,7 @@ void parallel_training (char *dataset, int coarsek, int nsq, int tam, int comm_s
 	sprintf(file, "bin/file_ivfpq_%d.bin", coarsek);
 	sprintf(file2, "bin/cent_ivfpq_%d.bin", coarsek);
 	sprintf(file3, "bin/coa_ivfpq_%d.bin", coarsek);
-
+	
 	// Cria os centroides baseado em uma base de treinamento e os armazena em arquivos
 	#ifdef TRAIN
 		vtrain = pq_test_load_train(dataset, tam);
@@ -29,14 +29,14 @@ void parallel_training (char *dataset, int coarsek, int nsq, int tam, int comm_s
 	//Le ou cria os centroides e os envia para os processos de assign
 	#else
     	int my_rank;
-
+		
 		MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
 		//Le os centroides de um arquivo
 		#ifdef READ_TRAIN
-
+			
 			read_cent(file, file2, file3, &ivfpq);
-
+			
  		//Cria centroides a partir dos vetores de treinamento
 		#else
 			vtrain = pq_test_load_train(dataset, tam);
@@ -50,7 +50,7 @@ void parallel_training (char *dataset, int coarsek, int nsq, int tam, int comm_s
 			MPI_Send(&ivfpq.pq.centroids[0], ivfpq.pq.centroidsn*ivfpq.pq.centroidsd, MPI_FLOAT, i, 0, MPI_COMM_WORLD);
 			MPI_Send(&ivfpq.coa_centroids[0], ivfpq.coa_centroidsd*ivfpq.coa_centroidsn, MPI_FLOAT, i, 0, MPI_COMM_WORLD);
 		}
-
+		
 		free(ivfpq.pq.centroids);
 		free(ivfpq.coa_centroids);
 

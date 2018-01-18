@@ -10,6 +10,7 @@ void parallel_assign (char *dataset, int w, int comm_sz, MPI_Comm search_comm,in
 	set_last (comm_sz, &last_assign, &last_search, &last_aggregator);
 
 	vquery = pq_test_load_query(dataset, threads);
+	printf("g1");
 
 	//Recebe os centroides
 	MPI_Recv(&ivfpq, sizeof(ivfpq_t), MPI_BYTE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -17,6 +18,8 @@ void parallel_assign (char *dataset, int w, int comm_sz, MPI_Comm search_comm,in
 	MPI_Recv(&ivfpq.pq.centroids[0], ivfpq.pq.centroidsn*ivfpq.pq.centroidsd, MPI_FLOAT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	ivfpq.coa_centroids=(float*)malloc(sizeof(float)*ivfpq.coa_centroidsd*ivfpq.coa_centroidsn);
 	MPI_Recv(&ivfpq.coa_centroids[0], ivfpq.coa_centroidsn*ivfpq.coa_centroidsd, MPI_FLOAT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+	printf("g2");
 
 	//Calcula o residuo de cada vetor da query para os processos de busca
 	residual.d = vquery.d;
