@@ -1,0 +1,8 @@
+parallel2/.cproject
+parallel2/.project
+parallel2/.settings/
+*.o
+pq_test
+testes.txt
+yael_needs
+ivfpq_test
