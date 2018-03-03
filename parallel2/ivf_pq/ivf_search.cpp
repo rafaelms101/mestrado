@@ -49,126 +49,128 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 
 	sem_init(&sem, 0, 1);
 
-	#pragma omp parallel num_threads(threads+1)
-	{
+	while (1) {
+		double f1 = 0, f2 = 0, f3 = 0, f4 = 0, g1 = 0, g2 = 0, g3 = 0;
 
-		while(1){
-			int my_omp_rank = omp_get_thread_num ();
-			double f1=0, f2=0, f3=0, f4=0, g1=0, g2=0, g3=0;
-			if(my_omp_rank==0){
+		MPI_Bcast(&residual.n, 1, MPI_INT, 0, search_comm);
+		MPI_Bcast(&residual.d, 1, MPI_INT, 0, search_comm);
 
-				MPI_Bcast(&residual.n, 1, MPI_INT, 0, search_comm);
-				MPI_Bcast(&residual.d, 1, MPI_INT, 0, search_comm);
+		residual.mat = (float*) malloc(sizeof(float) * residual.n * residual.d);
 
-				residual.mat = (float*)malloc(sizeof(float)*residual.n*residual.d);
+		MPI_Bcast(&residual.mat[0], residual.d * residual.n, MPI_FLOAT, 0,
+				search_comm);
 
-				MPI_Bcast(&residual.mat[0], residual.d*residual.n, MPI_FLOAT, 0, search_comm);
+		coaidx = (int*) malloc(sizeof(int) * residual.n);
 
-				coaidx = (int*)malloc(sizeof(int)*residual.n);
+		MPI_Bcast(&coaidx[0], residual.n, MPI_INT, 0, search_comm);
+		MPI_Bcast(&finish_aux, 1, MPI_INT, 0, search_comm);
 
-				MPI_Bcast(&coaidx[0], residual.n, MPI_INT, 0, search_comm);
-				MPI_Bcast(&finish_aux, 1, MPI_INT, 0, search_comm);
+		fila = (query_id_t*) malloc(sizeof(query_id_t) * (residual.n / w));
 
-				fila = (query_id_t*)malloc(sizeof(query_id_t)*(residual.n/w));
-
-				for(int it=0; it<residual.n/w; it++){
-					fila[it].tam = 0;
-					fila[it].id = count;
-				}
-
-				iter = 0;
-
-				dis = (float**)malloc(sizeof(float *)*(residual.n/w));
-				ids = (int**)malloc(sizeof(int *)*(residual.n/w));
-			}
-
-			#pragma omp barrier
-
-			if(my_omp_rank==threads){
-
-				send_aggregator(residual.n, w, fila, ids, dis, finish_aux, count);
-
-				count += iter;
-
-				free(dis);
-				free(ids);
-				free(coaidx);
-				free(residual.mat);
-				free(fila);
-			}
-			else{ //Faz a busca dos vetores da query na lista invertida
-				for(int i=my_omp_rank; i<residual.n/w; i+=threads){
-
-					int ktmp;
-					dis_t qt;
-					query_id_t element;
-
-					qt.idx.mat = (int*) malloc(sizeof(int));
-					qt.dis.mat = (float*) malloc(sizeof(float));
-					qt.idx.n=0;
-					qt.idx.d=1;
-					qt.dis.n=0;
-					qt.dis.d=1;
-
-					struct timeval a1, a2, a3, a4, a5, b1, b2;
-
-					gettimeofday(&a1, NULL);
-
-					for(int j=0; j<w; j++){
-						dis_t q;
-						q = ivfpq_search(ivf, &residual.mat[0]+(i*w+j)*residual.d, ivfpq.pq, coaidx[i*w+j], &g1, &g2);
-
-						qt.idx.mat = (int*) realloc(qt.idx.mat, sizeof(int)*(qt.idx.n+q.idx.n));
-						qt.dis.mat = (float*) realloc(qt.dis.mat, sizeof(float)*(qt.dis.n+q.dis.n));
-
-						memcpy(&qt.idx.mat[qt.idx.n], &q.idx.mat[0], sizeof(int)*q.idx.n);
-						memcpy(&qt.dis.mat[qt.dis.n], &q.dis.mat[0], sizeof(float)*q.dis.n);
-
-						qt.idx.n+=q.idx.n;
-						qt.dis.n+=q.dis.n;
-						free(q.dis.mat);
-						free(q.idx.mat);
-					}
-
-					gettimeofday(&a2, NULL);
-					ktmp = min(qt.idx.n, k);
-
-					ids[i] = (int*) malloc(sizeof(int)*ktmp);
-					dis[i] = (float*) malloc(sizeof(float)*ktmp);
-					gettimeofday(&a3, NULL);
-
-					my_k_min(qt, ktmp, &dis[i][0], &ids[i][0]);
-
-					gettimeofday(&a4, NULL);
-
-					element.id = i;
-					element.tam = ktmp;
-					sem_wait(&sem);
-					fila[iter].id+=i;
-					fila[iter].tam+=ktmp;
-					iter++;
-					sem_post(&sem);
-					gettimeofday(&a5, NULL);
-
-					f1 += ((a2.tv_sec * 1000000 + a2.tv_usec)-(a1.tv_sec * 1000000 + a1.tv_usec));
-					f2 += ((a3.tv_sec * 1000000 + a3.tv_usec)-(a2.tv_sec * 1000000 + a2.tv_usec));
-					f3 += ((a4.tv_sec * 1000000 + a4.tv_usec)-(a3.tv_sec * 1000000 + a3.tv_usec));
-					f4 += ((a5.tv_sec * 1000000 + a5.tv_usec)-(a4.tv_sec * 1000000 + a4.tv_usec));
-
-					free(qt.dis.mat);
-					free(qt.idx.mat);
-				}
-				FILE *fp;
-
-				fp = fopen("testes.txt", "a");
-
-				fprintf(fp, "Thread %d: ivfpq_search %g min %g k_min %g critical %g cross_distances %g sumidx %g\n",my_omp_rank, f1/1000,f2/1000,f3/1000,f4/1000,g1/1000,g2/1000);
-
-				fclose(fp);
-			}
-			if (finish_aux==1)break;
-			#pragma omp barrier
+		for (int it = 0; it < residual.n / w; it++) {
+			fila[it].tam = 0;
+			fila[it].id = count;
 		}
+
+		iter = 0;
+
+		dis = (float**) malloc(sizeof(float *) * (residual.n / w));
+		ids = (int**) malloc(sizeof(int *) * (residual.n / w));
+
+			//Faz a busca dos vetores da query na lista invertida
+		for (int i = 0; i < residual.n / w; i += 1) {
+
+			int ktmp;
+			dis_t qt;
+			query_id_t element;
+
+			qt.idx.mat = (int*) malloc(sizeof(int));
+			qt.dis.mat = (float*) malloc(sizeof(float));
+			qt.idx.n = 0;
+			qt.idx.d = 1;
+			qt.dis.n = 0;
+			qt.dis.d = 1;
+
+			struct timeval a1, a2, a3, a4, a5, b1, b2;
+
+			gettimeofday(&a1, NULL);
+
+			for (int j = 0; j < w; j++) {
+				dis_t q;
+				q = ivfpq_search(ivf,
+						&residual.mat[0] + (i * w + j) * residual.d, ivfpq.pq,
+						coaidx[i * w + j], &g1, &g2);
+
+				qt.idx.mat = (int*) realloc(qt.idx.mat,
+						sizeof(int) * (qt.idx.n + q.idx.n));
+				qt.dis.mat = (float*) realloc(qt.dis.mat,
+						sizeof(float) * (qt.dis.n + q.dis.n));
+
+				memcpy(&qt.idx.mat[qt.idx.n], &q.idx.mat[0],
+						sizeof(int) * q.idx.n);
+				memcpy(&qt.dis.mat[qt.dis.n], &q.dis.mat[0],
+						sizeof(float) * q.dis.n);
+
+				qt.idx.n += q.idx.n;
+				qt.dis.n += q.dis.n;
+				free(q.dis.mat);
+				free(q.idx.mat);
+			}
+
+			gettimeofday(&a2, NULL);
+			ktmp = min(qt.idx.n, k);
+
+			ids[i] = (int*) malloc(sizeof(int) * ktmp);
+			dis[i] = (float*) malloc(sizeof(float) * ktmp);
+			gettimeofday(&a3, NULL);
+
+			my_k_min(qt, ktmp, &dis[i][0], &ids[i][0]);
+
+			gettimeofday(&a4, NULL);
+
+			element.id = i;
+			element.tam = ktmp;
+			sem_wait(&sem);
+			fila[iter].id += i;
+			fila[iter].tam += ktmp;
+			iter++;
+			sem_post(&sem);
+			gettimeofday(&a5, NULL);
+
+			f1 += ((a2.tv_sec * 1000000 + a2.tv_usec)
+					- (a1.tv_sec * 1000000 + a1.tv_usec));
+			f2 += ((a3.tv_sec * 1000000 + a3.tv_usec)
+					- (a2.tv_sec * 1000000 + a2.tv_usec));
+			f3 += ((a4.tv_sec * 1000000 + a4.tv_usec)
+					- (a3.tv_sec * 1000000 + a3.tv_usec));
+			f4 += ((a5.tv_sec * 1000000 + a5.tv_usec)
+					- (a4.tv_sec * 1000000 + a4.tv_usec));
+
+			free(qt.dis.mat);
+			free(qt.idx.mat);
+		}
+		FILE *fp;
+
+		fp = fopen("testes.txt", "a");
+
+		fprintf(fp,
+				"Thread 0: ivfpq_search %g min %g k_min %g critical %g cross_distances %g sumidx %g\n",
+				f1 / 1000, f2 / 1000, f3 / 1000, f4 / 1000,
+				g1 / 1000, g2 / 1000);
+
+		fclose(fp);
+		
+		//SEND RESULTS TO NEXT STAGE
+		send_aggregator(residual.n, w, fila, ids, dis, finish_aux, count);
+		count += iter;
+		free(dis);
+		free(ids);
+		free(coaidx);
+		free(residual.mat);
+		free(fila);
+		
+		if (finish_aux == 1)
+			break;
 
 	}
 	cout << "." << endl;
@@ -206,13 +208,17 @@ dis_t ivfpq_search(ivf_t *ivf, float *residual, pqtipo pq, int centroid_idx, dou
 
 	gettimeofday(&b1, NULL);
 
+	clock_t begin = clock();
 	for (int query = 0; query < nsq; query++) {
+		
 		compute_cross_distances(ds, 1, distab.d, &residual[query*ds], &pq.centroids[query*ks*ds], distab_temp);
+		
 		memcpy(distab.mat+query*ks, distab_temp, sizeof(float)*ks);
 	}
 
 	gettimeofday(&b2, NULL);
 
+	begin = clock();
 	AUXSUMIDX = sumidxtab2(distab, ivf[centroid_idx].codes, 0);
 
 	gettimeofday(&b3, NULL);
@@ -230,46 +236,50 @@ dis_t ivfpq_search(ivf_t *ivf, float *residual, pqtipo pq, int centroid_idx, dou
 	return q;
 }
 
-void send_aggregator(int residualn, int w, query_id_t *fila, int **ids, float **dis, int finish_aux, int count){
-
-	int i=0, num=0, ttam=0, *ids2, it=0, my_rank, finish=0;
+void send_aggregator(int residualn, int w, query_id_t *fila, int **ids,
+		float **dis, int finish_aux, int count) {
+	int i = 0, num = 0, ttam = 0, *ids2, it = 0, my_rank, finish = 0;
 	float *dis2;
 	query_id_t *element;
 
-	ids2 = (int*)malloc(sizeof(int));
-	dis2 = (float*)malloc(sizeof(float));
-	element = (query_id_t*)malloc(sizeof(query_id_t)*10);
+	ids2 = (int*) malloc(sizeof(int));
+	dis2 = (float*) malloc(sizeof(float));
+	element = (query_id_t*) malloc(sizeof(query_id_t) * 10);
 	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
-	while(i<residualn/w){
-
-		while(it==iter);
-
+	while (i < residualn / w) {
 		element[num] = fila[it];
 
-		ids2 = (int*)realloc(ids2,sizeof(int)*(ttam+element[num].tam));
-		dis2 = (float*)realloc(dis2,sizeof(float)*(ttam+element[num].tam));
-		memcpy(&ids2[0] + ttam, ids[element[num].id-count], sizeof(int)*element[num].tam);
-		memcpy(&dis2[0] + ttam, dis[element[num].id-count], sizeof(float)*element[num].tam);
-		free(ids[element[num].id-count]);
-		free(dis[element[num].id-count]);
-		ttam+=element[num].tam;
+		ids2 = (int*) realloc(ids2, sizeof(int) * (ttam + element[num].tam));
+		dis2 = (float*) realloc(dis2,
+				sizeof(float) * (ttam + element[num].tam));
+		memcpy(&ids2[0] + ttam, ids[element[num].id - count],
+				sizeof(int) * element[num].tam);
+		memcpy(&dis2[0] + ttam, dis[element[num].id - count],
+				sizeof(float) * element[num].tam);
+		free(ids[element[num].id - count]);
+		free(dis[element[num].id - count]);
+		ttam += element[num].tam;
 		num++;
 		it++;
-		if(num==10 || num==residualn/w-i){
+		if (num == 10 || num == residualn / w - i) {
 
-			if(num==residualn/w-i && finish_aux==1)finish=1;
+			if (num == residualn / w - i && finish_aux == 1)
+				finish = 1;
 
 			MPI_Send(&my_rank, 1, MPI_INT, last_aggregator, 1, MPI_COMM_WORLD);
 			MPI_Send(&num, 1, MPI_INT, last_aggregator, 0, MPI_COMM_WORLD);
-			MPI_Send(&element[0], sizeof(query_id_t)*num, MPI_BYTE, last_aggregator, 0, MPI_COMM_WORLD);
-			MPI_Send(&ids2[0], ttam, MPI_INT, last_aggregator, 0, MPI_COMM_WORLD);
-			MPI_Send(&dis2[0], ttam, MPI_FLOAT, last_aggregator, 0, MPI_COMM_WORLD);
-			MPI_Send(&finish, 1, MPI_INT, last_aggregator, 0, MPI_COMM_WORLD);
+			MPI_Send(&element[0], sizeof(query_id_t) * num, MPI_BYTE,
+					last_aggregator, 0, MPI_COMM_WORLD);
+			MPI_Send(&ids2[0], ttam, MPI_INT, last_aggregator, 0,
+					MPI_COMM_WORLD);
+			MPI_Send(&dis2[0], ttam, MPI_FLOAT, last_aggregator, 0,
+					MPI_COMM_WORLD);
+			MPI_Send(&finish, 1, MPI_INT, last_aggregator, 0, MPI_COMM_WORLD); //TODO: why is finish sent and not finish_aux (since it ends the loop on the main function)?
 
-			i+=num;
-			num=0;
-			ttam=0;
+			i += num;
+			num = 0;
+			ttam = 0;
 		}
 	}
 	free(element);
