@@ -14,7 +14,7 @@ extern "C" {
 
 using namespace std;
 
-#define BASE_DIR "/pylon5/ac3uump/freire/database/siftbig/"
+#define BASE_DIR "/home/rafael/mestrado/main/siftsmall/"
 
 typedef struct{
 	float *mat;
