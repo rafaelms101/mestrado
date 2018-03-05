@@ -1,11 +1,252 @@
 #include "ivf_search.h"
 
+#include <set>
+#include <cstdio>
+#include <queue>
+
 int iter;
 static int last_assign, last_search, last_aggregator;
 static sem_t sem;
 
-void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Comm search_comm, char *dataset, int w){
+//TODO: remember to add delete calls to the new calls
+//TODO: remember to initialize elements.tam to 0
 
+pqtipo PQ;
+void store_pqcentroids_on_gpu(pqtipo pq) {
+	PQ = pq; //TODO:replace this with the real code
+}
+
+float dist2(float* a, float* b, int size) {
+	float d = 0;
+	for (int i = 0; i < size; i++) {
+		float diff = a[i] - b[i];
+		d += diff * diff;
+	}
+	
+	return d;
+}
+
+void core(mat partial_residual, int* partial_coaidx, ivf_t* partial_ivf, int* entry_map, query_id_t* elements, matI idxs, mat dists) {
+	std::cout << "CORE\n";
+	
+	int p = 0;
+	
+	for (int i = 0; i < partial_residual.n; i++) {
+		float* residual = partial_residual.mat + i * PQ.nsq * PQ.ds;
+		
+		mat distab;
+		distab.mat = new float[PQ.ks * PQ.nsq]; 
+		distab.n = PQ.nsq;
+		distab.d = PQ.ks;
+		
+		for (int d = 0; d < PQ.nsq; d++) {
+			for (int k = 0; k < PQ.ks; k++) {
+				float dist = dist2(residual + d * PQ.ds, PQ.centroids + d * PQ.ks * PQ.ds + k * PQ.ds, PQ.ds);
+				distab.mat[PQ.ks * d + k] = dist;
+			}
+		}
+		
+		int ivf_id = entry_map[i];
+		ivf_t entry = partial_ivf[ivf_id];
+		elements[i].tam += entry.idstam;
+		
+	
+		
+		for (int j = 0; j < entry.idstam; j++) {
+			float dist = 0;
+			
+			for (int d = 0; d < PQ.nsq; d++) {
+				              dist += distab.mat[PQ.ks * d + entry.codes.mat[PQ.nsq * j + d]];
+			}
+			
+			dists.mat[p] = dist;
+			idxs.mat[p] = entry.ids[j];
+			p++;
+		}
+		
+		delete[] distab.mat; 
+	}
+}
+
+void do_cpu(int w, std::list<int>& to_cpu, mat residual, int* coaidx, ivf_t* ivf, query_id_t*& elements, matI& idxs, mat& dists) {
+	std::set<int> coaidPresent;
+
+	int D = residual.d;
+
+	mat cpu_residual;
+	cpu_residual.n = to_cpu.size();
+	cpu_residual.d = residual.d;
+	cpu_residual.mat = new float[cpu_residual.d * cpu_residual.n];
+
+	int cpu_coaidx[to_cpu.size()];
+
+	elements = new query_id_t[to_cpu.size()];
+	
+	int i;
+	i = 0;
+
+	for (auto it = to_cpu.begin(); it != to_cpu.end(); it++, i++) {
+		cpu_coaidx[i] = coaidx[*it];
+
+		for (int d = 0; d < D; d++) {
+			cpu_residual.mat[i * D + d] = residual.mat[*it * D + d];
+		}
+
+		coaidPresent.insert(cpu_coaidx[i]);
+		
+		elements[i].id = *it; //TODO: remember to downscale the ID (/ w) somewhere else
+		elements[i].tam = 0;
+	}
+
+	ivf_t cpu_ivf[coaidPresent.size()];
+	std::map<int, int> coaid_to_IVF;
+
+	i = 0;
+	for (auto it = coaidPresent.begin(); it != coaidPresent.end(); it++, i++) {
+		cpu_ivf[i].idstam = ivf[*it].idstam;
+		cpu_ivf[i].ids = ivf[*it].ids;
+		cpu_ivf[i].codes = ivf[*it].codes;
+		coaid_to_IVF.insert(std::pair<int, int>(*it, i));
+	}
+
+	int map[to_cpu.size()];
+	
+	for (i = 0; i < to_cpu.size(); i++) {
+		map[i] = coaid_to_IVF.find(cpu_coaidx[i])->second;
+	}
+	
+	int count = 0;
+	for (int i = 0; i < cpu_residual.n; i++) {
+		count += ivf[coaidx[i]].idstam;
+	}
+	
+	idxs.mat = new int[count];
+	idxs.n = count;
+	dists.mat = new float[count];
+	dists.n = count;
+
+	
+	core(cpu_residual, cpu_coaidx, cpu_ivf, map, elements, idxs, dists);
+	
+	delete[] cpu_residual.mat; 
+}
+
+void do_gpu(int w, std::list<int>& to_gpu, mat residual, int* coaidx, ivf_t* ivf, query_id_t*& elements, matI& idxs, mat& dists) {
+	std::cout << "DO GPU\n";
+	do_cpu(w, to_gpu, residual, coaidx, ivf, elements, idxs, dists);
+}
+
+
+
+/*
+ * One very strong assumption is that the elements that refers to the same query (but in different coarse centroids) are in order, and in gpu >>>> cpu preference.
+ * Another assumption is that when we receive a (coaidx, residual) pair, that all of the w coaidx that refers to the same query are together
+ */
+void merge_results(int base_id, int w, int ncpu, query_id_t* cpu_elements, matI cpu_idxs, mat cpu_dists, int ngpu, query_id_t* gpu_elements, matI gpu_idxs, mat gpu_dists, query_id_t*& elements, matI& idxs, mat& dists) {
+	std::cout << "MERGE_RESULTS: \n";
+	std::cout << "CPU ELEMENTS\n";
+	for (int i = 0; i < ncpu; i++) {
+		std::printf("%d[%d] ", cpu_elements[i].id, cpu_elements[i].tam);
+	}
+	
+	std::cout << "\nGPU ELEMENTS\n";
+	for (int i = 0; i < ngpu; i++) {
+		std::printf("%d[%d] ", gpu_elements[i].id, gpu_elements[i].tam);
+	}
+	
+	int ne = (ncpu + ngpu) / w;
+	elements = new query_id_t[ne];
+	for (int i = 0; i < ne; i++) {
+		elements[i].tam = 0;
+	}
+	
+	idxs.n = cpu_idxs.n + gpu_idxs.n;
+	idxs.mat = new int[idxs.n];
+	
+	dists.n = cpu_dists.n + gpu_dists.n;
+	dists.mat = new float[dists.n];
+	
+	int imgi = 0;
+	int gpui = 0;
+	
+	//TODO: code duplication
+	for (int i = 0; i < ngpu; i++) {
+		int offset = gpu_elements[i].id / w; 
+		elements[offset].id = offset + base_id;
+		elements[offset].tam += gpu_elements[i].tam;
+		
+		for (int j = 0; j < gpu_elements[i].tam; j++) {
+			idxs.mat[imgi] = gpu_idxs.mat[gpui];
+			dists.mat[imgi] = gpu_dists.mat[gpui];
+			imgi++;
+			gpui++;
+		}
+	}
+	
+	int cpui = 0;
+
+	for (int i = 0; i < ncpu; i++) {
+		int offset = cpu_elements[i].id / w; 
+		elements[offset].id = offset + base_id;
+		elements[offset].tam += cpu_elements[i].tam;
+
+		for (int j = 0; j < cpu_elements[i].tam; j++) {
+			idxs.mat[imgi] = cpu_idxs.mat[cpui];
+			dists.mat[imgi] = cpu_dists.mat[cpui];
+			imgi++;
+			cpui++;
+		}
+	}
+}
+
+void send_results(int ne, query_id_t* elements, matI idxs, mat dists, int finish) {
+	int my_rank;
+	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+	
+	MPI_Send(&my_rank, 1, MPI_INT, last_aggregator, 1, MPI_COMM_WORLD);
+	MPI_Send(&ne, 1, MPI_INT, last_aggregator, 0, MPI_COMM_WORLD);
+	MPI_Send(elements, sizeof(query_id_t) * ne, MPI_BYTE, last_aggregator,
+			0, MPI_COMM_WORLD);
+	MPI_Send(idxs.mat, idxs.n, MPI_INT, last_aggregator, 0,
+	MPI_COMM_WORLD);
+	MPI_Send(dists.mat, dists.n, MPI_FLOAT, last_aggregator, 0,
+	MPI_COMM_WORLD);
+	MPI_Send(&finish, 1, MPI_INT, last_aggregator, 0, MPI_COMM_WORLD); 
+}
+
+void choose_best(query_id_t* elements, int ne, matI& idxs, mat& dists, int k) {
+	int imgi = 0;
+	int wi = 0;
+	
+	for (int i = 0; i < ne; i++) {
+		std::priority_queue<std::pair<float, int>, 
+		                    std::vector<std::pair<float, int>>, 
+							std::less<std::pair<float, int>>> queue;
+		
+		for (int j = 0; j < elements[i].tam; j++) {
+			if (queue.size() < k) queue.push(std::pair<float, int>(dists.mat[imgi], idxs.mat[imgi]));
+			else if (dists.mat[imgi] < queue.top().first) {
+				queue.pop();
+				queue.push(std::pair<float, int>(dists.mat[imgi], idxs.mat[imgi]));
+			}
+			
+			imgi++;
+		}
+		
+		elements[i].tam = queue.size();
+		while (queue.size() >= 1) {
+			idxs.mat[wi] = queue.top().second;
+			dists.mat[wi] = queue.top().first;
+			queue.pop();
+			wi++;
+		}
+	}
+	
+	idxs.n = wi;
+	dists.n = wi;
+}
+
+void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Comm search_comm, char *dataset, int w){
 	ivfpq_t ivfpq;
 	mat residual;
 	int *coaidx, my_rank;
@@ -21,6 +262,10 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 	MPI_Recv(&ivfpq.pq.centroids[0], ivfpq.pq.centroidsn*ivfpq.pq.centroidsd, MPI_FLOAT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	ivfpq.coa_centroids=(float*)malloc(sizeof(float)*ivfpq.coa_centroidsd*ivfpq.coa_centroidsn);
 	MPI_Recv(&ivfpq.coa_centroids[0], ivfpq.coa_centroidsn*ivfpq.coa_centroidsd, MPI_FLOAT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	
+	std::cout << "number of coarse centroids: " << ivfpq.coa_centroidsn << "\n";
+	std::cout << "number of product centroids per dimension: " << ivfpq.pq.centroidsn << "\n";
+	std::cout << "number of product centroids dimensions: " << ivfpq.pq.centroidsd << "\n";
 
 
 	ivf_t *ivf, *ivf2;
@@ -43,11 +288,16 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 	int finish_aux=0;
 
 	query_id_t *fila;
-	int count =0;
+	int count = 0;
 
+	
+	int base_id = 0; // it is, actually, query_id * w
+	
 	MPI_Barrier(search_comm);
 
 	sem_init(&sem, 0, 1);
+	
+	system("exit");
 
 	while (1) {
 		double f1 = 0, f2 = 0, f3 = 0, f4 = 0, g1 = 0, g2 = 0, g3 = 0;
@@ -77,101 +327,91 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 		dis = (float**) malloc(sizeof(float *) * (residual.n / w));
 		ids = (int**) malloc(sizeof(int *) * (residual.n / w));
 
-			//Faz a busca dos vetores da query na lista invertida
-		for (int i = 0; i < residual.n / w; i += 1) {
-
-			int ktmp;
-			dis_t qt;
-			query_id_t element;
-
-			qt.idx.mat = (int*) malloc(sizeof(int));
-			qt.dis.mat = (float*) malloc(sizeof(float));
-			qt.idx.n = 0;
-			qt.idx.d = 1;
-			qt.dis.n = 0;
-			qt.dis.d = 1;
-
-			struct timeval a1, a2, a3, a4, a5, b1, b2;
-
-			gettimeofday(&a1, NULL);
-
-			for (int j = 0; j < w; j++) {
-				dis_t q;
-				q = ivfpq_search(ivf,
-						&residual.mat[0] + (i * w + j) * residual.d, ivfpq.pq,
-						coaidx[i * w + j], &g1, &g2);
-
-				qt.idx.mat = (int*) realloc(qt.idx.mat,
-						sizeof(int) * (qt.idx.n + q.idx.n));
-				qt.dis.mat = (float*) realloc(qt.dis.mat,
-						sizeof(float) * (qt.dis.n + q.dis.n));
-
-				memcpy(&qt.idx.mat[qt.idx.n], &q.idx.mat[0],
-						sizeof(int) * q.idx.n);
-				memcpy(&qt.dis.mat[qt.dis.n], &q.dis.mat[0],
-						sizeof(float) * q.dis.n);
-
-				qt.idx.n += q.idx.n;
-				qt.dis.n += q.dis.n;
-				free(q.dis.mat);
-				free(q.idx.mat);
+		
+		std::cout << "QUERY SELECTION\n";
+		
+		store_pqcentroids_on_gpu(ivfpq.pq); //TODO: implement
+		
+		
+		int maxgpu = residual.n / 2;
+		int ngpu = 0;
+		int ncpu = 0;
+		
+		std::list<int> to_gpu;
+		std::list<int> to_cpu;
+		
+		bool done[residual.n];
+		
+		for (int i = 0; i < residual.n; i++) done[i] = false;
+		
+		//SELECTING QUERIES TO SEND TO THE GPU AND QUERIES TO PROCESS ON THE CPU
+		for (int i = 0; i < residual.n; i++) {
+			if (done[i]) continue;
+			
+			//TODO: add real logic to decide if it should or not be processed on the cpu/gpu. Currently just doing 50% of the queries
+			
+			if (ngpu < maxgpu) { //to be processed in the gpu
+				to_gpu.push_back(i);
+				done[i] = true;
+				ngpu++;
+				int coaid = coaidx[i];
+				
+				for (int j = i + 1; j < residual.n && ngpu < maxgpu; j++) {
+					if (coaidx[j] == coaid) {
+						ngpu++;
+						to_gpu.push_back(j);
+						done[j] = true;
+					}
+				}
+			} else { //to be processed in the cpu
+				to_cpu.push_back(i);
+				done[i] = true;
+				ncpu++;
 			}
-
-			gettimeofday(&a2, NULL);
-			ktmp = min(qt.idx.n, k);
-
-			ids[i] = (int*) malloc(sizeof(int) * ktmp);
-			dis[i] = (float*) malloc(sizeof(float) * ktmp);
-			gettimeofday(&a3, NULL);
-
-			my_k_min(qt, ktmp, &dis[i][0], &ids[i][0]);
-
-			gettimeofday(&a4, NULL);
-
-			element.id = i;
-			element.tam = ktmp;
-			sem_wait(&sem);
-			fila[iter].id += i;
-			fila[iter].tam += ktmp;
-			iter++;
-			sem_post(&sem);
-			gettimeofday(&a5, NULL);
-
-			f1 += ((a2.tv_sec * 1000000 + a2.tv_usec)
-					- (a1.tv_sec * 1000000 + a1.tv_usec));
-			f2 += ((a3.tv_sec * 1000000 + a3.tv_usec)
-					- (a2.tv_sec * 1000000 + a2.tv_usec));
-			f3 += ((a4.tv_sec * 1000000 + a4.tv_usec)
-					- (a3.tv_sec * 1000000 + a3.tv_usec));
-			f4 += ((a5.tv_sec * 1000000 + a5.tv_usec)
-					- (a4.tv_sec * 1000000 + a4.tv_usec));
-
-			free(qt.dis.mat);
-			free(qt.idx.mat);
 		}
-		FILE *fp;
-
-		fp = fopen("testes.txt", "a");
-
-		fprintf(fp,
-				"Thread 0: ivfpq_search %g min %g k_min %g critical %g cross_distances %g sumidx %g\n",
-				f1 / 1000, f2 / 1000, f3 / 1000, f4 / 1000,
-				g1 / 1000, g2 / 1000);
-
-		fclose(fp);
 		
-		//SEND RESULTS TO NEXT STAGE
-		send_aggregator(residual.n, w, fila, ids, dis, finish_aux, count);
-		count += iter;
-		free(dis);
-		free(ids);
-		free(coaidx);
-		free(residual.mat);
-		free(fila);
+		//GPU PART
+		query_id_t* gpu_elements;
+		matI gpu_idxs;
+		mat gpu_dists;
+		do_gpu(w, to_gpu, residual, coaidx, ivf, gpu_elements, gpu_idxs, gpu_dists);
 		
-		if (finish_aux == 1)
-			break;
-
+		//CPU PART
+		query_id_t* cpu_elements;
+		matI cpu_idxs;
+		mat cpu_dists;
+		do_cpu(w, to_cpu, residual, coaidx, ivf, cpu_elements, cpu_idxs, cpu_dists);
+		
+		query_id_t* elements;
+		matI idxs;
+		mat dists;
+		
+		merge_results(base_id, w, ncpu, cpu_elements, cpu_idxs, cpu_dists, ngpu, gpu_elements, gpu_idxs, gpu_dists, elements, idxs, dists);
+		
+		delete[] cpu_elements;
+		delete[] cpu_idxs.mat;
+		delete[] cpu_dists.mat;
+		
+		delete[] gpu_elements;
+		delete[] gpu_idxs.mat;
+		delete[] gpu_dists.mat;
+		
+		std::cout << "choosing the elements\n";
+		choose_best(elements, residual.n / w, idxs, dists, k);
+		std::cout << "sending results\n";
+		send_results((ncpu + ngpu) / w, elements, idxs, dists, finish_aux);
+		
+		std::cout << "sent\n";
+		
+		delete[] elements;
+		delete[] idxs.mat;
+		delete[] dists.mat;
+		
+		base_id += residual.n / w;
+		
+		if (finish_aux == 1) break;
+		
+		std::cout << "END SEND\n";
 	}
 	cout << "." << endl;
 	sem_destroy(&sem);
@@ -271,6 +511,7 @@ void send_aggregator(int residualn, int w, query_id_t *fila, int **ids,
 			MPI_Send(&num, 1, MPI_INT, last_aggregator, 0, MPI_COMM_WORLD);
 			MPI_Send(&element[0], sizeof(query_id_t) * num, MPI_BYTE,
 					last_aggregator, 0, MPI_COMM_WORLD);
+			
 			MPI_Send(&ids2[0], ttam, MPI_INT, last_aggregator, 0,
 					MPI_COMM_WORLD);
 			MPI_Send(&dis2[0], ttam, MPI_FLOAT, last_aggregator, 0,
@@ -462,7 +703,11 @@ int min(int a, int b){
 		return a;
 }
 
-float * sumidxtab2(mat D, matI ids, int offset){
+
+
+float * sumidxtab2(mat D, matI ids, int offset){	
+	static int max = 0;
+	
 	//aloca o vetor a ser retornado
 
 	float *dis = (float*)malloc(sizeof(float)*ids.n);
@@ -473,7 +718,9 @@ float * sumidxtab2(mat D, matI ids, int offset){
 	for (i = 0; i < ids.n ; i++) {
 		float dis_tmp = 0;
 		for(j=0; j<D.n; j++){
-			dis_tmp += D.mat[ids.mat[i*ids.d+j]+ offset + j*D.d];
+			dis_tmp += D.mat[j*D.d + ids.mat[i*ids.d+j]+ offset];
+			
+			if (ids.mat[i*ids.d+j] > max) max = ids.mat[i*ids.d+j];
 		}
 		dis[i]=dis_tmp;
 	}
