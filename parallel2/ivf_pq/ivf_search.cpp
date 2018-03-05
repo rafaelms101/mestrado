@@ -27,8 +27,6 @@ float dist2(float* a, float* b, int size) {
 }
 
 void core(mat partial_residual, int* partial_coaidx, ivf_t* partial_ivf, int* entry_map, query_id_t* elements, matI idxs, mat dists) {
-	std::cout << "CORE\n";
-	
 	int p = 0;
 	
 	for (int i = 0; i < partial_residual.n; i++) {
@@ -132,7 +130,6 @@ void do_cpu(int w, std::list<int>& to_cpu, mat residual, int* coaidx, ivf_t* ivf
 }
 
 void do_gpu(int w, std::list<int>& to_gpu, mat residual, int* coaidx, ivf_t* ivf, query_id_t*& elements, matI& idxs, mat& dists) {
-	std::cout << "DO GPU\n";
 	do_cpu(w, to_gpu, residual, coaidx, ivf, elements, idxs, dists);
 }
 
@@ -143,17 +140,6 @@ void do_gpu(int w, std::list<int>& to_gpu, mat residual, int* coaidx, ivf_t* ivf
  * Another assumption is that when we receive a (coaidx, residual) pair, that all of the w coaidx that refers to the same query are together
  */
 void merge_results(int base_id, int w, int ncpu, query_id_t* cpu_elements, matI cpu_idxs, mat cpu_dists, int ngpu, query_id_t* gpu_elements, matI gpu_idxs, mat gpu_dists, query_id_t*& elements, matI& idxs, mat& dists) {
-	std::cout << "MERGE_RESULTS: \n";
-	std::cout << "CPU ELEMENTS\n";
-	for (int i = 0; i < ncpu; i++) {
-		std::printf("%d[%d] ", cpu_elements[i].id, cpu_elements[i].tam);
-	}
-	
-	std::cout << "\nGPU ELEMENTS\n";
-	for (int i = 0; i < ngpu; i++) {
-		std::printf("%d[%d] ", gpu_elements[i].id, gpu_elements[i].tam);
-	}
-	
 	int ne = (ncpu + ngpu) / w;
 	elements = new query_id_t[ne];
 	for (int i = 0; i < ne; i++) {
@@ -326,9 +312,6 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 
 		dis = (float**) malloc(sizeof(float *) * (residual.n / w));
 		ids = (int**) malloc(sizeof(int *) * (residual.n / w));
-
-		
-		std::cout << "QUERY SELECTION\n";
 		
 		store_pqcentroids_on_gpu(ivfpq.pq); //TODO: implement
 		
@@ -396,12 +379,8 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 		delete[] gpu_idxs.mat;
 		delete[] gpu_dists.mat;
 		
-		std::cout << "choosing the elements\n";
 		choose_best(elements, residual.n / w, idxs, dists, k);
-		std::cout << "sending results\n";
 		send_results((ncpu + ngpu) / w, elements, idxs, dists, finish_aux);
-		
-		std::cout << "sent\n";
 		
 		delete[] elements;
 		delete[] idxs.mat;
@@ -410,8 +389,6 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 		base_id += residual.n / w;
 		
 		if (finish_aux == 1) break;
-		
-		std::cout << "END SEND\n";
 	}
 	cout << "." << endl;
 	sem_destroy(&sem);
