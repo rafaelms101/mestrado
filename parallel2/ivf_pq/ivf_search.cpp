@@ -48,13 +48,11 @@ void core(mat partial_residual, int* partial_coaidx, ivf_t* partial_ivf, int* en
 		ivf_t entry = partial_ivf[ivf_id];
 		elements[i].tam += entry.idstam;
 		
-	
-		
 		for (int j = 0; j < entry.idstam; j++) {
 			float dist = 0;
 			
 			for (int d = 0; d < PQ.nsq; d++) {
-				              dist += distab.mat[PQ.ks * d + entry.codes.mat[PQ.nsq * j + d]];
+				dist += distab.mat[PQ.ks * d + entry.codes.mat[PQ.nsq * j + d]];
 			}
 			
 			dists.mat[p] = dist;
@@ -114,8 +112,8 @@ void do_cpu(int w, std::list<int>& to_cpu, mat residual, int* coaidx, ivf_t* ivf
 	}
 	
 	int count = 0;
-	for (int i = 0; i < cpu_residual.n; i++) {
-		count += ivf[coaidx[i]].idstam;
+	for (auto it = to_cpu.begin(); it != to_cpu.end(); it++) {
+		count += ivf[coaidx[*it]].idstam;
 	}
 	
 	idxs.mat = new int[count];
