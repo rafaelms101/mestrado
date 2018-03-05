@@ -26,9 +26,9 @@ float dist2(float* a, float* b, int size) {
 	return d;
 }
 
-void core(mat partial_residual, int* partial_coaidx, ivf_t* partial_ivf, int* entry_map, query_id_t* elements, matI idxs, mat dists) {
+void core_cpu(mat partial_residual, ivf_t* partial_ivf, int* entry_map, query_id_t* elements, matI idxs, mat dists) {
 	int p = 0;
-	
+		
 	for (int i = 0; i < partial_residual.n; i++) {
 		float* residual = partial_residual.mat + i * PQ.nsq * PQ.ds;
 		
@@ -63,72 +63,76 @@ void core(mat partial_residual, int* partial_coaidx, ivf_t* partial_ivf, int* en
 		delete[] distab.mat; 
 	}
 }
-
-void do_cpu(int w, std::list<int>& to_cpu, mat residual, int* coaidx, ivf_t* ivf, query_id_t*& elements, matI& idxs, mat& dists) {
+//do_on(&core_cpu, residual, coaidx, ivf, elements, idxs, dists);
+void do_on(void (*target)(mat, ivf_t*, int*, query_id_t*, matI, mat),
+		std::list<int>& toX, mat residual, int* coaidx, ivf_t* ivf, query_id_t*& elements, matI& idxs, mat& dists) {
 	std::set<int> coaidPresent;
 
 	int D = residual.d;
 
-	mat cpu_residual;
-	cpu_residual.n = to_cpu.size();
-	cpu_residual.d = residual.d;
-	cpu_residual.mat = new float[cpu_residual.d * cpu_residual.n];
+	mat partial_residual;
+	partial_residual.n = toX.size();
+	partial_residual.d = residual.d;
+	partial_residual.mat = new float[partial_residual.d * partial_residual.n];
 
-	int cpu_coaidx[to_cpu.size()];
+	elements = new query_id_t[toX.size()];
 
-	elements = new query_id_t[to_cpu.size()];
-	
 	int i;
 	i = 0;
 
-	for (auto it = to_cpu.begin(); it != to_cpu.end(); it++, i++) {
-		cpu_coaidx[i] = coaidx[*it];
+	for (auto it = toX.begin(); it != toX.end(); it++, i++) {
+		coaidPresent.insert(coaidx[*it]);
+
+		elements[i].id = *it; //TODO: remember to downscale the ID (/ w) somewhere else
+							  //TODO: verify if this is redundant (done somewhere else, for instance)
+		elements[i].tam = 0;
 
 		for (int d = 0; d < D; d++) {
-			cpu_residual.mat[i * D + d] = residual.mat[*it * D + d];
+			partial_residual.mat[i * D + d] = residual.mat[*it * D + d];
 		}
-
-		coaidPresent.insert(cpu_coaidx[i]);
-		
-		elements[i].id = *it; //TODO: remember to downscale the ID (/ w) somewhere else
-		elements[i].tam = 0;
 	}
 
-	ivf_t cpu_ivf[coaidPresent.size()];
+	ivf_t partial_ivf[coaidPresent.size()];
 	std::map<int, int> coaid_to_IVF;
 
 	i = 0;
 	for (auto it = coaidPresent.begin(); it != coaidPresent.end(); it++, i++) {
-		cpu_ivf[i].idstam = ivf[*it].idstam;
-		cpu_ivf[i].ids = ivf[*it].ids;
-		cpu_ivf[i].codes = ivf[*it].codes;
+		partial_ivf[i].idstam = ivf[*it].idstam;
+		partial_ivf[i].ids = ivf[*it].ids;
+		partial_ivf[i].codes = ivf[*it].codes;
 		coaid_to_IVF.insert(std::pair<int, int>(*it, i));
 	}
 
-	int map[to_cpu.size()];
-	
-	for (i = 0; i < to_cpu.size(); i++) {
-		map[i] = coaid_to_IVF.find(cpu_coaidx[i])->second;
-	}
-	
 	int count = 0;
-	for (auto it = to_cpu.begin(); it != to_cpu.end(); it++) {
+	int entry_map[toX.size()];
+
+	i = 0;
+	for (auto it = toX.begin(); it != toX.end(); ++it, i++) {
+		entry_map[i] = coaid_to_IVF.find(coaidx[*it])->second;
 		count += ivf[coaidx[*it]].idstam;
 	}
-	
+
 	idxs.mat = new int[count];
 	idxs.n = count;
 	dists.mat = new float[count];
 	dists.n = count;
-
 	
-	core(cpu_residual, cpu_coaidx, cpu_ivf, map, elements, idxs, dists);
+	core_cpu(partial_residual, partial_ivf, entry_map, elements, idxs, dists);
 	
-	delete[] cpu_residual.mat; 
+	delete[] partial_residual.mat;
 }
 
-void do_gpu(int w, std::list<int>& to_gpu, mat residual, int* coaidx, ivf_t* ivf, query_id_t*& elements, matI& idxs, mat& dists) {
-	do_cpu(w, to_gpu, residual, coaidx, ivf, elements, idxs, dists);
+
+void do_cpu(std::list<int>& to_cpu, mat residual, int* coaidx, ivf_t* ivf, query_id_t*& elements, matI& idxs, mat& dists) {
+	do_on(&core_cpu, to_cpu, residual, coaidx, ivf, elements, idxs, dists);
+}
+
+void kernel() {
+	
+}
+
+void do_gpu(std::list<int>& to_gpu, mat residual, int* coaidx, ivf_t* ivf, query_id_t*& elements, matI& idxs, mat& dists) {
+	do_cpu(to_gpu, residual, coaidx, ivf, elements, idxs, dists);
 }
 
 
@@ -355,13 +359,13 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 		query_id_t* gpu_elements;
 		matI gpu_idxs;
 		mat gpu_dists;
-		do_gpu(w, to_gpu, residual, coaidx, ivf, gpu_elements, gpu_idxs, gpu_dists);
+		do_gpu(to_gpu, residual, coaidx, ivf, gpu_elements, gpu_idxs, gpu_dists);
 		
 		//CPU PART
 		query_id_t* cpu_elements;
 		matI cpu_idxs;
 		mat cpu_dists;
-		do_cpu(w, to_cpu, residual, coaidx, ivf, cpu_elements, cpu_idxs, cpu_dists);
+		do_cpu(to_cpu, residual, coaidx, ivf, cpu_elements, cpu_idxs, cpu_dists);
 		
 		query_id_t* elements;
 		matI idxs;
