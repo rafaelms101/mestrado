@@ -8,9 +8,6 @@ int iter;
 static int last_assign, last_search, last_aggregator;
 static sem_t sem;
 
-//TODO: remember to add delete calls to the new calls
-//TODO: remember to initialize elements.tam to 0
-
 pqtipo PQ;
 void store_pqcentroids_on_gpu(pqtipo pq) {
 	PQ = pq; //TODO:replace this with the real code
@@ -63,7 +60,7 @@ void core_cpu(mat partial_residual, ivf_t* partial_ivf, int* entry_map, query_id
 		delete[] distab.mat; 
 	}
 }
-//do_on(&core_cpu, residual, coaidx, ivf, elements, idxs, dists);
+
 void do_on(void (*target)(mat, ivf_t*, int*, query_id_t*, matI, mat),
 		std::list<int>& toX, mat residual, int* coaidx, ivf_t* ivf, query_id_t*& elements, matI& idxs, mat& dists) {
 	std::set<int> coaidPresent;
@@ -83,8 +80,7 @@ void do_on(void (*target)(mat, ivf_t*, int*, query_id_t*, matI, mat),
 	for (auto it = toX.begin(); it != toX.end(); it++, i++) {
 		coaidPresent.insert(coaidx[*it]);
 
-		elements[i].id = *it; //TODO: remember to downscale the ID (/ w) somewhere else
-							  //TODO: verify if this is redundant (done somewhere else, for instance)
+		elements[i].id = *it; 
 		elements[i].tam = 0;
 
 		for (int d = 0; d < D; d++) {
@@ -109,7 +105,7 @@ void do_on(void (*target)(mat, ivf_t*, int*, query_id_t*, matI, mat),
 	i = 0;
 	for (auto it = toX.begin(); it != toX.end(); ++it, i++) {
 		entry_map[i] = coaid_to_IVF.find(coaidx[*it])->second;
-		count += ivf[coaidx[*it]].idstam;
+		count += ivf[entry_map[i]].idstam;
 	}
 
 	idxs.mat = new int[count];
@@ -117,7 +113,7 @@ void do_on(void (*target)(mat, ivf_t*, int*, query_id_t*, matI, mat),
 	dists.mat = new float[count];
 	dists.n = count;
 	
-	core_cpu(partial_residual, partial_ivf, entry_map, elements, idxs, dists);
+	(*target)(partial_residual, partial_ivf, entry_map, elements, idxs, dists);
 	
 	delete[] partial_residual.mat;
 }
@@ -132,7 +128,7 @@ void kernel() {
 }
 
 void do_gpu(std::list<int>& to_gpu, mat residual, int* coaidx, ivf_t* ivf, query_id_t*& elements, matI& idxs, mat& dists) {
-	do_cpu(to_gpu, residual, coaidx, ivf, elements, idxs, dists);
+	do_on(&core_cpu,to_gpu, residual, coaidx, ivf, elements, idxs, dists);
 }
 
 
@@ -142,10 +138,20 @@ void do_gpu(std::list<int>& to_gpu, mat residual, int* coaidx, ivf_t* ivf, query
  * Another assumption is that when we receive a (coaidx, residual) pair, that all of the w coaidx that refers to the same query are together
  */
 void merge_results(int base_id, int w, int ncpu, query_id_t* cpu_elements, matI cpu_idxs, mat cpu_dists, int ngpu, query_id_t* gpu_elements, matI gpu_idxs, mat gpu_dists, query_id_t*& elements, matI& idxs, mat& dists) {
-	int ne = (ncpu + ngpu) / w;
-	elements = new query_id_t[ne];
-	for (int i = 0; i < ne; i++) {
+	//TODO: if we join merge_results with choose_best, we can reduce memory consumption, since we dont have to store both
+	int nq = (ncpu + ngpu) / w;                   
+	elements = new query_id_t[nq];
+	
+	for (int i = 0; i < nq; i++) {
 		elements[i].tam = 0;
+	}
+	
+	for (int i = 0; i < ngpu; i++) {
+		gpu_elements[i].id = gpu_elements[i].id / w + base_id;
+	}
+	
+	for (int i = 0; i < ncpu; i++) {
+		cpu_elements[i].id = cpu_elements[i].id / w + base_id;
 	}
 	
 	idxs.n = cpu_idxs.n + gpu_idxs.n;
@@ -155,52 +161,49 @@ void merge_results(int base_id, int w, int ncpu, query_id_t* cpu_elements, matI 
 	dists.mat = new float[dists.n];
 	
 	int imgi = 0;
+	int img_gpui = 0;
+	int img_cpui = 0;
 	int gpui = 0;
-	
-	//TODO: code duplication
-	for (int i = 0; i < ngpu; i++) {
-		int offset = gpu_elements[i].id / w; 
-		elements[offset].id = offset + base_id;
-		elements[offset].tam += gpu_elements[i].tam;
-		
-		for (int j = 0; j < gpu_elements[i].tam; j++) {
-			idxs.mat[imgi] = gpu_idxs.mat[gpui];
-			dists.mat[imgi] = gpu_dists.mat[gpui];
-			imgi++;
-			gpui++;
-		}
-	}
-	
 	int cpui = 0;
 
-	for (int i = 0; i < ncpu; i++) {
-		int offset = cpu_elements[i].id / w; 
-		elements[offset].id = offset + base_id;
-		elements[offset].tam += cpu_elements[i].tam;
+	for (int i = 0; i < nq; i++) {
+		int gpu_id = gpui < ngpu ? gpu_elements[gpui].id : -1;
+		int cpu_id = cpui < ncpu ? cpu_elements[cpui].id : -1;
+		
+		int id = gpu_id;
+		if (id == -1 || cpu_id != -1 && cpu_id < gpu_id) id = cpu_id;
+		
+		elements[i].tam = 0;
+		elements[i].id = id;
+		
+		while (gpui < ngpu && gpu_elements[gpui].id == id) {
+			elements[i].tam += gpu_elements[gpui].tam;
+			
+			for (int j = 0; j < gpu_elements[gpui].tam; j++) {
+				idxs.mat[imgi] = gpu_idxs.mat[img_gpui];
+				dists.mat[imgi] = gpu_dists.mat[img_gpui];
+				imgi++;
+				img_gpui++; 
+			}
+			
+			gpui++;
+		}
 
-		for (int j = 0; j < cpu_elements[i].tam; j++) {
-			idxs.mat[imgi] = cpu_idxs.mat[cpui];
-			dists.mat[imgi] = cpu_dists.mat[cpui];
-			imgi++;
+		while (cpui < ncpu && cpu_elements[cpui].id == id) {
+			elements[i].tam += cpu_elements[cpui].tam;
+
+			for (int j = 0; j < cpu_elements[cpui].tam; j++) {
+				idxs.mat[imgi] = cpu_idxs.mat[img_cpui];
+				dists.mat[imgi] = cpu_dists.mat[img_cpui];
+				imgi++;
+				img_cpui++;
+			}
+
 			cpui++;
 		}
 	}
 }
 
-void send_results(int ne, query_id_t* elements, matI idxs, mat dists, int finish) {
-	int my_rank;
-	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
-	
-	MPI_Send(&my_rank, 1, MPI_INT, last_aggregator, 1, MPI_COMM_WORLD);
-	MPI_Send(&ne, 1, MPI_INT, last_aggregator, 0, MPI_COMM_WORLD);
-	MPI_Send(elements, sizeof(query_id_t) * ne, MPI_BYTE, last_aggregator,
-			0, MPI_COMM_WORLD);
-	MPI_Send(idxs.mat, idxs.n, MPI_INT, last_aggregator, 0,
-	MPI_COMM_WORLD);
-	MPI_Send(dists.mat, dists.n, MPI_FLOAT, last_aggregator, 0,
-	MPI_COMM_WORLD);
-	MPI_Send(&finish, 1, MPI_INT, last_aggregator, 0, MPI_COMM_WORLD); 
-}
 
 void choose_best(query_id_t* elements, int ne, matI& idxs, mat& dists, int k) {
 	int imgi = 0;
@@ -232,6 +235,24 @@ void choose_best(query_id_t* elements, int ne, matI& idxs, mat& dists, int k) {
 	
 	idxs.n = wi;
 	dists.n = wi;
+}
+
+void send_results(int ne, query_id_t* elements, matI idxs, mat dists, int finish) {
+	int counter = 0;
+	
+	int my_rank;
+	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+	
+	MPI_Send(&my_rank, 1, MPI_INT, last_aggregator, 1, MPI_COMM_WORLD);
+	MPI_Send(&ne, 1, MPI_INT, last_aggregator, 0, MPI_COMM_WORLD);
+	MPI_Send(elements, sizeof(query_id_t) * ne, MPI_BYTE, last_aggregator,
+			0, MPI_COMM_WORLD);
+	
+	MPI_Send(idxs.mat, idxs.n, MPI_INT, last_aggregator, 0,
+	MPI_COMM_WORLD);
+	MPI_Send(dists.mat, dists.n, MPI_FLOAT, last_aggregator, 0,
+	MPI_COMM_WORLD);
+	MPI_Send(&finish, 1, MPI_INT, last_aggregator, 0, MPI_COMM_WORLD); 
 }
 
 void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Comm search_comm, char *dataset, int w){
@@ -279,7 +300,7 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 	int count = 0;
 
 	
-	int base_id = 0; // it is, actually, query_id * w
+	int base_id = 0; // corresponds to the query_id
 	
 	MPI_Barrier(search_comm);
 
@@ -319,8 +340,7 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 		
 		
 		int maxgpu = residual.n / 2;
-		int ngpu = 0;
-		int ncpu = 0;
+		
 		
 		std::list<int> to_gpu;
 		std::list<int> to_cpu;
@@ -329,29 +349,36 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 		
 		for (int i = 0; i < residual.n; i++) done[i] = false;
 		
+		//TODO: redo this once we are truly using the GPU etc
+		int FAKE_IMG_SIZE = 1;
+		int FAKE_RESIDUAL_SIZE = ivfpq.pq.ds;
+		int FAKE_TOTAL = FAKE_RESIDUAL_SIZE * residual.n;
+		
+		for (int i = 0; i < ivfpq.coarsek; i++) {
+			FAKE_TOTAL += ivf[i].idstam * FAKE_IMG_SIZE;
+		}
+		
+		int max_gpu_mem = FAKE_TOTAL / 2;
+		int gpu_mem = 0;
+		
+		std::set<int> ivf_gpu;
+		
 		//SELECTING QUERIES TO SEND TO THE GPU AND QUERIES TO PROCESS ON THE CPU
 		for (int i = 0; i < residual.n; i++) {
-			if (done[i]) continue;
+			int extra_size = 0;
 			
-			//TODO: add real logic to decide if it should or not be processed on the cpu/gpu. Currently just doing 50% of the queries
+			if (ivf_gpu.find(coaidx[i]) == ivf_gpu.end()) {
+				extra_size = ivf[coaidx[i]].idstam * FAKE_IMG_SIZE + FAKE_RESIDUAL_SIZE;
+			} else {
+				extra_size = FAKE_RESIDUAL_SIZE;
+			}
 			
-			if (ngpu < maxgpu) { //to be processed in the gpu
+			if (gpu_mem + extra_size <= gpu_mem) {
+				ivf_gpu.insert(coaidx[i]);
 				to_gpu.push_back(i);
-				done[i] = true;
-				ngpu++;
-				int coaid = coaidx[i];
-				
-				for (int j = i + 1; j < residual.n && ngpu < maxgpu; j++) {
-					if (coaidx[j] == coaid) {
-						ngpu++;
-						to_gpu.push_back(j);
-						done[j] = true;
-					}
-				}
-			} else { //to be processed in the cpu
+				gpu_mem += extra_size;
+			} else {
 				to_cpu.push_back(i);
-				done[i] = true;
-				ncpu++;
 			}
 		}
 		
@@ -371,7 +398,7 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 		matI idxs;
 		mat dists;
 		
-		merge_results(base_id, w, ncpu, cpu_elements, cpu_idxs, cpu_dists, ngpu, gpu_elements, gpu_idxs, gpu_dists, elements, idxs, dists);
+		merge_results(base_id, w, to_cpu.size(), cpu_elements, cpu_idxs, cpu_dists, to_gpu.size(), gpu_elements, gpu_idxs, gpu_dists, elements, idxs, dists);
 		
 		delete[] cpu_elements;
 		delete[] cpu_idxs.mat;
@@ -382,7 +409,7 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 		delete[] gpu_dists.mat;
 		
 		choose_best(elements, residual.n / w, idxs, dists, k);
-		send_results((ncpu + ngpu) / w, elements, idxs, dists, finish_aux);
+		send_results((to_cpu.size() + to_gpu.size()) / w, elements, idxs, dists, finish_aux);
 		
 		delete[] elements;
 		delete[] idxs.mat;
