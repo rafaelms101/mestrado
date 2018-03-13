@@ -3,15 +3,17 @@
 #include <set>
 #include <cstdio>
 #include <queue>
+#include <ctime>
+
+#include "mycuda.h"
+
+#include <cmath>
 
 int iter;
 static int last_assign, last_search, last_aggregator;
 static sem_t sem;
 
-pqtipo PQ;
-void store_pqcentroids_on_gpu(pqtipo pq) {
-	PQ = pq; //TODO:replace this with the real code
-}
+//TODO: refactor variable names, they are terrible
 
 float dist2(float* a, float* b, int size) {
 	float d = 0;
@@ -23,7 +25,7 @@ float dist2(float* a, float* b, int size) {
 	return d;
 }
 
-void core_cpu(mat partial_residual, ivf_t* partial_ivf, int* entry_map, query_id_t* elements, matI idxs, mat dists) {
+void core_cpu(pqtipo PQ, mat partial_residual, ivf_t* partial_ivf, int ivf_size, int* entry_map, int* starting_imgid, query_id_t* elements, matI idxs, mat dists) {
 	int p = 0;
 		
 	for (int i = 0; i < partial_residual.n; i++) {
@@ -61,8 +63,19 @@ void core_cpu(mat partial_residual, ivf_t* partial_ivf, int* entry_map, query_id
 	}
 }
 
-void do_on(void (*target)(mat, ivf_t*, int*, query_id_t*, matI, mat),
-		std::list<int>& toX, mat residual, int* coaidx, ivf_t* ivf, query_id_t*& elements, matI& idxs, mat& dists) {
+void kernel() {
+	
+}
+//
+////TODO: we are assuming that the number of dimensions is less than or equal 32
+//void core_gpu(mat partial_residual, ivf_t* partial_ivf, int* entry_map,  int* starting_imgid, query_id_t* elements, matI idxs, mat dists) {
+//	callme(partial_residual, partial_ivf, entry_map, elements, idxs, dists);
+//	core_cpu(partial_residual, partial_ivf, entry_map, starting_imgid, elements, idxs, dists);
+//}
+
+//TODO: refactor and improve the whole code
+void do_on(void (*target)(pqtipo, mat, ivf_t*, int, int*, int*, query_id_t*, matI, mat),
+		pqtipo PQ, std::list<int>& toX, mat residual, int* coaidx, ivf_t* ivf, query_id_t*& elements, matI& idxs, mat& dists) {
 	std::set<int> coaidPresent;
 
 	int D = residual.d;
@@ -87,6 +100,8 @@ void do_on(void (*target)(mat, ivf_t*, int*, query_id_t*, matI, mat),
 			partial_residual.mat[i * D + d] = residual.mat[*it * D + d];
 		}
 	}
+	
+	std::cout << "ALIVE1\n";
 
 	ivf_t partial_ivf[coaidPresent.size()];
 	std::map<int, int> coaid_to_IVF;
@@ -102,33 +117,51 @@ void do_on(void (*target)(mat, ivf_t*, int*, query_id_t*, matI, mat),
 	int count = 0;
 	int entry_map[toX.size()];
 
+	int starting_imgid[partial_residual.n];
+	for (int i = 0; i < partial_residual.n; i++) {
+		starting_imgid[i] = 0;
+	}
+	
+	int imgid = 0;
+	
+	std::cout << "ALIVE2\n";
+	
 	i = 0;
 	for (auto it = toX.begin(); it != toX.end(); ++it, i++) {
 		entry_map[i] = coaid_to_IVF.find(coaidx[*it])->second;
+		starting_imgid[i] = count;
+		
+		int last_count = count;
+		
 		count += ivf[entry_map[i]].idstam;
+		
+		if (count < 0 && last_count > 0) std::cout << "LAST COUNT IS " << last_count << "\n";
 	}
 
+	std::cout << "Before allocating " << count << " ints\n";
 	idxs.mat = new int[count];
 	idxs.n = count;
+	std::cout << "Before allocating " << count << " ints[2]\n";
 	dists.mat = new float[count];
 	dists.n = count;
 	
-	(*target)(partial_residual, partial_ivf, entry_map, elements, idxs, dists);
+	std::cout << "After allocating " << count << " ints\n";
+	
+	std::cout << "ALIVE3\n";
+	if (partial_residual.n >= 1) (*target)(PQ, partial_residual, partial_ivf, coaidPresent.size(), entry_map, starting_imgid, elements, idxs, dists);
+	
+	std::cout << "ALIVE4\n";
 	
 	delete[] partial_residual.mat;
 }
 
 
-void do_cpu(std::list<int>& to_cpu, mat residual, int* coaidx, ivf_t* ivf, query_id_t*& elements, matI& idxs, mat& dists) {
-	do_on(&core_cpu, to_cpu, residual, coaidx, ivf, elements, idxs, dists);
+void do_cpu(pqtipo PQ, std::list<int>& to_cpu, mat residual, int* coaidx, ivf_t* ivf, query_id_t*& elements, matI& idxs, mat& dists) {
+	do_on(&core_cpu, PQ, to_cpu, residual, coaidx, ivf, elements, idxs, dists);
 }
 
-void kernel() {
-	
-}
-
-void do_gpu(std::list<int>& to_gpu, mat residual, int* coaidx, ivf_t* ivf, query_id_t*& elements, matI& idxs, mat& dists) {
-	do_on(&core_cpu,to_gpu, residual, coaidx, ivf, elements, idxs, dists);
+void do_gpu(pqtipo PQ, std::list<int>& to_gpu, mat residual, int* coaidx, ivf_t* ivf, query_id_t*& elements, matI& idxs, mat& dists) {
+	do_on(&core_gpu, PQ, to_gpu, residual, coaidx, ivf, elements, idxs, dists);
 }
 
 
@@ -259,7 +292,7 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 	ivfpq_t ivfpq;
 	mat residual;
 	int *coaidx, my_rank;
-	double time;
+	//double time;
 
 	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
@@ -336,21 +369,19 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 		dis = (float**) malloc(sizeof(float *) * (residual.n / w));
 		ids = (int**) malloc(sizeof(int *) * (residual.n / w));
 		
-		store_pqcentroids_on_gpu(ivfpq.pq); //TODO: implement
-		
-		
 		int maxgpu = residual.n / 2;
 		
 		
 		std::list<int> to_gpu;
 		std::list<int> to_cpu;
 		
+		//TODO: deal with the commented code
 		bool done[residual.n];
 		
 		for (int i = 0; i < residual.n; i++) done[i] = false;
 		
 		//TODO: redo this once we are truly using the GPU etc
-		int FAKE_IMG_SIZE = 1;
+		int FAKE_IMG_SIZE = ivfpq.pq.nsq;
 		int FAKE_RESIDUAL_SIZE = ivfpq.pq.ds;
 		int FAKE_TOTAL = FAKE_RESIDUAL_SIZE * residual.n;
 		
@@ -363,42 +394,59 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 		
 		std::set<int> ivf_gpu;
 		
+		std::printf("MAX GPU is %d\n", max_gpu_mem);
+		
 		//SELECTING QUERIES TO SEND TO THE GPU AND QUERIES TO PROCESS ON THE CPU
+//		for (int i = 0; i < residual.n; i++) {
+//			int extra_size = 0;
+//			
+//			if (ivf_gpu.find(coaidx[i]) == ivf_gpu.end()) {
+//				extra_size = ivf[coaidx[i]].idstam * FAKE_IMG_SIZE + FAKE_RESIDUAL_SIZE;
+//			} else {
+//				extra_size = FAKE_RESIDUAL_SIZE;
+//			}
+//			
+//			
+//			if (gpu_mem + extra_size <= max_gpu_mem) {
+//				ivf_gpu.insert(coaidx[i]);
+//				to_gpu.push_back(i);
+//				gpu_mem += extra_size;
+//			} else {
+//				to_cpu.push_back(i);
+//			}
+//		}
+		
 		for (int i = 0; i < residual.n; i++) {
-			int extra_size = 0;
-			
-			if (ivf_gpu.find(coaidx[i]) == ivf_gpu.end()) {
-				extra_size = ivf[coaidx[i]].idstam * FAKE_IMG_SIZE + FAKE_RESIDUAL_SIZE;
-			} else {
-				extra_size = FAKE_RESIDUAL_SIZE;
-			}
-			
-			if (gpu_mem + extra_size <= gpu_mem) {
-				ivf_gpu.insert(coaidx[i]);
-				to_gpu.push_back(i);
-				gpu_mem += extra_size;
-			} else {
-				to_cpu.push_back(i);
-			}
+			to_cpu.push_back(i);
 		}
+		
+		std::printf("Executing %d in the cpu and %d in the gpu\n", to_cpu.size(), to_gpu.size());
+		
+		time_t start,end;
+		time (&start);
+		
 		
 		//GPU PART
 		query_id_t* gpu_elements;
 		matI gpu_idxs;
 		mat gpu_dists;
-		do_gpu(to_gpu, residual, coaidx, ivf, gpu_elements, gpu_idxs, gpu_dists);
+		do_gpu(ivfpq.pq, to_gpu, residual, coaidx, ivf, gpu_elements, gpu_idxs, gpu_dists);
 		
 		//CPU PART
 		query_id_t* cpu_elements;
 		matI cpu_idxs;
 		mat cpu_dists;
-		do_cpu(to_cpu, residual, coaidx, ivf, cpu_elements, cpu_idxs, cpu_dists);
+		std::cout << "DO_CPU started\n";
+		do_cpu(ivfpq.pq, to_cpu, residual, coaidx, ivf, cpu_elements, cpu_idxs, cpu_dists);
+		std::cout << "DO_CPU ended\n";
 		
 		query_id_t* elements;
 		matI idxs;
 		mat dists;
 		
+		std::cout << "merge_results started\n";
 		merge_results(base_id, w, to_cpu.size(), cpu_elements, cpu_idxs, cpu_dists, to_gpu.size(), gpu_elements, gpu_idxs, gpu_dists, elements, idxs, dists);
+		std::cout << "merge_results ended\n";
 		
 		delete[] cpu_elements;
 		delete[] cpu_idxs.mat;
@@ -408,7 +456,10 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 		delete[] gpu_idxs.mat;
 		delete[] gpu_dists.mat;
 		
+		std::cout << "choose_best started\n";
 		choose_best(elements, residual.n / w, idxs, dists, k);
+		std::cout << "choose_best ended\n";
+		
 		send_results((to_cpu.size() + to_gpu.size()) / w, elements, idxs, dists, finish_aux);
 		
 		delete[] elements;
@@ -417,6 +468,12 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 		
 		base_id += residual.n / w;
 		
+		
+		time (&end);
+		double dif = difftime (end,start);
+		printf ("Elapsed time is %.2lf seconds.", dif );
+				
+				
 		if (finish_aux == 1) break;
 	}
 	cout << "." << endl;
