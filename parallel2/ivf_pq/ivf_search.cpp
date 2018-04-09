@@ -13,7 +13,24 @@ int iter;
 static int last_assign, last_search, last_aggregator;
 static sem_t sem;
 
+
+//TODO: dont try this at home
+time_t start, end;
+double diff;
+
+
+
+#define sw(call) time(&start); \
+				  call ; \
+				  time(&end); \
+				  diff = difftime (end,start); \
+				  printf ("Elapsed: %.2lf seconds on call: %s\n", diff, #call);
+				  
+				  
+
 //TODO: refactor variable names, they are terrible
+//TODO: comment the code
+//TODO: think about how to parallelize the other stages and/or if it would be worthwhile
 
 float dist2(float* a, float* b, int size) {
 	float d = 0;
@@ -66,12 +83,6 @@ void core_cpu(pqtipo PQ, mat partial_residual, ivf_t* partial_ivf, int ivf_size,
 void kernel() {
 	
 }
-//
-////TODO: we are assuming that the number of dimensions is less than or equal 32
-//void core_gpu(mat partial_residual, ivf_t* partial_ivf, int* entry_map,  int* starting_imgid, query_id_t* elements, matI idxs, mat dists) {
-//	callme(partial_residual, partial_ivf, entry_map, elements, idxs, dists);
-//	core_cpu(partial_residual, partial_ivf, entry_map, starting_imgid, elements, idxs, dists);
-//}
 
 //TODO: refactor and improve the whole code
 void do_on(void (*target)(pqtipo, mat, ivf_t*, int, int*, int*, query_id_t*, matI, mat),
@@ -239,6 +250,8 @@ void merge_results(int base_id, int w, int ncpu, query_id_t* cpu_elements, matI 
 
 
 void choose_best(query_id_t* elements, int ne, matI& idxs, mat& dists, int k) {
+	std::printf("k is %d\n", k);
+	
 	int imgi = 0;
 	int wi = 0;
 	
@@ -248,6 +261,8 @@ void choose_best(query_id_t* elements, int ne, matI& idxs, mat& dists, int k) {
 							std::less<std::pair<float, int>>> queue;
 		
 		for (int j = 0; j < elements[i].tam; j++) {
+			//std::printf("%d elements\n", elements[i].tam);
+			
 			if (queue.size() < k) queue.push(std::pair<float, int>(dists.mat[imgi], idxs.mat[imgi]));
 			else if (dists.mat[imgi] < queue.top().first) {
 				queue.pop();
@@ -375,52 +390,12 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 		std::list<int> to_gpu;
 		std::list<int> to_cpu;
 		
-		//TODO: deal with the commented code
-		bool done[residual.n];
-		
-		for (int i = 0; i < residual.n; i++) done[i] = false;
-		
-		//TODO: redo this once we are truly using the GPU etc
-		int FAKE_IMG_SIZE = ivfpq.pq.nsq;
-		int FAKE_RESIDUAL_SIZE = ivfpq.pq.ds;
-		int FAKE_TOTAL = FAKE_RESIDUAL_SIZE * residual.n;
-		
-		for (int i = 0; i < ivfpq.coarsek; i++) {
-			FAKE_TOTAL += ivf[i].idstam * FAKE_IMG_SIZE;
-		}
-		
-		int max_gpu_mem = FAKE_TOTAL / 2;
-		int gpu_mem = 0;
-		
-		std::set<int> ivf_gpu;
-		
-		std::printf("MAX GPU is %d\n", max_gpu_mem);
-		
-		//SELECTING QUERIES TO SEND TO THE GPU AND QUERIES TO PROCESS ON THE CPU
-//		for (int i = 0; i < residual.n; i++) {
-//			int extra_size = 0;
-//			
-//			if (ivf_gpu.find(coaidx[i]) == ivf_gpu.end()) {
-//				extra_size = ivf[coaidx[i]].idstam * FAKE_IMG_SIZE + FAKE_RESIDUAL_SIZE;
-//			} else {
-//				extra_size = FAKE_RESIDUAL_SIZE;
-//			}
-//			
-//			
-//			if (gpu_mem + extra_size <= max_gpu_mem) {
-//				ivf_gpu.insert(coaidx[i]);
-//				to_gpu.push_back(i);
-//				gpu_mem += extra_size;
-//			} else {
-//				to_cpu.push_back(i);
-//			}
-//		}
-		
+		//TODO: implement the real logic to separate gpu and cpu
 		for (int i = 0; i < residual.n; i++) {
 			to_cpu.push_back(i);
 		}
 		
-		std::printf("Executing %d in the cpu and %d in the gpu\n", to_cpu.size(), to_gpu.size());
+		std::printf("EXECUTING ON THE %s\n", to_cpu.size() == 0 ? "gpu" : "cpu");
 		
 		time_t start,end;
 		time (&start);
@@ -430,14 +405,14 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 		query_id_t* gpu_elements;
 		matI gpu_idxs;
 		mat gpu_dists;
-		do_gpu(ivfpq.pq, to_gpu, residual, coaidx, ivf, gpu_elements, gpu_idxs, gpu_dists);
+		sw(do_gpu(ivfpq.pq, to_gpu, residual, coaidx, ivf, gpu_elements, gpu_idxs, gpu_dists));
 		
 		//CPU PART
 		query_id_t* cpu_elements;
 		matI cpu_idxs;
 		mat cpu_dists;
 		std::cout << "DO_CPU started\n";
-		do_cpu(ivfpq.pq, to_cpu, residual, coaidx, ivf, cpu_elements, cpu_idxs, cpu_dists);
+		sw(do_cpu(ivfpq.pq, to_cpu, residual, coaidx, ivf, cpu_elements, cpu_idxs, cpu_dists));
 		std::cout << "DO_CPU ended\n";
 		
 		query_id_t* elements;
@@ -445,7 +420,7 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 		mat dists;
 		
 		std::cout << "merge_results started\n";
-		merge_results(base_id, w, to_cpu.size(), cpu_elements, cpu_idxs, cpu_dists, to_gpu.size(), gpu_elements, gpu_idxs, gpu_dists, elements, idxs, dists);
+		sw(merge_results(base_id, w, to_cpu.size(), cpu_elements, cpu_idxs, cpu_dists, to_gpu.size(), gpu_elements, gpu_idxs, gpu_dists, elements, idxs, dists));
 		std::cout << "merge_results ended\n";
 		
 		delete[] cpu_elements;
@@ -457,10 +432,10 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 		delete[] gpu_dists.mat;
 		
 		std::cout << "choose_best started\n";
-		choose_best(elements, residual.n / w, idxs, dists, k);
+		sw(choose_best(elements, residual.n / w, idxs, dists, k));
 		std::cout << "choose_best ended\n";
 		
-		send_results((to_cpu.size() + to_gpu.size()) / w, elements, idxs, dists, finish_aux);
+		sw(send_results((to_cpu.size() + to_gpu.size()) / w, elements, idxs, dists, finish_aux));
 		
 		delete[] elements;
 		delete[] idxs.mat;
@@ -475,12 +450,18 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 				
 				
 		if (finish_aux == 1) break;
+		
+		std::cout << "ABORTTTTTTTTTT THIS SHIT\n";
 	}
+	
+	std::cout << "GOT OUT OF HERE\n";
 	cout << "." << endl;
 	sem_destroy(&sem);
 	free(ivf);
 	free(ivfpq.pq.centroids);
 	free(ivfpq.coa_centroids);
+	
+	std::cout << "FINISHED THE SEARCH\n";
 }
 
 dis_t ivfpq_search(ivf_t *ivf, float *residual, pqtipo pq, int centroid_idx, double *g1, double *g2){

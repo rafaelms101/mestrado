@@ -7,53 +7,79 @@
 #include <cstdio>
 
 #define safe_call(call) if (cudaSuccess != call) { err = cudaGetLastError(); \
-													fprintf(stderr, "Failed: call (error code %s)!\n", \
-															cudaGetErrorString(err)); \
+													fprintf(stderr, "Failed call: %s (error code %s)!\n", \
+															#call, cudaGetErrorString(err)); \
 													exit(EXIT_FAILURE); }
 
+
 //TODO: remember to not execute queries that dont correspond to an entry on the problem
+
+// PQ.ks and PQ.nsq must be power of 2
 __global__ void compute_dists(pqtipo PQ, mat residual, ivf_t* ivf, int* entry_map, int* starting_imgid, query_id_t* elements, matI idxs, mat dists) {
-	int d = threadIdx.x; 
-	int k = threadIdx.y;
-	int tid = d * PQ.ks + k;
+	int tid = threadIdx.x;
+	int nthreads = blockDim.x;
 	int qid = blockIdx.x;
 	
 	extern __shared__ float distab[];
 	
-	float* centroid = PQ.centroids + (d * PQ.ks + k) * PQ.ds;
-	float* sub_residual = residual.mat + qid * PQ.nsq * PQ.ds + d * PQ.ds;
-	float dist = 0;
 	
-	for (int i = 0; i < PQ.ds; i++) {
-		float diff = sub_residual[i] - centroid[i];
-		dist += diff * diff;
-	}
+	//computing disttab
+	int step = PQ.ks * PQ.nsq / nthreads; //step = 256 * 8 / 1024 = 2
+	int j = step * tid;
+	int initial_d = j / PQ.ks;
+	int initial_k = j % PQ.ks;
 	
-	distab[PQ.ks * d + k] = dist;
-
-	if (tid < residual.n) { //TODO: its very likely that this is unneeded
-		ivf_t entry = ivf[entry_map[qid]];
+	int nd = max(step / PQ.ks, 1); //nd = 1
+	int slice = min(step, PQ.ks); //slice = 2 
+	
+	float* current_residual = residual.mat + qid * PQ.nsq * PQ.ds;
+	
+	for (int d = initial_d; d < initial_d + nd; d++) {
+		float* sub_residual = current_residual + d * PQ.ds;
 		
-		if (threadIdx.x == 0 && threadIdx.y == 0) { //only one thread per block should do this, since they all refer to the same query
-			atomicAdd(&elements[qid].tam, entry.idstam); //atomic because we will have up to w threads trying to increase this at the same time
-		}
-		
-		int block_size = blockDim.x * blockDim.y;
-
-		for (int i = tid; i < entry.idstam; i += block_size) {
+		for (int k = initial_k; k < initial_k + slice; k++) {
+			float* centroid = PQ.centroids + (d * PQ.ks + k) * PQ.ds;
 			float dist = 0;
 
-			for (int s = 0; s < PQ.nsq; s++) {
-				dist += distab[PQ.ks * s + entry.codes.mat[PQ.nsq * i + s]];
+			for (int i = 0; i < PQ.ds; i++) {
+				float diff = sub_residual[i] - centroid[i];
+				dist += diff * diff;
 			}
-
-			dists.mat[starting_imgid[qid] + i] = dist;
-			idxs.mat[starting_imgid[qid] + i] = entry.ids[i];
+			
+			distab[PQ.ks * d + k] = dist;
 		}
-	}	
+		
+		initial_k = 0;
+	}
+
+	
+	//computing the distances to the vectors
+	ivf_t entry = ivf[entry_map[qid]];
+
+	if (threadIdx.x == 0 && threadIdx.y == 0) { //only one thread per block should do this, since they all refer to the same query
+		atomicAdd(&elements[qid].tam, entry.idstam); //atomic because we will have up to w threads trying to increase this at the same time
+	}
+
+	int block_size = blockDim.x * blockDim.y;
+
+	for (int i = tid; i < entry.idstam; i += block_size) {
+		float dist = 0;
+
+		for (int s = 0; s < PQ.nsq; s++) {
+			dist += distab[PQ.ks * s + entry.codes.mat[PQ.nsq * i + s]];
+		}
+
+		dists.mat[starting_imgid[qid] + i] = dist;
+		idxs.mat[starting_imgid[qid] + i] = entry.ids[i];
+	}
+	
+	//selecting the smallest ones
+	
 }
 
 void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* entry_map, int* starting_imgid, query_id_t* elements, matI idxs, mat dists) {
+	std::printf("PQ.ks = %d\n", PQ.ks);
+	
 	//TODO: implement / redo the error handling so that we have less code duplication
 	cudaError_t err = cudaSuccess;
 	
@@ -103,7 +129,7 @@ void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* entry_map,
 	mat gpu_dists = dists;
 	safe_call(cudaMalloc((void **) &gpu_dists.mat, sizeof(float) * dists.n));
 
-	dim3 block(PQ.nsq, PQ.ks, 1);
+	dim3 block(1024, 1, 1); //TODO: THIS IS WRONG!!!!! We can have more than 32 PQ.nsq, which is an invalid block size
 	dim3 grid(residual.n, 1, 1);
 	
 	std::printf("Before calling the kernel\n");
@@ -143,11 +169,5 @@ void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* entry_map,
 	cudaFree(gpu_dists.mat);
 	
 	delete[] tmp_ivf;
-	
-	for (int i = 0; i < residual.n; i++) {
-		std::printf("element[%d].id=%d and element[%d].tam=%d\n", i, elements[i].id, i, elements[i].tam);
-	}
-	
-	//std::exit(0);
-	std::printf("EXITING CORE_GPU\n");
+
 }
