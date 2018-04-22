@@ -9,6 +9,7 @@
 
 #include <cmath>
 
+
 int iter;
 static int last_assign, last_search, last_aggregator;
 static sem_t sem;
@@ -42,7 +43,9 @@ float dist2(float* a, float* b, int size) {
 	return d;
 }
 
-void core_cpu(pqtipo PQ, mat partial_residual, ivf_t* partial_ivf, int ivf_size, int* entry_map, int* starting_imgid, query_id_t* elements, matI idxs, mat dists) {
+void core_cpu(pqtipo PQ, mat partial_residual, ivf_t* partial_ivf, int ivf_size, int* entry_map, int* starting_imgid, int* starting_inputid, int num_imgs, matI idxs, mat dists) {
+	std::printf("idxs.n=%d\n", idxs.n);
+	
 	int p = 0;
 		
 	for (int i = 0; i < partial_residual.n; i++) {
@@ -62,7 +65,7 @@ void core_cpu(pqtipo PQ, mat partial_residual, ivf_t* partial_ivf, int ivf_size,
 		
 		int ivf_id = entry_map[i];
 		ivf_t entry = partial_ivf[ivf_id];
-		elements[i].tam += entry.idstam;
+		//elements[i].tam += entry.idstam;
 		
 		for (int j = 0; j < entry.idstam; j++) {
 			float dist = 0;
@@ -71,6 +74,7 @@ void core_cpu(pqtipo PQ, mat partial_residual, ivf_t* partial_ivf, int ivf_size,
 				dist += distab.mat[PQ.ks * d + entry.codes.mat[PQ.nsq * j + d]];
 			}
 			
+			if (p >= dists.n)std::printf("Accessing index %d\n", p);
 			dists.mat[p] = dist;
 			idxs.mat[p] = entry.ids[j];
 			p++;
@@ -85,8 +89,9 @@ void kernel() {
 }
 
 //TODO: refactor and improve the whole code
-void do_on(void (*target)(pqtipo, mat, ivf_t*, int, int*, int*, query_id_t*, matI, mat),
-		pqtipo PQ, std::list<int>& toX, mat residual, int* coaidx, ivf_t* ivf, query_id_t*& elements, matI& idxs, mat& dists) {
+//void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* entry_map, int* starting_imgid,  int* starting_inputid,  int num_imgs, query_id_t* elements, matI idxs, mat dists)
+void do_on(void (*target)(pqtipo, mat, ivf_t*, int, int*, int*, int*,  int, matI, mat),
+		pqtipo PQ, std::list<int>& toX, mat residual, int* coaidx, ivf_t* ivf, bool preselection, query_id_t*& elements, matI& idxs, mat& dists) {
 	std::set<int> coaidPresent;
 
 	int D = residual.d;
@@ -125,54 +130,50 @@ void do_on(void (*target)(pqtipo, mat, ivf_t*, int, int*, int*, query_id_t*, mat
 		coaid_to_IVF.insert(std::pair<int, int>(*it, i));
 	}
 
-	int count = 0;
+	
 	int entry_map[toX.size()];
 
 	int starting_imgid[partial_residual.n];
-	for (int i = 0; i < partial_residual.n; i++) {
-		starting_imgid[i] = 0;
-	}
+	int starting_inputid[partial_residual.n + 1];
 	
 	int imgid = 0;
-	
-	std::cout << "ALIVE2\n";
+	int num_imgs = 0;
+	int count = 0;
 	
 	i = 0;
 	for (auto it = toX.begin(); it != toX.end(); ++it, i++) {
 		entry_map[i] = coaid_to_IVF.find(coaidx[*it])->second;
 		starting_imgid[i] = count;
+		starting_inputid[i] = num_imgs;
 		
-		int last_count = count;
+		int size = partial_ivf[entry_map[i]].idstam;
 		
-		count += ivf[entry_map[i]].idstam;
-		
-		if (count < 0 && last_count > 0) std::cout << "LAST COUNT IS " << last_count << "\n";
+		elements[i].tam += preselection ? min(size, PQ.ks) : size;
+		count += preselection ? std::min(size, PQ.ks) : size;
+		num_imgs += size;
 	}
+	
+	
+	starting_inputid[residual.n] = num_imgs;
 
-	std::cout << "Before allocating " << count << " ints\n";
 	idxs.mat = new int[count];
 	idxs.n = count;
-	std::cout << "Before allocating " << count << " ints[2]\n";
 	dists.mat = new float[count];
 	dists.n = count;
 	
-	std::cout << "After allocating " << count << " ints\n";
-	
-	std::cout << "ALIVE3\n";
-	if (partial_residual.n >= 1) (*target)(PQ, partial_residual, partial_ivf, coaidPresent.size(), entry_map, starting_imgid, elements, idxs, dists);
-	
-	std::cout << "ALIVE4\n";
+	//void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* entry_map, int* starting_imgid,  int* starting_inputid,  int num_imgs, query_id_t* elements, matI idxs, mat dists)
+	if (partial_residual.n >= 1) (*target)(PQ, partial_residual, partial_ivf, coaidPresent.size(), entry_map, starting_imgid, starting_inputid, num_imgs, idxs, dists);
 	
 	delete[] partial_residual.mat;
 }
 
 
 void do_cpu(pqtipo PQ, std::list<int>& to_cpu, mat residual, int* coaidx, ivf_t* ivf, query_id_t*& elements, matI& idxs, mat& dists) {
-	do_on(&core_cpu, PQ, to_cpu, residual, coaidx, ivf, elements, idxs, dists);
+	do_on(&core_cpu, PQ, to_cpu, residual, coaidx, ivf, false, elements, idxs, dists);
 }
 
-void do_gpu(pqtipo PQ, std::list<int>& to_gpu, mat residual, int* coaidx, ivf_t* ivf, query_id_t*& elements, matI& idxs, mat& dists) {
-	do_on(&core_gpu, PQ, to_gpu, residual, coaidx, ivf, elements, idxs, dists);
+void do_gpu(pqtipo PQ, std::list<int>& to_gpu, mat residual, int* coaidx, ivf_t* ivf,  query_id_t*& elements, matI& idxs, mat& dists) {
+	do_on(&core_gpu, PQ, to_gpu, residual, coaidx, ivf, true, elements, idxs, dists);
 }
 
 
@@ -392,7 +393,7 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 		
 		//TODO: implement the real logic to separate gpu and cpu
 		for (int i = 0; i < residual.n; i++) {
-			to_cpu.push_back(i);
+			to_gpu.push_back(i);
 		}
 		
 		std::printf("EXECUTING ON THE %s\n", to_cpu.size() == 0 ? "gpu" : "cpu");

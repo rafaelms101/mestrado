@@ -1,6 +1,7 @@
 #include <cuda_runtime.h>
 
 #include "mycuda.h"
+#include "topk.cu"
 
 #include "helper_cuda.h"
 
@@ -14,24 +15,25 @@
 
 //TODO: remember to not execute queries that dont correspond to an entry on the problem
 
-// PQ.ks and PQ.nsq must be power of 2
-__global__ void compute_dists(pqtipo PQ, mat residual, ivf_t* ivf, int* entry_map, int* starting_imgid, query_id_t* elements, matI idxs, mat dists) {
+extern __shared__ char shared_memory[];
+
+// PQ.ks * PQ.nsq must be a multiple of 1024
+__global__ void compute_dists(pqtipo PQ, mat residual, ivf_t* ivf, int* entry_map, int* starting_imgid, int* starting_inputid, Img* original_input, matI idxs, mat dists) {
 	int tid = threadIdx.x;
 	int nthreads = blockDim.x;
 	int qid = blockIdx.x;
 	
-	extern __shared__ float distab[];
-	
+	float* distab = (float*) shared_memory;
 	
 	//computing disttab
-	int step = PQ.ks * PQ.nsq / nthreads; //step = 256 * 8 / 1024 = 2
+	int step = PQ.ks * PQ.nsq / nthreads; 
 	int j = step * tid;
 	int initial_d = j / PQ.ks;
 	int initial_k = j % PQ.ks;
 	
 	int nd = max(step / PQ.ks, 1); //nd = 1
 	int slice = min(step, PQ.ks); //slice = 2 
-	
+		
 	float* current_residual = residual.mat + qid * PQ.nsq * PQ.ds;
 	
 	for (int d = initial_d; d < initial_d + nd; d++) {
@@ -51,16 +53,14 @@ __global__ void compute_dists(pqtipo PQ, mat residual, ivf_t* ivf, int* entry_ma
 		
 		initial_k = 0;
 	}
-
+	
+	__syncthreads();
 	
 	//computing the distances to the vectors
 	ivf_t entry = ivf[entry_map[qid]];
-
-	if (threadIdx.x == 0 && threadIdx.y == 0) { //only one thread per block should do this, since they all refer to the same query
-		atomicAdd(&elements[qid].tam, entry.idstam); //atomic because we will have up to w threads trying to increase this at the same time
-	}
-
-	int block_size = blockDim.x * blockDim.y;
+	Img* input = original_input + starting_inputid[qid];
+	
+	int block_size = blockDim.x;
 
 	for (int i = tid; i < entry.idstam; i += block_size) {
 		float dist = 0;
@@ -68,17 +68,44 @@ __global__ void compute_dists(pqtipo PQ, mat residual, ivf_t* ivf, int* entry_ma
 		for (int s = 0; s < PQ.nsq; s++) {
 			dist += distab[PQ.ks * s + entry.codes.mat[PQ.nsq * i + s]];
 		}
-
-		dists.mat[starting_imgid[qid] + i] = dist;
-		idxs.mat[starting_imgid[qid] + i] = entry.ids[i];
+		
+		input[i] = { dist, entry.ids[i] };
 	}
 	
-	//selecting the smallest ones
-	
+	__syncthreads();
+
+	// now selecting num_shards
+	auto shared_memory_size = 48 << 10 - PQ.ks * PQ.nsq * sizeof(float);  // 48 KB
+	auto heap_size = PQ.ks * sizeof(Entry<Img>);
+	// shared_memory_size = (num_shards + 1) * heap_size <=>
+	int num_shards = shared_memory_size / heap_size - 1;
+	if (num_shards <= 0) {
+		num_shards = 1;
+	}
+	auto shard_size = entry.idstam / num_shards;
+	auto min_shard_size = 2 * PQ.ks;
+	if (shard_size < min_shard_size) {
+		num_shards = entry.idstam / min_shard_size;
+	}
+	if (num_shards <= 0) {
+		num_shards = 1;
+	} else if (num_shards > 1024) {
+		num_shards = 1024;
+	}
+
+	topk(num_shards, PQ.ks, original_input, starting_inputid, dists.mat, idxs.mat);
 }
 
-void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* entry_map, int* starting_imgid, query_id_t* elements, matI idxs, mat dists) {
-	std::printf("PQ.ks = %d\n", PQ.ks);
+
+
+void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* entry_map, int* starting_imgid,  int* starting_inputid,  int num_imgs, matI idxs, mat dists) {
+	//print lengths
+//	for (int i = 0; i < residual.n; i++) {
+//		std::printf("LENGTH[%d]=%d\n", i, starting_inputid[i+1] - starting_inputid[i]);
+//		std::printf("LENGTH#2[%d]=%d\n", i, ivf[entry_map[i]].idstam);
+//	}
+	
+	
 	
 	//TODO: implement / redo the error handling so that we have less code duplication
 	cudaError_t err = cudaSuccess;
@@ -91,7 +118,6 @@ void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* entry_map,
 	safe_call(cudaMalloc((void **) &gpu_residual.mat, sizeof(float) * residual.n * residual.d));
 	safe_call(cudaMemcpy(gpu_residual.mat, residual.mat, sizeof(float) * residual.n * residual.d, cudaMemcpyHostToDevice));
 	
-	std::printf("residual.n=%d and residual.d=%d\n", residual.n, residual.d);
 	
 	ivf_t* gpu_ivf;
 	safe_call(cudaMalloc((void **) &gpu_ivf, sizeof(ivf_t) * ivf_size));
@@ -119,21 +145,40 @@ void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* entry_map,
 	safe_call(cudaMalloc((void **) &gpu_starting_imgid, sizeof(int) * residual.n));
 	safe_call(cudaMemcpy(gpu_starting_imgid, starting_imgid, sizeof(int) * residual.n, cudaMemcpyHostToDevice));
 	
-	query_id_t* gpu_elements;
-	safe_call(cudaMalloc((void **) &gpu_elements, sizeof(query_id_t) * residual.n)); //TODO: I dont know if this is truly needed
-	safe_call(cudaMemcpy(gpu_elements, elements, sizeof(query_id_t) * residual.n, cudaMemcpyHostToDevice));// TODO: need to rethink this
+	//query_id_t* gpu_elements;
+	//safe_call(cudaMalloc((void **) &gpu_elements, sizeof(query_id_t) * residual.n)); //TODO: I dont know if this is truly needed
+	//safe_call(cudaMemcpy(gpu_elements, elements, sizeof(query_id_t) * residual.n, cudaMemcpyHostToDevice));// TODO: need to rethink this
 	
 	matI gpu_idxs = idxs;
+	
+	
 	safe_call(cudaMalloc((void **) &gpu_idxs.mat, sizeof(int) * idxs.n));
+	std::printf("Allocating: %dMB\n", sizeof(int) * idxs.n / 1024 / 1024);
 	
 	mat gpu_dists = dists;
 	safe_call(cudaMalloc((void **) &gpu_dists.mat, sizeof(float) * dists.n));
+	std::printf("Allocating: %dMB\n", sizeof(float) * dists.n / 1024 / 1024);
 
-	dim3 block(1024, 1, 1); //TODO: THIS IS WRONG!!!!! We can have more than 32 PQ.nsq, which is an invalid block size
+	//allocating the input buffer
+	int* gpu_starting_inputid;
+	safe_call(cudaMalloc((void **) &gpu_starting_inputid, sizeof(int) * (residual.n + 1)));
+	safe_call(cudaMemcpy(gpu_starting_inputid, starting_inputid, sizeof(int) * (residual.n + 1), cudaMemcpyHostToDevice));
+	
+	Img* gpu_input;
+	std::printf("Number of images: %d\n", num_imgs);
+	std::printf("Allocating: %dMB\n", sizeof(Img) * num_imgs / 1024 / 1024);
+	safe_call(cudaMalloc((void **) &gpu_input, sizeof(Img) * num_imgs));
+
+	dim3 block(1024, 1, 1);
 	dim3 grid(residual.n, 1, 1);
 	
-	std::printf("Before calling the kernel\n");
-	compute_dists<<<grid, block, sizeof(float) * PQ.ks * PQ.nsq>>>(gpu_PQ, gpu_residual, gpu_ivf, gpu_entry_map, gpu_starting_imgid, gpu_elements, gpu_idxs, gpu_dists); 
+	//find biggest ivf entry
+	int biggest = 0;
+	for (int i = 0; i < ivf_size; i++ ) if (ivf[i].idstam > biggest) biggest = ivf[i].idstam; 
+
+	int sm_size = 48 << 10;
+	
+	compute_dists<<<grid, block,  sm_size>>>(gpu_PQ, gpu_residual, gpu_ivf, gpu_entry_map, gpu_starting_imgid, gpu_starting_inputid, gpu_input, gpu_idxs, gpu_dists);  
 	
 	err = cudaGetLastError();
 
@@ -146,11 +191,10 @@ void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* entry_map,
 	std::printf("After calling the kernel\n");
 	
 	//RECEIVING DATA FROM GPU
-	safe_call(cudaMemcpy(elements, gpu_elements, sizeof(query_id_t) * residual.n, cudaMemcpyDeviceToHost));
+	//safe_call(cudaMemcpy(elements, 0, sizeof(query_id_t) * residual.n, cudaMemcpyDeviceToHost));
 	
 	safe_call(cudaMemcpy(idxs.mat, gpu_idxs.mat , sizeof(int) * idxs.n, cudaMemcpyDeviceToHost));
-	
-	safe_call(cudaMemcpy(dists.mat, gpu_dists.mat, sizeof(int) * dists.n, cudaMemcpyDeviceToHost));
+	safe_call(cudaMemcpy(dists.mat, gpu_dists.mat, sizeof(float) * dists.n, cudaMemcpyDeviceToHost));
 	
 	//FREEING MEMORY
 	cudaFree(gpu_PQ.centroids);
@@ -164,9 +208,10 @@ void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* entry_map,
 	
 	cudaFree(gpu_entry_map);
 	cudaFree(gpu_starting_imgid);
-	cudaFree(gpu_elements);
 	cudaFree(gpu_idxs.mat);
 	cudaFree(gpu_dists.mat);
+	cudaFree(gpu_starting_inputid);
+	cudaFree(gpu_input);
 	
 	delete[] tmp_ivf;
 
