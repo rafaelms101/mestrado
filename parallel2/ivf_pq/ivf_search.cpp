@@ -44,8 +44,6 @@ float dist2(float* a, float* b, int size) {
 }
 
 void core_cpu(pqtipo PQ, mat partial_residual, ivf_t* partial_ivf, int ivf_size, int* entry_map, int* starting_imgid, int* starting_inputid, int num_imgs, matI idxs, mat dists) {
-	std::printf("idxs.n=%d\n", idxs.n);
-	
 	int p = 0;
 		
 	for (int i = 0; i < partial_residual.n; i++) {
@@ -116,8 +114,6 @@ void do_on(void (*target)(pqtipo, mat, ivf_t*, int, int*, int*, int*,  int, matI
 			partial_residual.mat[i * D + d] = residual.mat[*it * D + d];
 		}
 	}
-	
-	std::cout << "ALIVE1\n";
 
 	ivf_t partial_ivf[coaidPresent.size()];
 	std::map<int, int> coaid_to_IVF;
@@ -153,9 +149,8 @@ void do_on(void (*target)(pqtipo, mat, ivf_t*, int, int*, int*, int*,  int, matI
 		num_imgs += size;
 	}
 	
+	starting_inputid[partial_residual.n] = num_imgs;
 	
-	starting_inputid[residual.n] = num_imgs;
-
 	idxs.mat = new int[count];
 	idxs.n = count;
 	dists.mat = new float[count];
@@ -392,8 +387,11 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 		std::list<int> to_cpu;
 		
 		//TODO: implement the real logic to separate gpu and cpu
+		
+		//int limit = residual.n * 0.5;
+		
 		for (int i = 0; i < residual.n; i++) {
-			to_gpu.push_back(i);
+			to_cpu.push_back(i);
 		}
 		
 		std::printf("EXECUTING ON THE %s\n", to_cpu.size() == 0 ? "gpu" : "cpu");
