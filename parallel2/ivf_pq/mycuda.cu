@@ -18,7 +18,11 @@
 extern __shared__ char shared_memory[];
 
 // PQ.ks * PQ.nsq must be a multiple of 1024
-__global__ void compute_dists(pqtipo PQ, mat residual, ivf_t* ivf, int* entry_map, int* starting_imgid, int* starting_inputid, Img* original_input, matI idxs, mat dists) {
+__global__ void compute_dists(pqtipo PQ, mat residual, ivf_t* ivf, int* entry_map, int* starting_imgid, int* starting_inputid, Img* original_input, matI idxs, mat dists, int best_k) {
+	if (blockIdx.x == 0 && threadIdx.x == 0) {
+			std::printf("IN_GPU\n");
+		}
+	
 	int tid = threadIdx.x;
 	int nthreads = blockDim.x;
 	int qid = blockIdx.x;
@@ -33,8 +37,13 @@ __global__ void compute_dists(pqtipo PQ, mat residual, ivf_t* ivf, int* entry_ma
 	
 	int nd = max(step / PQ.ks, 1); //nd = 1
 	int slice = min(step, PQ.ks); //slice = 2 
+	
+	//std::printf("step=%d, j=%d, initial_d=%d, initial_k=%d\n", step, j, initial_d, initial_k);
 		
 	float* current_residual = residual.mat + qid * PQ.nsq * PQ.ds;
+	
+	
+	//std::printf("BEFORE THE BIG FOR\n");
 	
 	for (int d = initial_d; d < initial_d + nd; d++) {
 		float* sub_residual = current_residual + d * PQ.ds;
@@ -49,6 +58,7 @@ __global__ void compute_dists(pqtipo PQ, mat residual, ivf_t* ivf, int* entry_ma
 			}
 			
 			distab[PQ.ks * d + k] = dist;
+			//std::printf("PQ.ks=%d, d=%d, k=%d, distab[%d] = %f\n", PQ.ks, d, k, PQ.ks * d + k, dist);
 		}
 		
 		initial_k = 0;
@@ -70,20 +80,22 @@ __global__ void compute_dists(pqtipo PQ, mat residual, ivf_t* ivf, int* entry_ma
 		}
 		
 		input[i] = { dist, entry.ids[i] };
+		//std::printf("input[%d] = %f\n", i, dist);
 	}
 	
 	__syncthreads();
 
 	// now selecting num_shards
-	auto shared_memory_size = 48 << 10 - PQ.ks * PQ.nsq * sizeof(float);  // 48 KB
-	auto heap_size = PQ.ks * sizeof(Entry<Img>);
+	auto shared_memory_size = (48 << 10) - PQ.ks * PQ.nsq * sizeof(float);  // 48 KB
+	//std::printf("SHARED MEMORY SIZE: %dKB\n",shared_memory_size / 1024);
+	auto heap_size = best_k * sizeof(Entry<Img>);
 	// shared_memory_size = (num_shards + 1) * heap_size <=>
 	int num_shards = shared_memory_size / heap_size - 1;
 	if (num_shards <= 0) {
 		num_shards = 1;
 	}
 	auto shard_size = entry.idstam / num_shards;
-	auto min_shard_size = 2 * PQ.ks;
+	auto min_shard_size = 2 * best_k;
 	if (shard_size < min_shard_size) {
 		num_shards = entry.idstam / min_shard_size;
 	}
@@ -93,12 +105,17 @@ __global__ void compute_dists(pqtipo PQ, mat residual, ivf_t* ivf, int* entry_ma
 		num_shards = 1024;
 	}
 
-	topk(num_shards, PQ.ks, original_input, starting_inputid, dists.mat, idxs.mat);
+	topk(num_shards, best_k, original_input, starting_inputid, dists.mat, idxs.mat);
+	__syncthreads();
+	
+	if (blockIdx.x == 0 && threadIdx.x == 0) {
+		std::printf("OUT_GPU\n");
+	}
 }
 
 
 
-void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* entry_map, int* starting_imgid,  int* starting_inputid,  int num_imgs, matI idxs, mat dists) {
+void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* entry_map, int* starting_imgid,  int* starting_inputid,  int num_imgs, matI idxs, mat dists, int k) {
 	//print lengths
 //	for (int i = 0; i < residual.n; i++) {
 //		std::printf("LENGTH[%d]=%d\n", i, starting_inputid[i+1] - starting_inputid[i]);
@@ -166,6 +183,7 @@ void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* entry_map,
 	
 	Img* gpu_input;
 	std::printf("Number of images: %d\n", num_imgs);
+	std::printf("Image: %d\n", sizeof(Img));
 	std::printf("Allocating: %dMB\n", sizeof(Img) * num_imgs / 1024 / 1024);
 	safe_call(cudaMalloc((void **) &gpu_input, sizeof(Img) * num_imgs));
 
@@ -178,7 +196,10 @@ void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* entry_map,
 
 	int sm_size = 48 << 10;
 	
-	compute_dists<<<grid, block,  sm_size>>>(gpu_PQ, gpu_residual, gpu_ivf, gpu_entry_map, gpu_starting_imgid, gpu_starting_inputid, gpu_input, gpu_idxs, gpu_dists);  
+	auto shared_memory_size = (48 << 10) - PQ.ks * PQ.nsq * sizeof(float);  // 48 KB
+	std::printf("SHARED MEMORY SIZE = %dKB\n", shared_memory_size / 1024);
+	
+	compute_dists<<<grid, block,  sm_size>>>(gpu_PQ, gpu_residual, gpu_ivf, gpu_entry_map, gpu_starting_imgid, gpu_starting_inputid, gpu_input, gpu_idxs, gpu_dists, k);  
 	
 	err = cudaGetLastError();
 
@@ -189,6 +210,8 @@ void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* entry_map,
 	} else std::printf("SUCESSS!\n");
 	
 	std::printf("After calling the kernel\n");
+	
+	//exit(0);
 	
 	//RECEIVING DATA FROM GPU
 	//safe_call(cudaMemcpy(elements, 0, sizeof(query_id_t) * residual.n, cudaMemcpyDeviceToHost));

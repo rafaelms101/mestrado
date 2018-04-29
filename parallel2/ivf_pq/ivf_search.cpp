@@ -43,7 +43,8 @@ float dist2(float* a, float* b, int size) {
 	return d;
 }
 
-void core_cpu(pqtipo PQ, mat partial_residual, ivf_t* partial_ivf, int ivf_size, int* entry_map, int* starting_imgid, int* starting_inputid, int num_imgs, matI idxs, mat dists) {
+//TODO: we dont need k, maybe we shouldnt require that core_cpu and core_gpu have the same interface. Or maybe we should create some sort of structure that represents the context info
+void core_cpu(pqtipo PQ, mat partial_residual, ivf_t* partial_ivf, int ivf_size, int* entry_map, int* starting_imgid, int* starting_inputid, int num_imgs, matI idxs, mat dists, int k) {
 	int p = 0;
 		
 	for (int i = 0; i < partial_residual.n; i++) {
@@ -88,8 +89,8 @@ void kernel() {
 
 //TODO: refactor and improve the whole code
 //void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* entry_map, int* starting_imgid,  int* starting_inputid,  int num_imgs, query_id_t* elements, matI idxs, mat dists)
-void do_on(void (*target)(pqtipo, mat, ivf_t*, int, int*, int*, int*,  int, matI, mat),
-		pqtipo PQ, std::list<int>& toX, mat residual, int* coaidx, ivf_t* ivf, bool preselection, query_id_t*& elements, matI& idxs, mat& dists) {
+void do_on(void (*target)(pqtipo, mat, ivf_t*, int, int*, int*, int*,  int, matI, mat, int),
+		pqtipo PQ, std::list<int>& toX, mat residual, int* coaidx, ivf_t* ivf, bool preselection, query_id_t*& elements, matI& idxs, mat& dists, int k) {
 	std::set<int> coaidPresent;
 
 	int D = residual.d;
@@ -129,7 +130,7 @@ void do_on(void (*target)(pqtipo, mat, ivf_t*, int, int*, int*, int*,  int, matI
 	
 	int entry_map[toX.size()];
 
-	int starting_imgid[partial_residual.n];
+	int starting_imgid[partial_residual.n + 1];
 	int starting_inputid[partial_residual.n + 1];
 	
 	int imgid = 0;
@@ -144,12 +145,13 @@ void do_on(void (*target)(pqtipo, mat, ivf_t*, int, int*, int*, int*,  int, matI
 		
 		int size = partial_ivf[entry_map[i]].idstam;
 		
-		elements[i].tam += preselection ? min(size, PQ.ks) : size;
-		count += preselection ? std::min(size, PQ.ks) : size;
+		elements[i].tam += preselection ? min(size, k) : size;
+		count += preselection ? std::min(size, k) : size;
 		num_imgs += size;
 	}
 	
 	starting_inputid[partial_residual.n] = num_imgs;
+	starting_imgid[partial_residual.n] = count;
 	
 	idxs.mat = new int[count];
 	idxs.n = count;
@@ -157,18 +159,18 @@ void do_on(void (*target)(pqtipo, mat, ivf_t*, int, int*, int*, int*,  int, matI
 	dists.n = count;
 	
 	//void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* entry_map, int* starting_imgid,  int* starting_inputid,  int num_imgs, query_id_t* elements, matI idxs, mat dists)
-	if (partial_residual.n >= 1) (*target)(PQ, partial_residual, partial_ivf, coaidPresent.size(), entry_map, starting_imgid, starting_inputid, num_imgs, idxs, dists);
+	if (partial_residual.n >= 1) (*target)(PQ, partial_residual, partial_ivf, coaidPresent.size(), entry_map, starting_imgid, starting_inputid, num_imgs, idxs, dists, k);
 	
 	delete[] partial_residual.mat;
 }
 
 
-void do_cpu(pqtipo PQ, std::list<int>& to_cpu, mat residual, int* coaidx, ivf_t* ivf, query_id_t*& elements, matI& idxs, mat& dists) {
-	do_on(&core_cpu, PQ, to_cpu, residual, coaidx, ivf, false, elements, idxs, dists);
+void do_cpu(pqtipo PQ, std::list<int>& to_cpu, mat residual, int* coaidx, ivf_t* ivf, query_id_t*& elements, matI& idxs, mat& dists, int k) {
+	do_on(&core_cpu, PQ, to_cpu, residual, coaidx, ivf, false, elements, idxs, dists, k);
 }
 
-void do_gpu(pqtipo PQ, std::list<int>& to_gpu, mat residual, int* coaidx, ivf_t* ivf,  query_id_t*& elements, matI& idxs, mat& dists) {
-	do_on(&core_gpu, PQ, to_gpu, residual, coaidx, ivf, true, elements, idxs, dists);
+void do_gpu(pqtipo PQ, std::list<int>& to_gpu, mat residual, int* coaidx, ivf_t* ivf,  query_id_t*& elements, matI& idxs, mat& dists, int k) {
+	do_on(&core_gpu, PQ, to_gpu, residual, coaidx, ivf, true, elements, idxs, dists, k);
 }
 
 
@@ -390,8 +392,10 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 		
 		//int limit = residual.n * 0.5;
 		
+		std::printf("residual.n=%d\n", residual.n);
+		
 		for (int i = 0; i < residual.n; i++) {
-			to_cpu.push_back(i);
+			to_gpu.push_back(i);
 		}
 		
 		std::printf("EXECUTING ON THE %s\n", to_cpu.size() == 0 ? "gpu" : "cpu");
@@ -400,18 +404,33 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 		time (&start);
 		
 		
+		std::printf("PQ.ks=%d and k=%d\n", ivfpq.pq.ks, k);
+		
 		//GPU PART
 		query_id_t* gpu_elements;
 		matI gpu_idxs;
 		mat gpu_dists;
-		sw(do_gpu(ivfpq.pq, to_gpu, residual, coaidx, ivf, gpu_elements, gpu_idxs, gpu_dists));
+		sw(do_gpu(ivfpq.pq, to_gpu, residual, coaidx, ivf, gpu_elements, gpu_idxs, gpu_dists, k));
+
+//		if (to_cpu.size() == 0) {
+//			//std::printf("GPU_PART\n");
+//					int id = 0;
+//					for (int q = 0; q < to_gpu.size(); q++) {
+//						//std::printf("Query %d\n", q);
+//
+//						for (int j = 0; j < gpu_elements[q].tam; j++, id++) {
+//							//std::printf("id[%d]=%f\n", gpu_idxs.mat[id], gpu_dists.mat[id]);
+//						}
+//					}
+//		}
+		
 		
 		//CPU PART
 		query_id_t* cpu_elements;
 		matI cpu_idxs;
 		mat cpu_dists;
 		std::cout << "DO_CPU started\n";
-		sw(do_cpu(ivfpq.pq, to_cpu, residual, coaidx, ivf, cpu_elements, cpu_idxs, cpu_dists));
+		sw(do_cpu(ivfpq.pq, to_cpu, residual, coaidx, ivf, cpu_elements, cpu_idxs, cpu_dists, k)); //TODO: k is unnecessary to the cpu part, maybe we should just stop trying to abstract then together (cpu and gpu)
 		std::cout << "DO_CPU ended\n";
 		
 		query_id_t* elements;
@@ -421,6 +440,7 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 		std::cout << "merge_results started\n";
 		sw(merge_results(base_id, w, to_cpu.size(), cpu_elements, cpu_idxs, cpu_dists, to_gpu.size(), gpu_elements, gpu_idxs, gpu_dists, elements, idxs, dists));
 		std::cout << "merge_results ended\n";
+		
 		
 		delete[] cpu_elements;
 		delete[] cpu_idxs.mat;
@@ -433,6 +453,20 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 		std::cout << "choose_best started\n";
 		sw(choose_best(elements, residual.n / w, idxs, dists, k));
 		std::cout << "choose_best ended\n";
+		
+//		if (to_cpu.size() != 0) {
+//			std::printf("CPU_PART\n");
+//					int id = 0;
+//					for (int q = 0; q < (to_gpu.size() + to_cpu.size()) / w; q++) {
+//						std::printf("Query %d\n", q);
+//
+//						for (int j = 0; j < elements[q].tam;  j++, id++) {
+//							std::printf("id[%d]=%f\n", idxs.mat[id], dists.mat[id]);
+//						}
+//					}
+//		}
+		
+		
 		
 		sw(send_results((to_cpu.size() + to_gpu.size()) / w, elements, idxs, dists, finish_aux));
 		
