@@ -9,10 +9,10 @@
 
 #include <cmath>
 
-
-int iter;
 static int last_assign, last_search, last_aggregator;
 static sem_t sem;
+
+static int num_threads;
 
 
 //TODO: dont try this at home
@@ -45,43 +45,56 @@ float dist2(float* a, float* b, int size) {
 
 //TODO: we dont need k, maybe we shouldnt require that core_cpu and core_gpu have the same interface. Or maybe we should create some sort of structure that represents the context info
 void core_cpu(pqtipo PQ, mat partial_residual, ivf_t* partial_ivf, int ivf_size, int* entry_map, int* starting_imgid, int* starting_inputid, int num_imgs, matI idxs, mat dists, int k) {
-	int p = 0;
+	num_threads = 8;
+	std::printf("Executing %d threads\n", num_threads);	
+	
+	#pragma omp parallel num_threads(num_threads)
+	{
+		int nthreads = omp_get_num_threads();
+		int tid = omp_get_thread_num();
+
 		
-	for (int i = 0; i < partial_residual.n; i++) {
-		float* residual = partial_residual.mat + i * PQ.nsq * PQ.ds;
-		
-		mat distab;
-		distab.mat = new float[PQ.ks * PQ.nsq]; 
-		distab.n = PQ.nsq;
-		distab.d = PQ.ks;
-		
-		for (int d = 0; d < PQ.nsq; d++) {
-			for (int k = 0; k < PQ.ks; k++) {
-				float dist = dist2(residual + d * PQ.ds, PQ.centroids + d * PQ.ks * PQ.ds + k * PQ.ds, PQ.ds);
-				distab.mat[PQ.ks * d + k] = dist;
-			}
-		}
-		
-		int ivf_id = entry_map[i];
-		ivf_t entry = partial_ivf[ivf_id];
-		//elements[i].tam += entry.idstam;
-		
-		for (int j = 0; j < entry.idstam; j++) {
-			float dist = 0;
-			
+
+		for (int i = tid; i < partial_residual.n; i += nthreads) {
+			float* residual = partial_residual.mat + i * PQ.nsq * PQ.ds;
+
+			mat distab;
+			distab.mat = new float[PQ.ks * PQ.nsq];
+			distab.n = PQ.nsq;
+			distab.d = PQ.ks;
+
 			for (int d = 0; d < PQ.nsq; d++) {
-				dist += distab.mat[PQ.ks * d + entry.codes.mat[PQ.nsq * j + d]];
+				for (int k = 0; k < PQ.ks; k++) {
+					float dist = dist2(residual + d * PQ.ds,
+							PQ.centroids + d * PQ.ks * PQ.ds + k * PQ.ds,
+							PQ.ds);
+					distab.mat[PQ.ks * d + k] = dist;
+				}
 			}
+
+			int ivf_id = entry_map[i];
+			ivf_t entry = partial_ivf[ivf_id];
+
+			int imgid = starting_imgid[i];
 			
-			if (p >= dists.n)std::printf("Accessing index %d\n", p);
-			dists.mat[p] = dist;
-			idxs.mat[p] = entry.ids[j];
-			p++;
+			for (int j = 0;  j < entry.idstam;  j++) {
+				float dist = 0;
+
+				for (int d = 0; d < PQ.nsq;  d++) {
+					dist += distab.mat[PQ.ks * d + entry.codes.mat[PQ.nsq * j + d]];
+				}
+
+				dists.mat[imgid] = dist;
+				idxs.mat[imgid] = entry.ids[j];
+				imgid++;
+			}
+
+			delete[] distab.mat;
 		}
-		
-		delete[] distab.mat; 
 	}
 }
+
+
 
 void kernel() {
 	
@@ -302,6 +315,8 @@ void send_results(int ne, query_id_t* elements, matI idxs, mat dists, int finish
 }
 
 void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Comm search_comm, char *dataset, int w){
+	num_threads = threads;
+	
 	ivfpq_t ivfpq;
 	mat residual;
 	int *coaidx, my_rank;
@@ -342,7 +357,6 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 	int **ids;
 	int finish_aux=0;
 
-	query_id_t *fila;
 	int count = 0;
 
 	
@@ -351,12 +365,8 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 	MPI_Barrier(search_comm);
 
 	sem_init(&sem, 0, 1);
-	
-	system("exit");
 
 	while (1) {
-		double f1 = 0, f2 = 0, f3 = 0, f4 = 0, g1 = 0, g2 = 0, g3 = 0;
-
 		MPI_Bcast(&residual.n, 1, MPI_INT, 0, search_comm);
 		MPI_Bcast(&residual.d, 1, MPI_INT, 0, search_comm);
 
@@ -370,39 +380,23 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 		MPI_Bcast(&coaidx[0], residual.n, MPI_INT, 0, search_comm);
 		MPI_Bcast(&finish_aux, 1, MPI_INT, 0, search_comm);
 
-		fila = (query_id_t*) malloc(sizeof(query_id_t) * (residual.n / w));
-
-		for (int it = 0; it < residual.n / w; it++) {
-			fila[it].tam = 0;
-			fila[it].id = count;
-		}
-
-		iter = 0;
-
 		dis = (float**) malloc(sizeof(float *) * (residual.n / w));
 		ids = (int**) malloc(sizeof(int *) * (residual.n / w));
-		
-		int maxgpu = residual.n / 2;
-		
 		
 		std::list<int> to_gpu;
 		std::list<int> to_cpu;
 		
-		//TODO: implement the real logic to separate gpu and cpu
-		
-		//int limit = residual.n * 0.5;
-		
 		std::printf("residual.n=%d\n", residual.n);
 		
-		for (int i = 0; i < residual.n; i++) {
-			to_gpu.push_back(i);
+		for (int i = 0;  i < residual.n;  i++) {
+			if (i % 2 == 0) to_cpu.push_back(i);
+			else to_gpu.push_back(i);
 		}
 		
 		std::printf("EXECUTING ON THE %s\n", to_cpu.size() == 0 ? "gpu" : "cpu");
 		
 		time_t start,end;
 		time (&start);
-		
 		
 		std::printf("PQ.ks=%d and k=%d\n", ivfpq.pq.ks, k);
 		
@@ -411,19 +405,6 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 		matI gpu_idxs;
 		mat gpu_dists;
 		sw(do_gpu(ivfpq.pq, to_gpu, residual, coaidx, ivf, gpu_elements, gpu_idxs, gpu_dists, k));
-
-//		if (to_cpu.size() == 0) {
-//			//std::printf("GPU_PART\n");
-//					int id = 0;
-//					for (int q = 0; q < to_gpu.size(); q++) {
-//						//std::printf("Query %d\n", q);
-//
-//						for (int j = 0; j < gpu_elements[q].tam; j++, id++) {
-//							//std::printf("id[%d]=%f\n", gpu_idxs.mat[id], gpu_dists.mat[id]);
-//						}
-//					}
-//		}
-		
 		
 		//CPU PART
 		query_id_t* cpu_elements;
@@ -441,7 +422,6 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 		sw(merge_results(base_id, w, to_cpu.size(), cpu_elements, cpu_idxs, cpu_dists, to_gpu.size(), gpu_elements, gpu_idxs, gpu_dists, elements, idxs, dists));
 		std::cout << "merge_results ended\n";
 		
-		
 		delete[] cpu_elements;
 		delete[] cpu_idxs.mat;
 		delete[] cpu_dists.mat;
@@ -454,20 +434,6 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 		sw(choose_best(elements, residual.n / w, idxs, dists, k));
 		std::cout << "choose_best ended\n";
 		
-//		if (to_cpu.size() != 0) {
-//			std::printf("CPU_PART\n");
-//					int id = 0;
-//					for (int q = 0; q < (to_gpu.size() + to_cpu.size()) / w; q++) {
-//						std::printf("Query %d\n", q);
-//
-//						for (int j = 0; j < elements[q].tam;  j++, id++) {
-//							std::printf("id[%d]=%f\n", idxs.mat[id], dists.mat[id]);
-//						}
-//					}
-//		}
-		
-		
-		
 		sw(send_results((to_cpu.size() + to_gpu.size()) / w, elements, idxs, dists, finish_aux));
 		
 		delete[] elements;
@@ -475,7 +441,6 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 		delete[] dists.mat;
 		
 		base_id += residual.n / w;
-		
 		
 		time (&end);
 		double dif = difftime (end,start);
@@ -495,114 +460,6 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 	free(ivfpq.coa_centroids);
 	
 	std::cout << "FINISHED THE SEARCH\n";
-}
-
-dis_t ivfpq_search(ivf_t *ivf, float *residual, pqtipo pq, int centroid_idx, double *g1, double *g2){
-	dis_t q;
-	int ds, ks, nsq;
-	struct timeval b1, b2, b3;
-
-	ds = pq.ds;
-	ks = pq.ks;
-	nsq = pq.nsq;
-
-	mat distab;
-	distab.mat = (float*)malloc(sizeof(float)*ks*nsq);
-	distab.n = nsq;
-	distab.d = ks;
-
-	float *distab_temp=(float*)malloc(sizeof(float)*ks);
-
-	float* AUXSUMIDX;
-
-	q.dis.n = ivf[centroid_idx].codes.n;
-	q.dis.d = 1;
-	q.dis.mat = (float*)malloc(sizeof(float)*q.dis.n);
-
-	q.idx.n = ivf[centroid_idx].codes.n;
-	q.idx.d = 1;
-	q.idx.mat = (int*)malloc(sizeof(int)*q.idx.n);
-
-	gettimeofday(&b1, NULL);
-
-	clock_t begin = clock();
-	for (int query = 0; query < nsq; query++) {
-		
-		compute_cross_distances(ds, 1, distab.d, &residual[query*ds], &pq.centroids[query*ks*ds], distab_temp);
-		
-		memcpy(distab.mat+query*ks, distab_temp, sizeof(float)*ks);
-	}
-
-	gettimeofday(&b2, NULL);
-
-	begin = clock();
-	AUXSUMIDX = sumidxtab2(distab, ivf[centroid_idx].codes, 0);
-
-	gettimeofday(&b3, NULL);
-
-	memcpy(q.idx.mat, ivf[centroid_idx].ids,  sizeof(int)*ivf[centroid_idx].idstam);
-	memcpy(q.dis.mat, AUXSUMIDX, sizeof(float)*ivf[centroid_idx].codes.n);
-
-	free (AUXSUMIDX);
-	free (distab_temp);
-	free (distab.mat);
-
-	*g1 += ((b2.tv_sec * 1000000 + b2.tv_usec)-(b1.tv_sec * 1000000 + b1.tv_usec));
-	*g2 += ((b3.tv_sec * 1000000 + b3.tv_usec)-(b2.tv_sec * 1000000 + b2.tv_usec));
-
-	return q;
-}
-
-void send_aggregator(int residualn, int w, query_id_t *fila, int **ids,
-		float **dis, int finish_aux, int count) {
-	int i = 0, num = 0, ttam = 0, *ids2, it = 0, my_rank, finish = 0;
-	float *dis2;
-	query_id_t *element;
-
-	ids2 = (int*) malloc(sizeof(int));
-	dis2 = (float*) malloc(sizeof(float));
-	element = (query_id_t*) malloc(sizeof(query_id_t) * 10);
-	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
-
-	while (i < residualn / w) {
-		element[num] = fila[it];
-
-		ids2 = (int*) realloc(ids2, sizeof(int) * (ttam + element[num].tam));
-		dis2 = (float*) realloc(dis2,
-				sizeof(float) * (ttam + element[num].tam));
-		memcpy(&ids2[0] + ttam, ids[element[num].id - count],
-				sizeof(int) * element[num].tam);
-		memcpy(&dis2[0] + ttam, dis[element[num].id - count],
-				sizeof(float) * element[num].tam);
-		free(ids[element[num].id - count]);
-		free(dis[element[num].id - count]);
-		ttam += element[num].tam;
-		num++;
-		it++;
-		if (num == 10 || num == residualn / w - i) {
-
-			if (num == residualn / w - i && finish_aux == 1)
-				finish = 1;
-
-			MPI_Send(&my_rank, 1, MPI_INT, last_aggregator, 1, MPI_COMM_WORLD);
-			MPI_Send(&num, 1, MPI_INT, last_aggregator, 0, MPI_COMM_WORLD);
-			MPI_Send(&element[0], sizeof(query_id_t) * num, MPI_BYTE,
-					last_aggregator, 0, MPI_COMM_WORLD);
-			
-			MPI_Send(&ids2[0], ttam, MPI_INT, last_aggregator, 0,
-					MPI_COMM_WORLD);
-			MPI_Send(&dis2[0], ttam, MPI_FLOAT, last_aggregator, 0,
-					MPI_COMM_WORLD);
-			MPI_Send(&finish, 1, MPI_INT, last_aggregator, 0, MPI_COMM_WORLD); //TODO: why is finish sent and not finish_aux (since it ends the loop on the main function)?
-
-			i += num;
-			num = 0;
-			ttam = 0;
-		}
-	}
-	free(element);
-	free(ids2);
-	free(dis2);
 }
 
 ivf_t* create_ivf(ivfpq_t ivfpq, int threads, int tam, int my_rank, int nsq, char* dataset){
@@ -778,40 +635,4 @@ int min(int a, int b){
 	}
 	else
 		return a;
-}
-
-
-
-float * sumidxtab2(mat D, matI ids, int offset){	
-	static int max = 0;
-	
-	//aloca o vetor a ser retornado
-
-	float *dis = (float*)malloc(sizeof(float)*ids.n);
-	int i, j;
-
-	//soma as distancias para cada vetor
-
-	for (i = 0; i < ids.n ; i++) {
-		float dis_tmp = 0;
-		for(j=0; j<D.n; j++){
-			dis_tmp += D.mat[j*D.d + ids.mat[i*ids.d+j]+ offset];
-			
-			if (ids.mat[i*ids.d+j] > max) max = ids.mat[i*ids.d+j];
-		}
-		dis[i]=dis_tmp;
-	}
-
-	return dis;
-}
-
-int* imat_new_transp (const int *a, int ncol, int nrow){
-	int i,j;
-	int *vt=(int*)malloc(sizeof(int)*ncol*nrow);
-
-	for(i=0;i<ncol;i++)
-		for(j=0;j<nrow;j++)
-			vt[i*nrow+j]=a[j*ncol+i];
-
-	return vt;
 }
