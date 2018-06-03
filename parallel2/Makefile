@@ -4,8 +4,8 @@ include makefile.inc
 
 CC=gcc -g -O3 
 CXX=g++  -g -O3 
-MF = -DREAD_TRAIN
-#MF = 
+#MF = -DREAD_TRAIN
+MF = 
 IVF =
 MPICXX = mpic++ $(MF) $(IVF) -fopenmp  -g -no-pie
 PQ_UTILS_DIR = ./pq-utils
