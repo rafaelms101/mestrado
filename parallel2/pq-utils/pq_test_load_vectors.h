@@ -14,7 +14,7 @@ extern "C" {
 
 using namespace std;
 
-#define BASE_DIR "/home/rafael/mestrado/main/sift/"
+#define BASE_DIR "/home/rafael/Mestrado/main/sift/"
 
 typedef struct{
 	float *mat;
@@ -36,8 +36,8 @@ typedef struct{
 }namefile;
 
 mat pq_test_load_train(char* dataset, int tam);
-matI pq_test_load_gdn(char* dataset, int tam);
-mat pq_test_load_query(char* dataset, int threads);
+matI pq_test_load_gdn(char* dataset, int tam, int nqueries);
+mat pq_test_load_query(char* dataset, int threads, int nqueries);
 mat pq_test_load_base(char* dataset, int offset, int my_rank);
 void load_random (float *v, int n, int d);
 int ivecs_read (const char *fname, int d, int n, int *a);

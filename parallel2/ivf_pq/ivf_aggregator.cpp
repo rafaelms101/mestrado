@@ -1,6 +1,6 @@
 #include "ivf_aggregator.h"
 
-void parallel_aggregator(int k, int w, int my_rank, int comm_sz, int tam_base, int threads, char* dataset){
+void parallel_aggregator(int k, int w, int my_rank, int comm_sz, int tam_base, int nqueries, int threads, char* dataset){
 	static int last_assign, last_search, last_aggregator;
 	dis_t *q;
 	matI ids_gnd;
@@ -126,7 +126,7 @@ void parallel_aggregator(int k, int w, int my_rank, int comm_sz, int tam_base, i
 	fprintf(fp,"Tempo de busca: %g\n\n",end*1000-start*1000);
 
 	fclose(fp);
-	ids_gnd = pq_test_load_gdn(dataset, tam_base);
+	ids_gnd = pq_test_load_gdn(dataset, tam_base, nqueries);
 
 	//for(int i=0; i<queryn;i++){
 	//	cout << ids[i] << "  " << ids_gnd.mat[i] << endl;

@@ -1,6 +1,6 @@
 #include "ivf_assign.h"
 
-void parallel_assign (char *dataset, int w, int comm_sz, MPI_Comm search_comm,int threads){
+void parallel_assign (char *dataset, int w, int comm_sz, MPI_Comm search_comm,int threads, int nqueries){
 	mat vquery, residual;
 	ivfpq_t ivfpq;
 	int *coaidx, dest, rest,id, search_rank;
@@ -9,7 +9,7 @@ void parallel_assign (char *dataset, int w, int comm_sz, MPI_Comm search_comm,in
 
 	set_last (comm_sz, &last_assign, &last_search, &last_aggregator);
 
-	vquery = pq_test_load_query(dataset, threads);
+	vquery = pq_test_load_query(dataset, threads, nqueries);
 	printf("g1");
 
 	//Recebe os centroides

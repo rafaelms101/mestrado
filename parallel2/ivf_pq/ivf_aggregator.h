@@ -10,4 +10,4 @@ extern "C"{
 #include "myIVF.h"
 #include "k_min.h"
 
-void parallel_aggregator(int k, int w, int my_rank, int comm_sz, int tam_base, int threads, char* dataset);
+void parallel_aggregator(int k, int w, int my_rank, int comm_sz, int tam_base, int nqueries, int threads, char* dataset);

@@ -45,7 +45,7 @@ mat pq_test_load_train(char* dataset, int tam){
 	return vtrain;
 }
 
-matI pq_test_load_gdn(char* dataset, int tam){
+matI pq_test_load_gdn(char* dataset, int tam, int nqueries){
 	matI vids_gnd;
 	int *ids_gnd;
 	char *fgroundtruth;
@@ -55,14 +55,14 @@ matI pq_test_load_gdn(char* dataset, int tam){
 	if(strcmp(dataset, "siftsmall")==0){
 		strcpy (fgroundtruth, BASE_DIR);
 		strcat (fgroundtruth,"siftsmall_gnd.ivecs");
-		vids_gnd.n=100;
+		vids_gnd.n=nqueries;
 		vids_gnd.d=100;
 		ids_gnd= ivec_new (vids_gnd.n*vids_gnd.d);
 	}
 	else if(strcmp(dataset, "sift")==0){
 		strcpy (fgroundtruth, BASE_DIR);
 		strcat (fgroundtruth,"sift_gnd.ivecs");
-		vids_gnd.n=10000;
+		vids_gnd.n=nqueries;
 		vids_gnd.d=100;
 		ids_gnd= ivec_new (vids_gnd.n*vids_gnd.d);
 	}
@@ -111,14 +111,14 @@ matI pq_test_load_gdn(char* dataset, int tam){
 			strcpy (fgroundtruth, BASE_DIR);
 			strcat (fgroundtruth,"gnd/idx_1M.ivecs");
 		}
-		vids_gnd.n=10000;
+		vids_gnd.n=nqueries;
 		vids_gnd.d=1000;
 		ids_gnd= ivec_new (vids_gnd.n*vids_gnd.d);
 	}
 	else if(strcmp(dataset, "gist")==0){
 		strcpy (fgroundtruth, BASE_DIR);
 		strcat (fgroundtruth,"gist_gnd.ivecs");
-		vids_gnd.n=1000;
+		vids_gnd.n=nqueries;
 		vids_gnd.d=100;
 		ids_gnd= ivec_new (vids_gnd.n*vids_gnd.d);
 	}
@@ -135,7 +135,7 @@ matI pq_test_load_gdn(char* dataset, int tam){
 	return vids_gnd;
 }
 
-mat pq_test_load_query(char* dataset, int threads){
+mat pq_test_load_query(char* dataset, int threads, int nqueries){
 	mat vquery;
 	char srank[4];
 	char *fquery;
@@ -144,28 +144,28 @@ mat pq_test_load_query(char* dataset, int threads){
 	if(strcmp(dataset, "siftsmall")==0){
 		strcpy (fquery, BASE_DIR);
 		strcat (fquery,"siftsmall_query.fvecs");
-		vquery.n=100;
+		vquery.n=nqueries;
 		vquery.d=128;
 		vquery.mat= fmat_new (vquery.d, vquery.n);
 	}
 	else if(strcmp(dataset, "sift")==0){
 		strcpy (fquery, BASE_DIR);
 		strcat (fquery,"sift_query.fvecs");
-		vquery.n=10000;
+		vquery.n=nqueries;
 		vquery.d=128;
 		vquery.mat= fmat_new (vquery.d, vquery.n);
 	}
 	else if(strcmp(dataset, "siftbig")==0){
 		strcpy (fquery, BASE_DIR);
 		strcat (fquery,"siftbig_query.bvecs");
-		vquery.n=10000;
+		vquery.n=nqueries;
 		vquery.d=128;
 		vquery.mat= fmat_new (vquery.d, vquery.n);
 	}
 	else if(strcmp(dataset, "gist")==0){
 		strcpy (fquery, BASE_DIR);
 		strcat (fquery,"gist_query.fvecs");
-		vquery.n=1000;
+		vquery.n=nqueries;
 		vquery.d=960;
 		vquery.mat= fmat_new (vquery.d, vquery.n);
 	}

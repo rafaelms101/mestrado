@@ -14,20 +14,21 @@
 int main(int argc, char **argv){
 
 	if(argc < 6){
-		cout << "Usage: mpiexec -n ./ivfpq_test <dataset> <threads> <tam> <coarsek> <nsq> <w> <threads_training>" << endl;
+		cout << "Usage: mpiexec -n ./ivfpq_test <dataset> <threads> <tam> <num_queries> <coarsek> <nsq> <w> <threads_training>" << endl;
 		return -1;
 	}
 
-	int nsq, coarsek, tam, comm_sz, threads, w, k, tamt, threads_training, provided;
+	int nsq, coarsek, tam, num_queries, comm_sz, threads, w, k, tamt, threads_training, provided;
 	char* dataset;
 
 	dataset = argv[1];
 	threads  = atoi(argv[2]);
 	tam  = atoi(argv[3]);
-	coarsek = atoi(argv[4]);
-	nsq = atoi(argv[5]);
-	w = atoi(argv[6]);
-	threads_training = atoi(argv[7]);
+	num_queries = atoi(argv[4]);
+	coarsek = atoi(argv[5]);
+	nsq = atoi(argv[6]);
+	w = atoi(argv[7]);
+	threads_training = atoi(argv[8]);
 	comm_sz = 1;
 	k = 100;
 
@@ -70,13 +71,13 @@ int main(int argc, char **argv){
 			parallel_training (dataset, coarsek, nsq, tam, comm_sz, threads_training);
 		}
 		else if(my_rank<=last_assign){
-			parallel_assign (dataset, w, comm_sz,search_comm, threads);
+			parallel_assign (dataset, w, comm_sz,search_comm, threads, num_queries);
 		}
 		else if(my_rank<=last_search){
 			parallel_search (nsq, k, comm_sz, threads, tamt, search_comm, dataset, w);
 		}
 		else{
-			parallel_aggregator(k, w, my_rank, comm_sz, tam, threads, dataset);
+			parallel_aggregator(k, w, my_rank, comm_sz, tam, num_queries, threads, dataset);
 		}
 		MPI_Finalize();
 	#endif
