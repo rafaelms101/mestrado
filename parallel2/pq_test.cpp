@@ -38,7 +38,7 @@ int main(int argv, char** argc){
 	v.train = pq_test_load_train(dataset,tam);
 	//v.ids_gnd = pq_test_load_gnd(dataset,tam);
 	v.query = pq_test_load_query(dataset,1, num_queries);
-	v.base = pq_test_load_base(dataset, 0,1);
+	v.base = pq_test_load_base(dataset, 0,1, tam);
 	gettimeofday(&final, NULL);
 	tmili = (int) (1000 * (final.tv_sec - inicio.tv_sec) + (final.tv_usec - inicio.tv_usec) / 1000);
 	printf("Tempo load vectors: %d\n", tmili);

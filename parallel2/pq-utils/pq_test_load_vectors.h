@@ -38,7 +38,7 @@ typedef struct{
 mat pq_test_load_train(char* dataset, int tam);
 matI pq_test_load_gdn(char* dataset, int tam, int nqueries);
 mat pq_test_load_query(char* dataset, int threads, int nqueries);
-mat pq_test_load_base(char* dataset, int offset, int my_rank);
+mat pq_test_load_base(char* dataset, int offset, int my_rank, int tam);
 void load_random (float *v, int n, int d);
 int ivecs_read (const char *fname, int d, int n, int *a);
 int my_bvecs_read (int offset, const char *fname, int d, int n, float *a);

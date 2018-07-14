@@ -276,8 +276,6 @@ void choose_best(query_id_t* elements, int ne, matI& idxs, mat& dists, int k) {
 							std::less<std::pair<float, int>>> queue;
 
 		for (int j = 0; j < elements[i].tam; j++) {
-			//std::printf("%d elements\n", elements[i].tam);
-
 			if (queue.size() < k) queue.push(std::pair<float, int>(dists.mat[imgi], idxs.mat[imgi]));
 			else if (dists.mat[imgi] < queue.top().first) {
 				queue.pop();
@@ -501,7 +499,7 @@ ivf_t* create_ivf(ivfpq_t ivfpq, int threads, int tam, int my_rank, int nsq, cha
 				mat vbase;
 			ivf2 = (ivf_t *)malloc(sizeof(ivf_t)*ivfpq.coarsek);
 
-			vbase = pq_test_load_base(dataset, i, my_rank-last_assign);
+			vbase = pq_test_load_base(dataset, i, my_rank-last_assign, tam);
 
 			ivfpq_assign(ivfpq, vbase, ivf2);
 
@@ -560,7 +558,7 @@ void write_ivf(ivfpq_t ivfpq, int threads, int tam, int my_rank, int nsq, char* 
 			mat vbase;
 			ivf = (ivf_t *)malloc(sizeof(ivf_t)*ivfpq.coarsek);
 
-			vbase = pq_test_load_base(dataset, i, my_rank-last_assign);
+			vbase = pq_test_load_base(dataset, i, my_rank-last_assign, tam);
 
 			ivfpq_assign(ivfpq, vbase, ivf);
 

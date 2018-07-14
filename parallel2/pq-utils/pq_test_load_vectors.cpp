@@ -179,7 +179,7 @@ mat pq_test_load_query(char* dataset, int threads, int nqueries){
 	return vquery;
 }
 
-mat pq_test_load_base(char* dataset, int offset, int my_rank){
+mat pq_test_load_base(char* dataset, int offset, int my_rank, int tam){
 	mat vbase;
 	char srank[4];
 	sprintf (srank, "%d",my_rank);
@@ -203,7 +203,7 @@ mat pq_test_load_base(char* dataset, int offset, int my_rank){
 	else if(strcmp(dataset, "siftbig")==0 ){
 		strcpy (fbase, BASE_DIR);
 		strcat (fbase,"siftbig_base.bvecs");
-		vbase.n=1000000;
+		vbase.n=tam;
 		vbase.d=128;
 		vbase.mat= (float*) malloc(sizeof(float)*vbase.d*vbase.n);
 	}
