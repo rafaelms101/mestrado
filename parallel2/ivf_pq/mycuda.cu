@@ -113,53 +113,61 @@ __global__ void compute_dists(pqtipo PQ, mat residual, ivf_t* ivf, int* entry_ma
 	}
 }
 
+cudaError_t alloc(void **devPtr, size_t size) {
+	return cudaMalloc(devPtr, size);
+}
+
 
 
 void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* entry_map, int* starting_imgid,  int* starting_inputid,  int num_imgs, matI idxs, mat dists, int k) {
-	//print lengths
-//	for (int i = 0; i < residual.n; i++) {
-//		std::printf("LENGTH[%d]=%d\n", i, starting_inputid[i+1] - starting_inputid[i]);
-//		std::printf("LENGTH#2[%d]=%d\n", i, ivf[entry_map[i]].idstam);
-//	}
-	
-	
-	
 	//TODO: implement / redo the error handling so that we have less code duplication
 	cudaError_t err = cudaSuccess;
 	
 	pqtipo gpu_PQ = PQ;
-	safe_call(cudaMalloc((void **) &gpu_PQ.centroids, sizeof(float) * PQ.centroidsd * PQ.centroidsn));
+
+	std::printf("Allocating %d MB for centroids\n",  sizeof(float) * PQ.centroidsd * PQ.centroidsn / 1024 / 1024);
+	safe_call(alloc((void **) &gpu_PQ.centroids, sizeof(float) * PQ.centroidsd * PQ.centroidsn));
 	safe_call(cudaMemcpy(gpu_PQ.centroids, PQ.centroids, sizeof(float) * PQ.centroidsd * PQ.centroidsn, cudaMemcpyHostToDevice));
 	
 	mat gpu_residual = residual;
-	safe_call(cudaMalloc((void **) &gpu_residual.mat, sizeof(float) * residual.n * residual.d));
+	std::printf("Allocating %d MB for residuals\n",  sizeof(float) * residual.n * residual.d / 1024 / 1024);
+	safe_call(alloc((void **) &gpu_residual.mat, sizeof(float) * residual.n * residual.d));
 	safe_call(cudaMemcpy(gpu_residual.mat, residual.mat, sizeof(float) * residual.n * residual.d, cudaMemcpyHostToDevice));
 	
 	
+	long ivf_mem_size = 0;
 	ivf_t* gpu_ivf;
-	safe_call(cudaMalloc((void **) &gpu_ivf, sizeof(ivf_t) * ivf_size));
+
+	ivf_mem_size += sizeof(ivf_t) * ivf_size;
+	safe_call(alloc((void **) &gpu_ivf, sizeof(ivf_t) * ivf_size));
 	
+
 	ivf_t* tmp_ivf = new ivf_t[ivf_size];
 	
 	for (int i = 0; i < ivf_size; i++) {
 		tmp_ivf[i].idstam = ivf[i].idstam; 
 		tmp_ivf[i].codes = ivf[i].codes;
 		
-		safe_call(cudaMalloc((void **) &tmp_ivf[i].ids, sizeof(int) * tmp_ivf[i].idstam));
+		ivf_mem_size += sizeof(int) * tmp_ivf[i].idstam;
+		safe_call(alloc((void **) &tmp_ivf[i].ids, sizeof(int) * tmp_ivf[i].idstam));
 		safe_call(cudaMemcpy(tmp_ivf[i].ids, ivf[i].ids, sizeof(int) * ivf[i].idstam, cudaMemcpyHostToDevice));
 		
-		safe_call(cudaMalloc((void **) &tmp_ivf[i].codes.mat, sizeof(int) * tmp_ivf[i].codes.n * tmp_ivf[i].codes.d));
+		ivf_mem_size += sizeof(int) * tmp_ivf[i].codes.n * tmp_ivf[i].codes.d;
+		safe_call(alloc((void **) &tmp_ivf[i].codes.mat, sizeof(int) * tmp_ivf[i].codes.n * tmp_ivf[i].codes.d));
 		safe_call(cudaMemcpy(tmp_ivf[i].codes.mat, ivf[i].codes.mat, sizeof(int) * ivf[i].codes.n * ivf[i].codes.d, cudaMemcpyHostToDevice));
 	}
 	
+	std::printf("Allocating %d MB for IVF\n",  ivf_mem_size / 1024 / 1024);
 	safe_call(cudaMemcpy(gpu_ivf, tmp_ivf, sizeof(ivf_t) * ivf_size, cudaMemcpyHostToDevice));
 	
 	int* gpu_entry_map;
-	safe_call(cudaMalloc((void **) &gpu_entry_map, sizeof(int) * residual.n));
+	std::printf("Allocating %d MB for entry map\n",  sizeof(int) * residual.n / 1024 / 1024);
+	safe_call(alloc((void **) &gpu_entry_map, sizeof(int) * residual.n));
 	safe_call(cudaMemcpy(gpu_entry_map, entry_map, sizeof(int) * residual.n, cudaMemcpyHostToDevice));
 	
 	int* gpu_starting_imgid;
-	safe_call(cudaMalloc((void **) &gpu_starting_imgid, sizeof(int) * residual.n));
+	std::printf("Allocating %d MB for starting img id\n",  sizeof(int) * residual.n / 1024 / 1024);
+	safe_call(alloc((void **) &gpu_starting_imgid, sizeof(int) * residual.n));
 	safe_call(cudaMemcpy(gpu_starting_imgid, starting_imgid, sizeof(int) * residual.n, cudaMemcpyHostToDevice));
 	
 	//query_id_t* gpu_elements;
@@ -168,24 +176,24 @@ void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* entry_map,
 	
 	matI gpu_idxs = idxs;
 	
-	
-	safe_call(cudaMalloc((void **) &gpu_idxs.mat, sizeof(int) * idxs.n));
-	std::printf("Allocating: %dMB\n", sizeof(int) * idxs.n / 1024 / 1024);
+	std::printf("Allocating %d MB for idxs\n", sizeof(int) * idxs.n / 1024 / 1024);
+	safe_call(alloc((void **) &gpu_idxs.mat, sizeof(int) * idxs.n));
 	
 	mat gpu_dists = dists;
-	safe_call(cudaMalloc((void **) &gpu_dists.mat, sizeof(float) * dists.n));
-	std::printf("Allocating: %dMB\n", sizeof(float) * dists.n / 1024 / 1024);
+	std::printf("Allocating %d MB for dists\n", sizeof(float) * dists.n / 1024 / 1024);
+	safe_call(alloc((void **) &gpu_dists.mat, sizeof(float) * dists.n));
 
 	//allocating the input buffer
 	int* gpu_starting_inputid;
-	safe_call(cudaMalloc((void **) &gpu_starting_inputid, sizeof(int) * (residual.n + 1)));
+	std::printf("Allocating %d MB for input buffer\n", sizeof(int) * (residual.n + 1) / 1024 / 1024);
+	safe_call(alloc((void **) &gpu_starting_inputid, sizeof(int) * (residual.n + 1)));
 	safe_call(cudaMemcpy(gpu_starting_inputid, starting_inputid, sizeof(int) * (residual.n + 1), cudaMemcpyHostToDevice));
 	
 	Img* gpu_input;
 	std::printf("Number of images: %d\n", num_imgs);
 	std::printf("Image: %d\n", sizeof(Img));
-	std::printf("Allocating: %dMB\n", sizeof(Img) * num_imgs / 1024 / 1024);
-	safe_call(cudaMalloc((void **) &gpu_input, sizeof(Img) * num_imgs));
+	std::printf("Allocating %d MB for images\n",  sizeof(Img) * num_imgs / 1024 / 1024);
+	safe_call(alloc((void **) &gpu_input, sizeof(Img) * num_imgs));
 
 	dim3 block(1024, 1, 1);
 	dim3 grid(residual.n, 1, 1);
@@ -196,8 +204,8 @@ void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* entry_map,
 
 	int sm_size = 48 << 10;
 	
+	std::printf("Trying to allocate: %dKB in shared memory\n", PQ.ks * PQ.nsq * sizeof(float) / 1024);
 	auto shared_memory_size = (48 << 10) - PQ.ks * PQ.nsq * sizeof(float);  // 48 KB
-	std::printf("SHARED MEMORY SIZE = %dKB\n", shared_memory_size / 1024);
 	
 	compute_dists<<<grid, block,  sm_size>>>(gpu_PQ, gpu_residual, gpu_ivf, gpu_entry_map, gpu_starting_imgid, gpu_starting_inputid, gpu_input, gpu_idxs, gpu_dists, k);  
 	
