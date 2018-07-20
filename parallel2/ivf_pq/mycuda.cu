@@ -8,46 +8,48 @@
 #include <cstdio>
 
 #define safe_call(call) if (cudaSuccess != call) { err = cudaGetLastError(); \
-													fprintf(stderr, "Failed call: %s (error code %s)!\n", \
+													fprintf(stderr, "Failed call: %s\nError: %s\n", \
 															#call, cudaGetErrorString(err)); \
 													exit(EXIT_FAILURE); }
 
 
 //TODO: remember to not execute queries that dont correspond to an entry on the problem
-
 extern __shared__ char shared_memory[];
 
 // PQ.ks * PQ.nsq must be a multiple of 1024
 __global__ void compute_dists(pqtipo PQ, mat residual, ivf_t* ivf, int* entry_map, int* starting_imgid, int* starting_inputid, Img* original_input, matI idxs, mat dists, int best_k) {
-	if (blockIdx.x == 0 && threadIdx.x == 0) {
-			std::printf("IN_GPU\n");
-		}
-	
+	float** pointer = (float**) shared_memory;
+
+	if (threadIdx.x == 0) {
+		pointer[0] = (float*) malloc(PQ.ks * PQ.nsq * sizeof(float));
+	}
+
+	__syncthreads();
+	float* distab = pointer[0];
+
 	int tid = threadIdx.x;
 	int nthreads = blockDim.x;
 	int qid = blockIdx.x;
-	
-	float* distab = (float*) shared_memory;
-	
+
 	//computing disttab
-	int step = PQ.ks * PQ.nsq / nthreads; 
+	int step = PQ.ks * PQ.nsq / nthreads;
 	int j = step * tid;
 	int initial_d = j / PQ.ks;
 	int initial_k = j % PQ.ks;
-	
+
 	int nd = max(step / PQ.ks, 1); //nd = 1
-	int slice = min(step, PQ.ks); //slice = 2 
-	
+	int slice = min(step, PQ.ks); //slice = 2
+
 	//std::printf("step=%d, j=%d, initial_d=%d, initial_k=%d\n", step, j, initial_d, initial_k);
-		
+
 	float* current_residual = residual.mat + qid * PQ.nsq * PQ.ds;
-	
-	
+
+
 	//std::printf("BEFORE THE BIG FOR\n");
-	
+
 	for (int d = initial_d; d < initial_d + nd; d++) {
 		float* sub_residual = current_residual + d * PQ.ds;
-		
+
 		for (int k = initial_k; k < initial_k + slice; k++) {
 			float* centroid = PQ.centroids + (d * PQ.ks + k) * PQ.ds;
 			float dist = 0;
@@ -56,20 +58,20 @@ __global__ void compute_dists(pqtipo PQ, mat residual, ivf_t* ivf, int* entry_ma
 				float diff = sub_residual[i] - centroid[i];
 				dist += diff * diff;
 			}
-			
+
 			distab[PQ.ks * d + k] = dist;
 			//std::printf("PQ.ks=%d, d=%d, k=%d, distab[%d] = %f\n", PQ.ks, d, k, PQ.ks * d + k, dist);
 		}
-		
+
 		initial_k = 0;
 	}
-	
+
 	__syncthreads();
-	
+
 	//computing the distances to the vectors
 	ivf_t entry = ivf[entry_map[qid]];
 	Img* input = original_input + starting_inputid[qid];
-	
+
 	int block_size = blockDim.x;
 
 	for (int i = tid; i < entry.idstam; i += block_size) {
@@ -78,27 +80,35 @@ __global__ void compute_dists(pqtipo PQ, mat residual, ivf_t* ivf, int* entry_ma
 		for (int s = 0; s < PQ.nsq; s++) {
 			dist += distab[PQ.ks * s + entry.codes.mat[PQ.nsq * i + s]];
 		}
-		
+
 		input[i] = { dist, entry.ids[i] };
 		//std::printf("input[%d] = %f\n", i, dist);
 	}
-	
+
 	__syncthreads();
 
+	if (threadIdx.x == 0) {
+		free(distab);
+	}
+
+
 	// now selecting num_shards
-	auto shared_memory_size = (48 << 10) - PQ.ks * PQ.nsq * sizeof(float);  // 48 KB
-	//std::printf("SHARED MEMORY SIZE: %dKB\n",shared_memory_size / 1024);
+	auto shared_memory_size = 48 << 10;  // 48 KB
 	auto heap_size = best_k * sizeof(Entry<Img>);
 	// shared_memory_size = (num_shards + 1) * heap_size <=>
 	int num_shards = shared_memory_size / heap_size - 1;
+
 	if (num_shards <= 0) {
 		num_shards = 1;
 	}
-	auto shard_size = entry.idstam / num_shards;
+
+	auto shard_size = entry.idstam / num_shards; //TODO: verify if it doesnt generate a problem when indivisible
 	auto min_shard_size = 2 * best_k;
+
 	if (shard_size < min_shard_size) {
 		num_shards = entry.idstam / min_shard_size;
 	}
+
 	if (num_shards <= 0) {
 		num_shards = 1;
 	} else if (num_shards > 1024) {
@@ -107,10 +117,6 @@ __global__ void compute_dists(pqtipo PQ, mat residual, ivf_t* ivf, int* entry_ma
 
 	topk(num_shards, best_k, original_input, starting_inputid, dists.mat, idxs.mat);
 	__syncthreads();
-	
-	if (blockIdx.x == 0 && threadIdx.x == 0) {
-		std::printf("OUT_GPU\n");
-	}
 }
 
 cudaError_t alloc(void **devPtr, size_t size) {
@@ -201,18 +207,16 @@ void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* entry_map,
 	//find biggest ivf entry
 	int biggest = 0;
 	for (int i = 0; i < ivf_size; i++ ) if (ivf[i].idstam > biggest) biggest = ivf[i].idstam; 
-
-	int sm_size = 48 << 10;
 	
-	std::printf("Trying to allocate: %dKB in shared memory\n", PQ.ks * PQ.nsq * sizeof(float) / 1024);
-	auto shared_memory_size = (48 << 10) - PQ.ks * PQ.nsq * sizeof(float);  // 48 KB
+	std::printf("Trying to allocate: %dKB in shared memory\n", (48 << 10) / 1024);
+	int shared_memory_size = 48 << 10;  // 48 KB
 	
-	compute_dists<<<grid, block,  sm_size>>>(gpu_PQ, gpu_residual, gpu_ivf, gpu_entry_map, gpu_starting_imgid, gpu_starting_inputid, gpu_input, gpu_idxs, gpu_dists, k);  
+	compute_dists<<<grid, block, shared_memory_size>>>(gpu_PQ, gpu_residual, gpu_ivf, gpu_entry_map, gpu_starting_imgid, gpu_starting_inputid, gpu_input, gpu_idxs, gpu_dists, k);
 	
 	err = cudaGetLastError();
 
 	if (err != cudaSuccess) {
-		fprintf(stderr, "Failed to launch compute_dists kernel (error code %s)!\n",
+		fprintf(stderr, "Failed to launch compute_dists kernel\nError: %s\n",
 				cudaGetErrorString(err));
 		exit(EXIT_FAILURE);
 	} else std::printf("SUCESSS!\n");
