@@ -139,6 +139,7 @@ void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* entry_map,
 	ivf_t* gpu_ivf;
 
 	ivf_mem_size += sizeof(ivf_t) * ivf_size;
+	std::printf("IVF memory size up to now: %d MB\n",  ivf_mem_size / 1024 / 1024);
 	safe_call(alloc((void **) &gpu_ivf, sizeof(ivf_t) * ivf_size));
 	
 
@@ -149,10 +150,12 @@ void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* entry_map,
 		tmp_ivf[i].codes = ivf[i].codes;
 		
 		ivf_mem_size += sizeof(int) * tmp_ivf[i].idstam;
+		std::printf("IVF memory size up to now: %d MB\n",  ivf_mem_size / 1024 / 1024);
 		safe_call(alloc((void **) &tmp_ivf[i].ids, sizeof(int) * tmp_ivf[i].idstam));
 		safe_call(cudaMemcpy(tmp_ivf[i].ids, ivf[i].ids, sizeof(int) * ivf[i].idstam, cudaMemcpyHostToDevice));
 		
 		ivf_mem_size += sizeof(int) * tmp_ivf[i].codes.n * tmp_ivf[i].codes.d;
+		std::printf("IVF memory size up to now: %d MB\n",  ivf_mem_size / 1024 / 1024);
 		safe_call(alloc((void **) &tmp_ivf[i].codes.mat, sizeof(int) * tmp_ivf[i].codes.n * tmp_ivf[i].codes.d));
 		safe_call(cudaMemcpy(tmp_ivf[i].codes.mat, ivf[i].codes.mat, sizeof(int) * ivf[i].codes.n * ivf[i].codes.d, cudaMemcpyHostToDevice));
 	}
@@ -205,7 +208,6 @@ void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* entry_map,
 	int sm_size = 48 << 10;
 	
 	std::printf("Trying to allocate: %dKB in shared memory\n", PQ.ks * PQ.nsq * sizeof(float) / 1024);
-	auto shared_memory_size = (48 << 10) - PQ.ks * PQ.nsq * sizeof(float);  // 48 KB
 	
 	compute_dists<<<grid, block,  sm_size>>>(gpu_PQ, gpu_residual, gpu_ivf, gpu_entry_map, gpu_starting_imgid, gpu_starting_inputid, gpu_input, gpu_idxs, gpu_dists, k);  
 	
