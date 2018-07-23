@@ -24,7 +24,7 @@ __global__ void compute_dists(pqtipo PQ, mat residual, ivf_t* ivf,
 	int nthreads = blockDim.x;
 	int bid = blockIdx.x;
 	int numBlocks = gridDim.x;
-
+	
 	float* distab = (float*) shared_memory;
 
 	for (int qid = bid; qid < residual.n; qid += numBlocks) {
@@ -92,85 +92,9 @@ __global__ void compute_dists(pqtipo PQ, mat residual, ivf_t* ivf,
 
 		topk(qid, num_shards, k, original_input, starting_inputid, dists.mat,
 				idxs.mat);
+		
+		__syncthreads();
 	}
-	
-	__syncthreads();
-
-//__global__ void compute_dists(pqtipo PQ, mat residual, ivf_t* ivf, int* entry_map, int* starting_imgid, int* starting_inputid, Img* original_input, matI idxs, mat dists, int best_k) {
-//	int tid = threadIdx.x;
-//	int nthreads = blockDim.x;
-//	int qid = blockIdx.x;
-//
-//	//computing disttab
-//	float* distab = (float*) shared_memory;
-//	float* current_residual = residual.mat + qid * PQ.nsq * PQ.ds;
-//	int step_size = (PQ.ks * PQ.nsq + nthreads - 1) / nthreads;
-//
-//	int begin_i = tid * step_size;
-//	int end_i = min(begin_i + step_size, PQ.ks * PQ.nsq ) - 1;
-//	float* centroid = PQ.centroids + begin_i * PQ.ds;
-//
-//	for (int i = begin_i; i <= end_i;  i++) {
-//		int d = i / PQ.ks;
-//
-//		float* sub_residual = current_residual + d * PQ.ds;
-//		float dist = 0;
-//
-//		for (int j = 0;  j < PQ.ds; j++, centroid++) {
-//			float diff = sub_residual[j] - *centroid;
-//			dist += diff * diff;
-//		}
-//
-//		distab[i] = dist;
-//	}
-//
-//	__syncthreads();
-//
-//	//computing the distances to the vectors
-//	ivf_t entry = ivf[entry_map[qid]];
-//	Img* input = original_input + starting_inputid[qid];
-//
-//	int block_size = blockDim.x;
-//
-//	for (int i = tid; i < entry.idstam; i += block_size) {
-//		float dist = 0;
-//
-//		for (int s = 0; s < PQ.nsq; s++) {
-//			dist += distab[PQ.ks * s + entry.codes.mat[PQ.nsq * i + s]];
-//		}
-//
-//		input[i] = { dist, entry.ids[i] };
-//		//std::printf("input[%d] = %f\n", i, dist);
-//	}
-//
-//	__syncthreads();
-//
-//	// now selecting num_shards
-//	auto shared_memory_size = (48 << 10) - PQ.ks * PQ.nsq * sizeof(float);  // 48 KB
-//	//std::printf("SHARED MEMORY SIZE: %dKB\n",shared_memory_size / 1024);
-//	auto heap_size = best_k * sizeof(Entry<Img>);
-//	// shared_memory_size = (num_shards + 1) * heap_size <=>
-//	int num_shards = shared_memory_size / heap_size - 1;
-//	if (num_shards <= 0) {
-//		num_shards = 1;
-//	}
-//	auto shard_size = entry.idstam / num_shards;
-//	auto min_shard_size = 2 * best_k;
-//	if (shard_size < min_shard_size) {
-//		num_shards = entry.idstam / min_shard_size;
-//	}
-//	if (num_shards <= 0) {
-//		num_shards = 1;
-//	} else if (num_shards > 1024) {
-//		num_shards = 1024;
-//	}
-//
-//	topk(num_shards, best_k, original_input, starting_inputid, dists.mat, idxs.mat);
-//	__syncthreads();
-//
-//	if (blockIdx.x == 0 && threadIdx.x == 0) {
-//		std::printf("OUT_GPU\n");
-//	}
 }
 
 cudaError_t alloc(void **devPtr, size_t size) {
