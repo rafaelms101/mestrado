@@ -65,19 +65,21 @@ __global__ void compute_dists(pqtipo PQ, mat residual, ivf_t* ivf, int* entry_ma
 	__syncthreads();
 
 	// now selecting num_shards
-	auto shared_memory_size = (48 << 10) - PQ.ks * PQ.nsq * sizeof(float);  // 48 KB
-	//std::printf("SHARED MEMORY SIZE: %dKB\n",shared_memory_size / 1024);
+	auto shared_memory_size = 48 << 10;  
 	auto heap_size = best_k * sizeof(Entry<Img>);
 	// shared_memory_size = (num_shards + 1) * heap_size <=>
 	int num_shards = shared_memory_size / heap_size - 1;
+	
 	if (num_shards <= 0) {
 		num_shards = 1;
 	}
+	
 	auto shard_size = entry.idstam / num_shards;
 	auto min_shard_size = 2 * best_k;
 	if (shard_size < min_shard_size) {
 		num_shards = entry.idstam / min_shard_size;
 	}
+	
 	if (num_shards <= 0) {
 		num_shards = 1;
 	} else if (num_shards > 1024) {
@@ -86,10 +88,6 @@ __global__ void compute_dists(pqtipo PQ, mat residual, ivf_t* ivf, int* entry_ma
 
 	topk(num_shards, best_k, original_input, starting_inputid, dists.mat, idxs.mat);
 	__syncthreads();
-	
-	if (blockIdx.x == 0 && threadIdx.x == 0) {
-		std::printf("OUT_GPU\n");
-	}
 }
 
 cudaError_t alloc(void **devPtr, size_t size) {
