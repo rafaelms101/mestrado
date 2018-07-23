@@ -395,7 +395,7 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 
 		for (int i = 0;  i < residual.n;  i++) {
 			// if (i % 2 == 0) to_cpu.push_back(i);
-			to_cpu.push_back(i);
+			to_gpu.push_back(i);
 		}
 
 		std::printf("EXECUTING ON THE %s\n", to_cpu.size() == 0 ? "gpu" : "cpu");
@@ -489,6 +489,8 @@ ivf_t* create_ivf(ivfpq_t ivfpq, int threads, int tam, int my_rank, int nsq, cha
 	if(tam%1000000!=0){
 		lim = (tam/1000000) + 1;
 	}
+
+	tam = (tam - 1) % 1000000 + 1;
 
 	//Cria a lista invertida correspondente ao trecho da base assinalado a esse processo
 	#pragma omp parallel for num_threads(threads) schedule(dynamic)
