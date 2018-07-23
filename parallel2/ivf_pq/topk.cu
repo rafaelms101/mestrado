@@ -342,10 +342,10 @@ __device__ void mergeShards(int num_shards, int k,
 
 extern __shared__ char shared_memory[];
 
-__device__ void TopKKernel(int num_shards, const Img* input,
+__device__ void TopKKernel(int qid, int num_shards, const Img* input,
 		int* starting_inputid, int k, bool sorted, float* output,
 		int* indices) {
-	const int batch_index = blockIdx.x;
+	const int batch_index = qid;
 	const Img* batch_input = input + starting_inputid[batch_index];
 
 	const int thread_index = threadIdx.x;
@@ -354,7 +354,7 @@ __device__ void TopKKernel(int num_shards, const Img* input,
 	Entry<Img>* shared_entries = (Entry<Img>*) shared_memory;
 
 	
-	int length = starting_inputid[batch_index + 1] - starting_inputid[batch_index]; //TODO: find a better solution for passing along the size of the heap
+	int length = starting_inputid[batch_index + 1] - starting_inputid[batch_index]; //TODO: find a better solution for passing along the number of images
 	
 	heapTopK<Img, StridedData>(batch_input, length, k, shared_entries, num_shards, true,
 			thread_index, thread_count);
@@ -414,21 +414,11 @@ __device__ void TopKKernel(int num_shards, const Img* input,
  return cudaGetLastError();
  }*/
 
-__device__ void topk(int num_shards, int k, Img* input, int* starting_inputid,
+__device__ void topk(int qid, int num_shards, int k, Img* input, int* starting_inputid,
 		float* output, int* indexes) {
 	if (threadIdx.x < num_shards) {
-//		std::printf("starting_inputid[0]=%d e starting_inputid[1]=%d\n", starting_inputid[0], starting_inputid[1]);
-//		
-//		for (int i = 0; i < starting_inputid[1]; i++) {
-//			std::printf("dist[%d]: %f\n", i, input[i].dist);
-//		}
-//		
-		TopKKernel(num_shards, input, starting_inputid, k, false, output,
+		TopKKernel(qid, num_shards, input, starting_inputid, k, false, output,
 						indexes);
-//		
-//		for (int i = 0; i < k; i++) {
-//			std::printf("%d) dist[%d]: %f\n", indexes[i], i, output[i]);
-//		}
 	}
 }
 
