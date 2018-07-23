@@ -203,7 +203,7 @@ mat pq_test_load_base(char* dataset, int offset, int my_rank, int tam){
 	else if(strcmp(dataset, "siftbig")==0 ){
 		strcpy (fbase, BASE_DIR);
 		strcat (fbase,"siftbig_base.bvecs");
-		vbase.n=tam;
+		vbase.n=1000000;
 		vbase.d=128;
 		vbase.mat= (float*) malloc(sizeof(float)*vbase.d*vbase.n);
 	}
