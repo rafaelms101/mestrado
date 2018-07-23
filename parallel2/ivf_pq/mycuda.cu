@@ -13,57 +13,36 @@
 													exit(EXIT_FAILURE); }
 
 
-//TODO: remember to not execute queries that dont correspond to an entry on the problem
-
 extern __shared__ char shared_memory[];
 
-// PQ.ks * PQ.nsq must be a multiple of 1024
 __global__ void compute_dists(pqtipo PQ, mat residual, ivf_t* ivf, int* entry_map, int* starting_imgid, int* starting_inputid, Img* original_input, matI idxs, mat dists, int best_k) {
-	if (blockIdx.x == 0 && threadIdx.x == 0) {
-			std::printf("IN_GPU\n");
-		}
-	
 	int tid = threadIdx.x;
 	int nthreads = blockDim.x;
 	int qid = blockIdx.x;
-	
-	float* distab = (float*) shared_memory;
-	
-	//computing disttab
-	int step = PQ.ks * PQ.nsq / nthreads; 
-	int j = step * tid;
-	int initial_d = j / PQ.ks;
-	int initial_k = j % PQ.ks;
-	
-	int nd = max(step / PQ.ks, 1); //nd = 1
-	int slice = min(step, PQ.ks); //slice = 2 
-	
-	//std::printf("step=%d, j=%d, initial_d=%d, initial_k=%d\n", step, j, initial_d, initial_k);
-		
-	float* current_residual = residual.mat + qid * PQ.nsq * PQ.ds;
-	
-	
-	//std::printf("BEFORE THE BIG FOR\n");
-	
-	for (int d = initial_d; d < initial_d + nd; d++) {
-		float* sub_residual = current_residual + d * PQ.ds;
-		
-		for (int k = initial_k; k < initial_k + slice; k++) {
-			float* centroid = PQ.centroids + (d * PQ.ks + k) * PQ.ds;
-			float dist = 0;
 
-			for (int i = 0; i < PQ.ds; i++) {
-				float diff = sub_residual[i] - centroid[i];
-				dist += diff * diff;
-			}
-			
-			distab[PQ.ks * d + k] = dist;
-			//std::printf("PQ.ks=%d, d=%d, k=%d, distab[%d] = %f\n", PQ.ks, d, k, PQ.ks * d + k, dist);
+	//computing disttab
+	float* distab = (float*) shared_memory;
+	float* current_residual = residual.mat + qid * PQ.nsq * PQ.ds;
+	int step_size = (PQ.ks * PQ.nsq + nthreads - 1) / nthreads;
+
+	int begin_i = tid * step_size;
+	int end_i = min(begin_i + step_size, PQ.ks * PQ.nsq ) - 1;
+	float* centroid = PQ.centroids + begin_i * PQ.ds;
+
+	for (int i = begin_i; i <= end_i;  i++) {
+		int d = i / PQ.ks;
+
+		float* sub_residual = current_residual + d * PQ.ds;
+		float dist = 0;
+
+		for (int j = 0;  j < PQ.ds; j++, centroid++) {
+			float diff = sub_residual[j] - *centroid;
+			dist += diff * diff;
 		}
-		
-		initial_k = 0;
+
+		distab[i] = dist;
 	}
-	
+
 	__syncthreads();
 	
 	//computing the distances to the vectors
