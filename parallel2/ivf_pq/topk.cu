@@ -233,8 +233,7 @@ __device__ void heapTopK(const T* __restrict__ input, int length, int k,
 		heap_end_index = length;
 	}
 	// Initialize the min-heap.
-	for (int index = start_index, slot = 0; index < heap_end_index; index +=
-			step_size, slot++) {
+	for (int index = start_index, slot = 0; index < heap_end_index; index += step_size, slot++) {
 		heap.assign(slot, { index, input[index] });
 	}
 
@@ -345,32 +344,30 @@ extern __shared__ char shared_memory[];
 __device__ void TopKKernel(int qid, int num_shards, const Img* input,
 		int* starting_inputid, int k, bool sorted, float* output,
 		int* indices) {
-	const int batch_index = qid;
-	const Img* batch_input = input + starting_inputid[batch_index];
+	const Img* batch_input = input + starting_inputid[qid];
 
-	const int thread_index = threadIdx.x;
-	const int thread_count = num_shards;
+	auto tid = threadIdx.x;
 
 	Entry<Img>* shared_entries = (Entry<Img>*) shared_memory;
 
 	
-	int length = starting_inputid[batch_index + 1] - starting_inputid[batch_index]; //TODO: find a better solution for passing along the number of images
+	int length = starting_inputid[qid + 1] - starting_inputid[qid]; //TODO: find a better solution for passing along the number of images
 	
 	heapTopK<Img, StridedData>(batch_input, length, k, shared_entries, num_shards, true,
-			thread_index, thread_count);
-
+			tid,  num_shards);
+	
 	__syncthreads();
 	
-	if (thread_index == 0) {
-		const int offset = batch_index * k;
+	if (tid == 0) {
+		const int offset = qid  * k;
 		float* batch_output = output + offset;
 		int* batch_indices = indices + offset;
-		Entry<Img>* top_k_heap = shared_entries + thread_count * k;
+		Entry<Img>* top_k_heap = shared_entries + tid  * k;
 
 		// TODO(blackhc): Erich says: Performance can likely be improved
 		// significantly by having the merge be done by multiple threads rather than
 		// just one.  ModernGPU has some nice primitives that could help with this.
-		mergeShards(thread_count, k, shared_entries, top_k_heap, batch_output,
+		mergeShards(num_shards, k, shared_entries, top_k_heap, batch_output,
 				batch_indices);
 	}
 }
