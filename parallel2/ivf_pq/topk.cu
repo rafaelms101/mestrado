@@ -88,7 +88,7 @@ struct StridedData {
 	typedef Entry<T> Entry;
 
 	__device__ Entry& operator[](std::size_t index) const {
-		return data[index * num_shards + threadIdx.x];
+		return data[index * num_subheaps + threadIdx.x];
 	}
 
 	__device__ int get_index(int i) const {
@@ -100,7 +100,7 @@ struct StridedData {
 	}
 
 	Entry* const data;
-	int num_shards;
+	int num_subheaps;
 };
 
 // A heap of Entry<T> that can either work as a min-heap or as a max-heap.
@@ -221,23 +221,24 @@ __device__ IndexedHeap<heapType, preferIndices, Data, T> make_indexed_heap(
 // access elements in `heap_entries`. If sorted=true, the elements will be
 // sorted at the end.
 template<typename T, template<typename > class Data = LinearData>
-__device__ void heapTopK(const T* __restrict__ input, int length, int k,
-		Entry<T>* __restrict__ heap_entries, int num_shards, bool sorted = false,
+__device__ void heapTopK(const T* __restrict__ block_input, int length, int k,
+		Entry<T>* __restrict__ shared, int num_subheaps, bool sorted = false,
 		int start_index = 0, int step_size = 1) {
 
 	auto heap = make_indexed_heap<HeapType::kMinHeap, PreferIndices::kHigher,
-			Data, T>(heap_entries, num_shards);
+			Data, T>(shared, num_subheaps);
 
 	int heap_end_index = start_index + k * step_size;
 	if (heap_end_index > length) {
 		heap_end_index = length;
 	}
 	// Initialize the min-heap.
-	for (int index = start_index, slot = 0; index < heap_end_index; index += step_size, slot++) {
-		heap.assign(slot, { index, input[index] });
+	int slot = 0;
+	for (int index = start_index; index < heap_end_index; index += step_size, slot++) {
+		heap.assign(slot, { index, block_input[index] });
 	}
 
-	heap.build(k);
+	heap.build(slot); //TODO: [before it was heap.build(k)] verify if the heap building function works when you havent assigned all the elements
 
 	// Now iterate over the remaining items.
 	// If an item is smaller than the min element, it is not amongst the top k.
@@ -245,9 +246,9 @@ __device__ void heapTopK(const T* __restrict__ input, int length, int k,
 	for (int index = heap_end_index; index < length; index += step_size) {
 		// We prefer elements with lower indices. This is given here.
 		// Later elements automatically have higher indices, so can be discarded.
-		if (input[index] > heap.root().value) {
+		if (block_input[index] > heap.root().value) {
 			// This element should replace the min.
-			heap.replace_root( { index, input[index] }, k);
+			heap.replace_root( { index, block_input[index] }, k);
 		}
 	}
 
@@ -271,8 +272,6 @@ __device__ void mergeShards(int num_shards, int k,
 	// If k > num_shards, we can initialize a min-heap with the top element from
 	// each sorted block.
 	const int heap_size = k < num_shards ? k : num_shards;
-	//std::printf("heap_size: %d\n", heap_size);
-	//std::printf("num_shards: %d\n", num_shards);
 
 	// Min-heap part.
 	{
@@ -316,8 +315,6 @@ __device__ void mergeShards(int num_shards, int k,
 		for (int rank = 0; rank < last_k; rank++) {
 			const Entry<Img>& max_element = max_heap.root();
 			top_k_values[rank] = max_element.value.dist;
-			
-			//std::printf("setting %f\n",top_k_values[rank]);
 
 			int shard_index = max_element.index;
 			top_k_indices[rank] = entries[shard_index].value.imgid;
@@ -341,33 +338,30 @@ __device__ void mergeShards(int num_shards, int k,
 
 extern __shared__ char shared_memory[];
 
-__device__ void TopKKernel(int qid, int num_shards, const Img* input,
+__device__ void TopKKernel(int qid, int num_subheaps, const Img* input,
 		int* starting_inputid, int k, bool sorted, float* output,
 		int* indices) {
-	const Img* batch_input = input + starting_inputid[qid];
-
+	const Img* block_input = input + starting_inputid[qid];
 	auto tid = threadIdx.x;
 
-	Entry<Img>* shared_entries = (Entry<Img>*) shared_memory;
+	Entry<Img>* shared = (Entry<Img>*) shared_memory;
 
 	
 	int length = starting_inputid[qid + 1] - starting_inputid[qid]; //TODO: find a better solution for passing along the number of images
 	
-	heapTopK<Img, StridedData>(batch_input, length, k, shared_entries, num_shards, true,
-			tid,  num_shards);
+	heapTopK<Img, StridedData>(block_input, length, k, shared, num_subheaps, true, tid,  num_subheaps);
 	
 	__syncthreads();
 	
 	if (tid == 0) {
-		const int offset = qid  * k;
-		float* batch_output = output + offset;
-		int* batch_indices = indices + offset;
-		Entry<Img>* top_k_heap = shared_entries + tid  * k;
+		float* block_output = output + qid * k;
+		int* batch_indices = indices + qid * k;
+		Entry<Img>* top_k_heap = shared + num_subheaps  * k;
 
 		// TODO(blackhc): Erich says: Performance can likely be improved
 		// significantly by having the merge be done by multiple threads rather than
 		// just one.  ModernGPU has some nice primitives that could help with this.
-		mergeShards(num_shards, k, shared_entries, top_k_heap, batch_output,
+		mergeShards(num_subheaps, k, shared, top_k_heap, block_output,
 				batch_indices);
 	}
 }
@@ -411,10 +405,10 @@ __device__ void TopKKernel(int qid, int num_shards, const Img* input,
  return cudaGetLastError();
  }*/
 
-__device__ void topk(int qid, int num_shards, int k, Img* input, int* starting_inputid,
+__device__ void topk(int qid, int num_subheaps, int k, Img* input, int* starting_inputid,
 		float* output, int* indexes) {
-	if (threadIdx.x < num_shards) {
-		TopKKernel(qid, num_shards, input, starting_inputid, k, false, output,
+	if (threadIdx.x < num_subheaps) {
+		TopKKernel(qid, num_subheaps, input, starting_inputid, k, false, output,
 						indexes);
 	}
 }

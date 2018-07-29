@@ -8,7 +8,7 @@
 #include <cstdio>
 
 #define safe_call(call) if (cudaSuccess != call) { err = cudaGetLastError(); \
-													fprintf(stderr, "Failed call: %s (error code %s)!\n", \
+													fprintf(stderr, "Failed call: %s\nError: %s\n", \
 															#call, cudaGetErrorString(err)); \
 													exit(EXIT_FAILURE); }
 
@@ -17,14 +17,16 @@ extern __shared__ char shared_memory[];
 
 #define ACTIVE_BLOCKS 10
 
+
+//TODO: make the merge of the w query results in the GPU (?)
 __global__ void compute_dists(pqtipo PQ, mat residual, ivf_t* ivf,
 		int* entry_map, int* starting_imgid, int* starting_inputid,
-		Img* original_input, matI idxs, mat dists, int k) {
+		Img* full_input, matI idxs, mat dists, int k) {
 	int tid = threadIdx.x;
 	int nthreads = blockDim.x;
 	int bid = blockIdx.x;
 	int numBlocks = gridDim.x;
-	
+
 	float* distab = (float*) shared_memory;
 
 	for (int qid = bid; qid < residual.n; qid += numBlocks) {
@@ -54,7 +56,7 @@ __global__ void compute_dists(pqtipo PQ, mat residual, ivf_t* ivf,
 
 		//computing the distances to the vectors
 		ivf_t entry = ivf[entry_map[qid]];
-		Img* input = original_input + starting_inputid[qid];
+		Img* input = full_input + starting_inputid[qid];
 
 		for (int i = tid; i < entry.idstam; i += nthreads) {
 			float dist = 0;
@@ -65,34 +67,29 @@ __global__ void compute_dists(pqtipo PQ, mat residual, ivf_t* ivf,
 
 			input[i] = {dist, entry.ids[i]};
 		}
-		
+
 		__syncthreads();
 		//choosing the top k
-		
-		// selecting num_shards
-		auto shared_memory_size = 48 << 10;
-		auto heap_size = k * sizeof(Entry<Img> );
-		int num_shards = shared_memory_size / heap_size - 1;
 
-		if (num_shards <= 0) {
-			num_shards = 1;
+
+		//TODO: remember to analyze the case where size < k or size < 2k
+		// selecting num_heaps
+		auto shared_memory_size = 48 << 10; //TODO: there might be some function to obtain the shared memory size from the environment
+		auto heap_size = k * sizeof(Entry<Img>);
+		auto max_heaps = shared_memory_size / heap_size;
+		auto num_subheaps = max_heaps - 1;
+
+		if (num_subheaps > blockDim.x) num_subheaps = blockDim.x;
+
+		if (num_subheaps * 2 * k > entry.idstam) {
+			num_subheaps = entry.idstam / (2 * k);
 		}
 
-		auto shard_size = entry.idstam / num_shards;
-		auto min_shard_size = 2 * k;
-		if (shard_size < min_shard_size) {
-			num_shards = entry.idstam / min_shard_size;
-		}
+		if (num_subheaps == 0) num_subheaps = 1;
 
-		if (num_shards <= 0) {
-			num_shards = 1;
-		} else if (num_shards > 1024) {
-			num_shards = 1024;
-		}
-
-		topk(qid, num_shards, k, original_input, starting_inputid, dists.mat,
+		topk(qid, num_subheaps, k, full_input, starting_inputid, dists.mat,
 				idxs.mat);
-		
+
 		__syncthreads();
 	}
 }

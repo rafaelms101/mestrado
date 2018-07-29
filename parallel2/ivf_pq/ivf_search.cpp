@@ -230,7 +230,7 @@ void merge_results(int base_id, int w, int ncpu, query_id_t* cpu_elements, matI 
 		int cpu_id = cpui < ncpu ? cpu_elements[cpui].id : -1;
 
 		int id = gpu_id;
-		if (id == -1 || cpu_id != -1 && cpu_id < gpu_id) id = cpu_id;
+		if (id == -1 || (cpu_id != -1 && cpu_id < gpu_id)) id = cpu_id;
 
 		elements[i].tam = 0;
 		elements[i].id = id;
