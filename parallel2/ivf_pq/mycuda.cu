@@ -20,8 +20,8 @@ extern __shared__ char shared_memory[];
 
 //TODO: make the merge of the w query results in the GPU (?)
 __global__ void compute_dists(const pqtipo PQ, const mat residual, const ivf_t* const ivf,
-		const int* entry_map, const int* const starting_imgid, const int* const starting_inputid,
-		Img* full_input, matI idxs, mat dists, const int k) {
+		const int* entry_map, const int* const starting_inputid,
+		Img* distance_buffer, int block_buffer_size, matI idxs, mat dists, const int k) {
 	auto tid = threadIdx.x;
 	auto nthreads = blockDim.x;
 	auto bid = blockIdx.x;
@@ -58,7 +58,7 @@ __global__ void compute_dists(const pqtipo PQ, const mat residual, const ivf_t* 
 
 		//computing the distances to the vectors
 		ivf_t entry = ivf[entry_map[qid]];
-		Img* block_input = full_input + starting_inputid[qid];
+		Img* block_input = distance_buffer + bid * block_buffer_size; //+ starting_inputid[qid];
 
 		for (int i = tid; i < entry.idstam; i += nthreads) {
 			float dist = 0;
@@ -89,7 +89,7 @@ __global__ void compute_dists(const pqtipo PQ, const mat residual, const ivf_t* 
 
 		if (num_subheaps == 0) num_subheaps = 1;
 
-		topk(qid, num_subheaps, k, full_input, starting_inputid, dists.mat,
+		topk(qid, num_subheaps, k, block_input, starting_inputid, dists.mat,
 				idxs.mat);
 
 		__syncthreads();
@@ -103,10 +103,6 @@ cudaError_t alloc(void **devPtr, size_t size) {
 
 
 void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* entry_map, int* starting_imgid,  int* starting_inputid,  int num_imgs, matI idxs, mat dists, int k) {
-//	int numBlocks;
-//	cudaOccupancyMaxActiveBlocksPerMultiprocessor (&numBlocks, compute_dists, 1024, 48 << 10);
-//	std::printf("Maximum number of blocks: %d\n", numBlocks);
-
 
 	//TODO: implement / redo the error handling so that we have less code duplication
 	cudaError_t err = cudaSuccess;
@@ -132,8 +128,11 @@ void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* entry_map,
 
 
 	ivf_t* tmp_ivf = new ivf_t[ivf_size];
+	int biggest_idstam = 0;
 
 	for (int i = 0; i < ivf_size; i++) {
+		if (ivf[i].idstam > biggest_idstam) biggest_idstam = ivf[i].idstam;
+
 		tmp_ivf[i].idstam = ivf[i].idstam;
 		tmp_ivf[i].codes = ivf[i].codes;
 
@@ -157,14 +156,6 @@ void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* entry_map,
 	safe_call(alloc((void **) &gpu_entry_map, sizeof(int) * residual.n));
 	safe_call(cudaMemcpy(gpu_entry_map, entry_map, sizeof(int) * residual.n, cudaMemcpyHostToDevice));
 
-	int* gpu_starting_imgid;
-	std::printf("Allocating %d MB for starting img id\n",  sizeof(int) * residual.n / 1024 / 1024);
-	safe_call(alloc((void **) &gpu_starting_imgid, sizeof(int) * residual.n));
-	safe_call(cudaMemcpy(gpu_starting_imgid, starting_imgid, sizeof(int) * residual.n, cudaMemcpyHostToDevice));
-
-	//query_id_t* gpu_elements;
-	//safe_call(cudaMalloc((void **) &gpu_elements, sizeof(query_id_t) * residual.n)); //TODO: I dont know if this is truly needed
-	//safe_call(cudaMemcpy(gpu_elements, elements, sizeof(query_id_t) * residual.n, cudaMemcpyHostToDevice));// TODO: need to rethink this
 
 	matI gpu_idxs = idxs;
 
@@ -181,11 +172,10 @@ void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* entry_map,
 	safe_call(alloc((void **) &gpu_starting_inputid, sizeof(int) * (residual.n + 1)));
 	safe_call(cudaMemcpy(gpu_starting_inputid, starting_inputid, sizeof(int) * (residual.n + 1), cudaMemcpyHostToDevice));
 
-	Img* gpu_input;
-	std::printf("Number of images: %d\n", num_imgs);
-	std::printf("Image: %d\n", sizeof(Img));
-	std::printf("Allocating %d MB for images\n",  sizeof(Img) * num_imgs / 1024 / 1024);
-	safe_call(alloc((void **) &gpu_input, sizeof(Img) * num_imgs)); //TODO: this is very inefficient. We are effectivly using twice the memory (once in IVF and once in here)
+	std::printf("Allocating %d MB for the distance buffer\n",  sizeof(Img) * biggest_idstam * ACTIVE_BLOCKS / 1024 / 1024);
+	Img* gpu_distance_buffer;
+	safe_call(alloc((void **) &gpu_distance_buffer, sizeof(Img) * biggest_idstam * ACTIVE_BLOCKS));
+
 
 	dim3 block(1024, 1, 1);
 	dim3 grid(ACTIVE_BLOCKS, 1, 1);
@@ -199,7 +189,7 @@ void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* entry_map,
 	std::printf("Trying to allocate: %dKB in shared memory\n", 48 << 10 / 1024);
 	std::printf("distab needs: %dKB in shared memory\n",  PQ.ks * PQ.nsq * sizeof(float) / 1024);
 
-	compute_dists<<<grid, block,  sm_size>>>(gpu_PQ, gpu_residual, gpu_ivf, gpu_entry_map, gpu_starting_imgid, gpu_starting_inputid, gpu_input, gpu_idxs, gpu_dists, k);
+	compute_dists<<<grid, block,  sm_size>>>(gpu_PQ, gpu_residual, gpu_ivf, gpu_entry_map, gpu_starting_inputid, gpu_distance_buffer, biggest_idstam, gpu_idxs, gpu_dists, k);
 
 	err = cudaGetLastError();
 
@@ -211,10 +201,6 @@ void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* entry_map,
 
 	std::printf("After calling the kernel\n");
 
-	//exit(0);
-
-	//RECEIVING DATA FROM GPU
-	//safe_call(cudaMemcpy(elements, 0, sizeof(query_id_t) * residual.n, cudaMemcpyDeviceToHost));
 
 	safe_call(cudaMemcpy(idxs.mat, gpu_idxs.mat , sizeof(int) * idxs.n, cudaMemcpyDeviceToHost));
 	safe_call(cudaMemcpy(dists.mat, gpu_dists.mat, sizeof(float) * dists.n, cudaMemcpyDeviceToHost));
@@ -230,11 +216,10 @@ void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* entry_map,
 	}
 
 	cudaFree(gpu_entry_map);
-	cudaFree(gpu_starting_imgid);
 	cudaFree(gpu_idxs.mat);
 	cudaFree(gpu_dists.mat);
 	cudaFree(gpu_starting_inputid);
-	cudaFree(gpu_input);
+	cudaFree(gpu_distance_buffer);
 
 	delete[] tmp_ivf;
 

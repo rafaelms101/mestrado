@@ -338,10 +338,9 @@ __device__ void mergeShards(int num_shards, int k,
 
 extern __shared__ char shared_memory[];
 
-__device__ void TopKKernel(const int qid, const int num_subheaps, const Img* input,
+__device__ void TopKKernel(const int qid, const int num_subheaps, const Img* block_input,
 		const int* const starting_inputid, const int k, const bool sorted, float* output,
 		int* indices) {
-	const Img* block_input = input + starting_inputid[qid];
 	auto tid = threadIdx.x;
 
 	Entry<Img>* shared = (Entry<Img>*) shared_memory;
