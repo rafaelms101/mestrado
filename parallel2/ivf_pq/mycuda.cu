@@ -15,17 +15,17 @@
 
 extern __shared__ char shared_memory[];
 
-#define ACTIVE_BLOCKS 10
+#define ACTIVE_BLOCKS 1024
 
 
 //TODO: make the merge of the w query results in the GPU (?)
-__global__ void compute_dists(pqtipo PQ, mat residual, ivf_t* ivf,
-		int* entry_map, int* starting_imgid, int* starting_inputid,
-		Img* full_input, matI idxs, mat dists, int k) {
-	int tid = threadIdx.x;
-	int nthreads = blockDim.x;
-	int bid = blockIdx.x;
-	int numBlocks = gridDim.x;
+__global__ void compute_dists(const pqtipo PQ, const mat residual, const ivf_t* const ivf,
+		const int* entry_map, const int* const starting_imgid, const int* const starting_inputid,
+		Img* full_input, matI idxs, mat dists, const int k) {
+	auto tid = threadIdx.x;
+	auto nthreads = blockDim.x;
+	auto bid = blockIdx.x;
+	auto numBlocks = gridDim.x;
 
 	float* distab = (float*) shared_memory;
 
@@ -36,6 +36,7 @@ __global__ void compute_dists(pqtipo PQ, mat residual, ivf_t* ivf,
 
 		int begin_i = tid * step_size;
 		int end_i = min(begin_i + step_size, PQ.ks * PQ.nsq) - 1;
+
 		float* centroid = PQ.centroids + begin_i * PQ.ds;
 
 		for (int i = begin_i; i <= end_i; i++) {
@@ -43,6 +44,7 @@ __global__ void compute_dists(pqtipo PQ, mat residual, ivf_t* ivf,
 
 			float* sub_residual = current_residual + d * PQ.ds;
 			float dist = 0;
+
 
 			for (int j = 0; j < PQ.ds; j++, centroid++) {
 				float diff = sub_residual[j] - *centroid;
@@ -56,7 +58,7 @@ __global__ void compute_dists(pqtipo PQ, mat residual, ivf_t* ivf,
 
 		//computing the distances to the vectors
 		ivf_t entry = ivf[entry_map[qid]];
-		Img* input = full_input + starting_inputid[qid];
+		Img* block_input = full_input + starting_inputid[qid];
 
 		for (int i = tid; i < entry.idstam; i += nthreads) {
 			float dist = 0;
@@ -65,11 +67,11 @@ __global__ void compute_dists(pqtipo PQ, mat residual, ivf_t* ivf,
 				dist += distab[PQ.ks * s + entry.codes.mat[PQ.nsq * i + s]];
 			}
 
-			input[i] = {dist, entry.ids[i]};
+			block_input[i] = {dist, entry.ids[i]};
 		}
 
 		__syncthreads();
-		//choosing the top k
+//		//choosing the top k
 
 
 		//TODO: remember to analyze the case where size < k or size < 2k
@@ -183,7 +185,7 @@ void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* entry_map,
 	std::printf("Number of images: %d\n", num_imgs);
 	std::printf("Image: %d\n", sizeof(Img));
 	std::printf("Allocating %d MB for images\n",  sizeof(Img) * num_imgs / 1024 / 1024);
-	safe_call(alloc((void **) &gpu_input, sizeof(Img) * num_imgs));
+	safe_call(alloc((void **) &gpu_input, sizeof(Img) * num_imgs)); //TODO: this is very inefficient. We are effectivly using twice the memory (once in IVF and once in here)
 
 	dim3 block(1024, 1, 1);
 	dim3 grid(ACTIVE_BLOCKS, 1, 1);
@@ -195,13 +197,14 @@ void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* entry_map,
 	int sm_size = 48 << 10;
 
 	std::printf("Trying to allocate: %dKB in shared memory\n", 48 << 10 / 1024);
+	std::printf("distab needs: %dKB in shared memory\n",  PQ.ks * PQ.nsq * sizeof(float) / 1024);
 
 	compute_dists<<<grid, block,  sm_size>>>(gpu_PQ, gpu_residual, gpu_ivf, gpu_entry_map, gpu_starting_imgid, gpu_starting_inputid, gpu_input, gpu_idxs, gpu_dists, k);
 
 	err = cudaGetLastError();
 
 	if (err != cudaSuccess) {
-		fprintf(stderr, "Failed to launch compute_dists kernel (error code %s)!\n",
+		fprintf(stderr, "Failed to launch compute_dists kernel.\nError: %s\n",
 				cudaGetErrorString(err));
 		exit(EXIT_FAILURE);
 	} else std::printf("SUCESSS!\n");

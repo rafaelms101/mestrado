@@ -338,8 +338,8 @@ __device__ void mergeShards(int num_shards, int k,
 
 extern __shared__ char shared_memory[];
 
-__device__ void TopKKernel(int qid, int num_subheaps, const Img* input,
-		int* starting_inputid, int k, bool sorted, float* output,
+__device__ void TopKKernel(const int qid, const int num_subheaps, const Img* input,
+		const int* const starting_inputid, const int k, const bool sorted, float* output,
 		int* indices) {
 	const Img* block_input = input + starting_inputid[qid];
 	auto tid = threadIdx.x;
@@ -349,7 +349,9 @@ __device__ void TopKKernel(int qid, int num_subheaps, const Img* input,
 	
 	int length = starting_inputid[qid + 1] - starting_inputid[qid]; //TODO: find a better solution for passing along the number of images
 	
-	heapTopK<Img, StridedData>(block_input, length, k, shared, num_subheaps, true, tid,  num_subheaps);
+	if (tid < num_subheaps) {
+		heapTopK<Img, StridedData>(block_input, length, k, shared, num_subheaps, true, tid,  num_subheaps);
+	}
 	
 	__syncthreads();
 	
@@ -405,12 +407,10 @@ __device__ void TopKKernel(int qid, int num_subheaps, const Img* input,
  return cudaGetLastError();
  }*/
 
-__device__ void topk(int qid, int num_subheaps, int k, Img* input, int* starting_inputid,
+__device__ void topk(const int qid, const int num_subheaps, const int k, Img* input, const int* const starting_inputid,
 		float* output, int* indexes) {
-	if (threadIdx.x < num_subheaps) {
 		TopKKernel(qid, num_subheaps, input, starting_inputid, k, false, output,
 						indexes);
-	}
 }
 
 /*
