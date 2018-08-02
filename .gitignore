@@ -10,3 +10,7 @@ makefile.inc
 sift
 siftbig
 parallel2/vgcore.6077
+parallel2/.idea
+parallel2/cmake*
+parallel2/CMake*
+siftsmall

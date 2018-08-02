@@ -338,32 +338,30 @@ __device__ void mergeShards(int num_shards, int k,
 
 extern __shared__ char shared_memory[];
 
-__device__ void TopKKernel(const int qid, const int num_subheaps, const Img* block_input,
-		const int* const starting_inputid, const int k, const bool sorted, float* output,
+//TODO: verify if we need the sorted flag
+__device__ void TopKKernel(const int qid, const int num_subheaps, const Img* block_input, const int numElements,
+		const int* qid_to_starting_outid, const int k, const bool sorted, float* output,
 		int* indices) {
 	auto tid = threadIdx.x;
 
 	Entry<Img>* shared = (Entry<Img>*) shared_memory;
 
-	
-	int length = starting_inputid[qid + 1] - starting_inputid[qid]; //TODO: find a better solution for passing along the number of images
-	
 	if (tid < num_subheaps) {
-		heapTopK<Img, StridedData>(block_input, length, k, shared, num_subheaps, true, tid,  num_subheaps);
+		heapTopK<Img, StridedData>(block_input, numElements, k, shared, num_subheaps, true, tid,  num_subheaps);
 	}
 	
 	__syncthreads();
 	
 	if (tid == 0) {
-		float* block_output = output + qid * k;
-		int* batch_indices = indices + qid * k;
+		float* block_output = output + qid_to_starting_outid[qid];
+		int* block_indices = indices + qid_to_starting_outid[qid];
 		Entry<Img>* top_k_heap = shared + num_subheaps  * k;
 
 		// TODO(blackhc): Erich says: Performance can likely be improved
 		// significantly by having the merge be done by multiple threads rather than
 		// just one.  ModernGPU has some nice primitives that could help with this.
 		mergeShards(num_subheaps, k, shared, top_k_heap, block_output,
-				batch_indices);
+				block_indices);
 	}
 }
 
@@ -406,9 +404,9 @@ __device__ void TopKKernel(const int qid, const int num_subheaps, const Img* blo
  return cudaGetLastError();
  }*/
 
-__device__ void topk(const int qid, const int num_subheaps, const int k, Img* input, const int* const starting_inputid,
+__device__ void topk(const int qid, const int num_subheaps, const int k, Img* input, const int numElements, const int* const qid_to_starting_outid,
 		float* output, int* indexes) {
-		TopKKernel(qid, num_subheaps, input, starting_inputid, k, false, output,
+		TopKKernel(qid, num_subheaps, input, numElements, qid_to_starting_outid, k, false, output,
 						indexes);
 }
 
