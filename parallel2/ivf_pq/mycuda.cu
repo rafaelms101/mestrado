@@ -16,7 +16,7 @@
 
 extern __shared__ char shared_memory[];
 
-#define ACTIVE_BLOCKS 10
+#define ACTIVE_BLOCKS 32
 
 
 //compute_dists<<<grid, block,  sm_size>>>(gpu_PQ, gpu_residual, gpu_ivf, gpu_rid_to_ivf, gpu_qid_to_starting_outid, gpu_distance_buffer, biggest_idstam, gpu_idxs, gpu_dists, k);
@@ -30,15 +30,14 @@ __global__ void compute_dists(const pqtipo PQ, const mat residual, const ivf_t* 
 
 	float* distab = (float*) shared_memory;
 	
-	for (int qid = bid; qid < residual.n; qid += numBlocks) {
+	for (int qid = bid; qid < residual.n / w; qid += numBlocks) {
 		Img* block_input = distance_buffer + bid * block_buffer_size;
 		Img* current_block_input = block_input;
 		int numDists = 0;
 		
-		for (int i = 0; i < w; i++) {
+		for (int current_w = 0; current_w < w; current_w++) {
 			//computing disttab
-			int rid = qid * w + i;
-			
+			int rid = qid * w + current_w;
 			float* current_residual = residual.mat + rid * PQ.nsq * PQ.ds;
 
 			int step_size = (PQ.ks * PQ.nsq + nthreads - 1) / nthreads;
@@ -46,16 +45,16 @@ __global__ void compute_dists(const pqtipo PQ, const mat residual, const ivf_t* 
 			int begin_i = tid * step_size;
 			int end_i = min(begin_i + step_size, PQ.ks * PQ.nsq) - 1;
 
-			float* centroid = PQ.centroids + begin_i * PQ.ds;
 
 			for (int i = begin_i; i <= end_i; i++) {
+				float* centroid = PQ.centroids + i * PQ.ds;
 				int d = i / PQ.ks;
 
 				float* sub_residual = current_residual + d * PQ.ds;
 				float dist = 0;
 
-				for (int j = 0; j < PQ.ds; j++, centroid++) {
-					float diff = sub_residual[j] - *centroid;
+				for (int j = 0; j < PQ.ds; j++) {
+					float diff = sub_residual[j] - centroid[j];
 					dist += diff * diff;
 				}
 
@@ -75,11 +74,13 @@ __global__ void compute_dists(const pqtipo PQ, const mat residual, const ivf_t* 
 					dist += distab[PQ.ks * s + entry.codes.mat[PQ.nsq * i + s]];
 				}
 
-				current_block_input[i] = {dist, entry.ids[i]};
+				current_block_input[i].dist = dist;
+				current_block_input[i].imgid = entry.ids[i];
 			}
 			
 			current_block_input = current_block_input + entry.idstam;
 			numDists += entry.idstam;
+			
 			__syncthreads();
 		}
 		
@@ -111,7 +112,6 @@ cudaError_t alloc(void **devPtr, size_t size) {
 
 
 void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* rid_to_ivf, int* qid_to_starting_outid, matI idxs, mat dists, int k, int w) {
-
 	//TODO: implement / redo the error handling so that we have less code duplication
 	cudaError_t err = cudaSuccess;
 
@@ -144,14 +144,14 @@ void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* rid_to_ivf
 		tmp_ivf[i].codes = ivf[i].codes;
 
 		ivf_mem_size += sizeof(int) * tmp_ivf[i].idstam;
-		debug("IVF memory size up to now: %d MB\n",  ivf_mem_size / 1024 / 1024);
+//		debug("IVF memory size up to now: %d MB\n",  ivf_mem_size / 1024 / 1024);
 		safe_call(alloc((void **) &tmp_ivf[i].ids, sizeof(int) * tmp_ivf[i].idstam));
 		safe_call(cudaMemcpy(tmp_ivf[i].ids, ivf[i].ids, sizeof(int) * ivf[i].idstam, cudaMemcpyHostToDevice));
 
 		ivf_mem_size += sizeof(int) * tmp_ivf[i].codes.n * tmp_ivf[i].codes.d;
-		debug("IVF memory size up to now: %d MB\n",  ivf_mem_size / 1024 / 1024);
+//		debug("IVF memory size up to now: %d MB\n",  ivf_mem_size / 1024 / 1024);
 		safe_call(alloc((void **) &tmp_ivf[i].codes.mat, sizeof(int) * tmp_ivf[i].codes.n * tmp_ivf[i].codes.d));
-		debug("entry=%d, idstam=%d, codes.n=%d, codes.d=%d\n", i, tmp_ivf[i].idstam, tmp_ivf[i].codes.n, tmp_ivf[i].codes.d);
+//		debug("entry=%d, idstam=%d, codes.n=%d, codes.d=%d\n", i, tmp_ivf[i].idstam, tmp_ivf[i].codes.n, tmp_ivf[i].codes.d);
 		safe_call(cudaMemcpy(tmp_ivf[i].codes.mat, ivf[i].codes.mat, sizeof(int) * ivf[i].codes.n * ivf[i].codes.d, cudaMemcpyHostToDevice));
 	}
 
@@ -175,7 +175,7 @@ void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* rid_to_ivf
 
 	//allocating the input buffer
 	int* gpu_qid_to_starting_outid;
-	debug("Allocating %d MB for input buffer\n", sizeof(int) * residual.n / w / 1024 / 1024);
+	debug("Allocating %d MB for qid_to_starting_outid\n", sizeof(int) * residual.n / w / 1024 / 1024);
 	safe_call(alloc((void **) &gpu_qid_to_starting_outid, sizeof(int) * residual.n / w));
 	safe_call(cudaMemcpy(gpu_qid_to_starting_outid, qid_to_starting_outid, sizeof(int) * residual.n / w, cudaMemcpyHostToDevice));
 
@@ -200,7 +200,7 @@ void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* rid_to_ivf
 		fprintf(stderr, "Failed to launch compute_dists kernel.\nError: %s\n",
 				cudaGetErrorString(err));
 		exit(EXIT_FAILURE);
-	} else debug("SUCESSS!\n");
+	} 
 
 	debug("After calling the kernel\n");
 

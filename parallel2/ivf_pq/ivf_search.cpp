@@ -149,7 +149,7 @@ void do_on(void (*target)(pqtipo, mat, ivf_t*, int, int*, int*, matI, mat, int, 
 	}
 
 	int rid_to_ivf[queries.size() * w];
-	int qid_to_starting_outid[partial_residual.n / w];
+	int qid_to_starting_outid[queries.size()];
 
 
 	int rid = 0;
@@ -282,7 +282,7 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 		debug("residual.n=%d", residual.n);
 
 		for (int qid = 0;  qid < residual.n / w;  qid++) {
-			to_cpu.push_back(qid);
+			to_gpu.push_back(qid);
 		}
 
 		debug("EXECUTING ON THE %s", to_cpu.size() == 0 ? "gpu" : "cpu");
