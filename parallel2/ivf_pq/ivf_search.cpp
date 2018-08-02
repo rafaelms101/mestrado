@@ -25,13 +25,16 @@ double micro;
 
 struct timeval tv;
 struct timeval start_tv;
+struct timeval old_start_tv;
 
 #ifdef DEBUG
-#define sw(call) gettimeofday(&start_tv, NULL); \
+#define sw(call)  old_start_tv = start_tv; \
+				  gettimeofday(&start_tv, NULL); \
 				  call ; \
 				  gettimeofday(&tv, NULL); \
 				  micro = (tv.tv_sec - start_tv.tv_sec) * 1000000 + (tv.tv_usec - start_tv.tv_usec); \
-				  printf ("Elapsed: %.2lf seconds on call: %s\n", micro / 1000000, #call);
+				  printf ("Elapsed: %.2lf seconds on call: %s\n", micro / 1000000, #call); \
+				  start_tv = old_start_tv;
 #else
 #define sw(call) call;
 #endif
@@ -174,7 +177,9 @@ void do_on(void (*target)(pqtipo, mat, ivf_t*, int, int*, int*, matI, mat, int, 
 	dists.mat = new float[outid];
 	dists.n = outid;
 
-	if (partial_residual.n >= 1) (*target)(PQ, partial_residual, partial_ivf, coaidPresent.size(), rid_to_ivf, qid_to_starting_outid, idxs, dists, k, w);
+	if (partial_residual.n >= 1) {
+		sw((*target)(PQ, partial_residual, partial_ivf, coaidPresent.size(), rid_to_ivf, qid_to_starting_outid, idxs, dists, k, w));
+	}
 
 	delete[] partial_residual.mat;
 }
