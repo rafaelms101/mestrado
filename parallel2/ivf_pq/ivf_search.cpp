@@ -118,42 +118,41 @@ void core_cpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* rid_to_ivf
 
 //TODO: try to refactor the code so that we don't need to have these "partial" arrays, which are basically a copy of the full array
 void do_on(void (*target)(pqtipo, mat, ivf_t*, int, int*, int*, matI, mat, int, int),
-		pqtipo PQ, std::list<int>& queries, mat residual, int* coaidx, ivf_t* ivf, query_id_t*& elements, matI& idxs, mat& dists, int k, int w) {
-	std::set<int> coaidPresent;
+		ivfpq_t PQ, std::list<int>& queries, mat residual, int* coaidx, ivf_t* ivf, query_id_t*& elements, matI& idxs, mat& dists, int k, int w) {
+//	std::set<int> coaidPresent;
 
 	if (queries.size() == 0) return;
 	
-	int D = residual.d;
+//	int D = residual.d;
 
-	mat partial_residual;
-	partial_residual.n = queries.size() * w;
-	partial_residual.d = residual.d;
-	partial_residual.mat = new float[partial_residual.d * partial_residual.n];
+//	mat partial_residual;
+//	partial_residual.n = queries.size() * w;
+//	partial_residual.d = residual.d;
+//	partial_residual.mat = new float[partial_residual.d * partial_residual.n];
 
 	elements = new query_id_t[queries.size()];
 
-	for (int rid = 0; rid < w * queries.size(); rid++) {
-		coaidPresent.insert(coaidx[rid]);
-		for (int d = 0; d < D; d++) {
-			partial_residual.mat[rid * D + d] = residual.mat[rid * D + d];
-		}
-	}
+//	for (int rid = 0; rid < w * queries.size(); rid++) {
+//		coaidPresent.insert(coaidx[rid]);
+//		for (int d = 0; d < D; d++) {
+//			partial_residual.mat[rid * D + d] = residual.mat[rid * D + d];
+//		}
+//	}
 
-	ivf_t partial_ivf[coaidPresent.size()];
-	std::map<int, int> coaid_to_IVF;
+//	ivf_t partial_ivf[coaidPresent.size()];
+//	std::map<int, int> coaid_to_IVF;
+//
+//	int i = 0;
+//	for (int coaid : coaidPresent) {
+//		partial_ivf[i].idstam = ivf[coaid].idstam;
+//		partial_ivf[i].ids = ivf[coaid].ids;
+//		partial_ivf[i].codes = ivf[coaid].codes;
+//		coaid_to_IVF.insert(std::pair<int, int>(coaid, i));
+//		i++;
+//	}
 
-	int i = 0;
-	for (int coaid : coaidPresent) {
-		partial_ivf[i].idstam = ivf[coaid].idstam;
-		partial_ivf[i].ids = ivf[coaid].ids;
-		partial_ivf[i].codes = ivf[coaid].codes;
-		coaid_to_IVF.insert(std::pair<int, int>(coaid, i));
-		i++;
-	}
-
-	int rid_to_ivf[queries.size() * w];
+//	int rid_to_ivf[queries.size() * w];
 	int qid_to_starting_outid[queries.size()];
-
 
 	int rid = 0;
 	int outid = 0;
@@ -161,8 +160,8 @@ void do_on(void (*target)(pqtipo, mat, ivf_t*, int, int*, int*, matI, mat, int, 
 		int numImgs = 0;
 
 		for (int i = 0; i < w; i++, rid++) {
-			rid_to_ivf[rid] = coaid_to_IVF.find(coaidx[rid])->second;
-			numImgs += partial_ivf[rid_to_ivf[rid]].idstam;
+//			rid_to_ivf[rid] = coaid_to_IVF.find(coaidx[rid])->second;
+			numImgs += ivf[coaidx[rid]].idstam;
 		}
 
 		int size = min(numImgs, k);
@@ -177,19 +176,19 @@ void do_on(void (*target)(pqtipo, mat, ivf_t*, int, int*, int*, matI, mat, int, 
 	dists.mat = new float[outid];
 	dists.n = outid;
 
-	if (partial_residual.n >= 1) {
-		sw((*target)(PQ, partial_residual, partial_ivf, coaidPresent.size(), rid_to_ivf, qid_to_starting_outid, idxs, dists, k, w));
-	}
+//	if (partial_residual.n >= 1) {
+	sw((*target)(PQ.pq, residual, ivf, PQ.coa_centroidsn, coaidx, qid_to_starting_outid, idxs, dists, k, w));
+//	}
 
-	delete[] partial_residual.mat;
+//	delete[] partial_residual.mat;
 }
 
 
-void do_cpu(pqtipo PQ, std::list<int>& to_cpu, mat residual, int* coaidx, ivf_t* ivf, query_id_t*& elements, matI& idxs, mat& dists, int k, int w) {
+void do_cpu(ivfpq_t PQ, std::list<int>& to_cpu, mat residual, int* coaidx, ivf_t* ivf, query_id_t*& elements, matI& idxs, mat& dists, int k, int w) {
 	do_on(&core_cpu, PQ, to_cpu, residual, coaidx, ivf, elements, idxs, dists, k, w);
 }
 
-void do_gpu(pqtipo PQ, std::list<int>& to_gpu, mat residual, int* coaidx, ivf_t* ivf,  query_id_t*& elements, matI& idxs, mat& dists, int k, int w) {
+void do_gpu(ivfpq_t PQ, std::list<int>& to_gpu, mat residual, int* coaidx, ivf_t* ivf,  query_id_t*& elements, matI& idxs, mat& dists, int k, int w) {
 	do_on(&core_gpu, PQ, to_gpu, residual, coaidx, ivf, elements, idxs, dists, k, w);
 }
 
@@ -303,9 +302,9 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 		mat dists;
 		
 		if (to_gpu.size() != 0) {
-			sw(do_gpu(ivfpq.pq, to_gpu, residual, coaidx, ivf, elements, idxs, dists, k, w));
+			sw(do_gpu(ivfpq, to_gpu, residual, coaidx, ivf, elements, idxs, dists, k, w));
 		} else {
-			sw(do_cpu(ivfpq.pq, to_cpu, residual, coaidx, ivf, elements, idxs, dists, k, w));
+			sw(do_cpu(ivfpq, to_cpu, residual, coaidx, ivf, elements, idxs, dists, k, w));
 		}
 
 		debug("Before sending results");
