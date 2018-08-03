@@ -14,7 +14,7 @@ extern "C" {
 
 using namespace std;
 
-#define BASE_DIR "/home/rafael/Mestrado/main/sift/"
+#define BASE_DIR "/home/rafael/mestrado"
 
 typedef struct{
 	float *mat;

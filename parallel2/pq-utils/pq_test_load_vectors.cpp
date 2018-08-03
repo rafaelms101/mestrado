@@ -1,227 +1,131 @@
 #include "pq_test_load_vectors.h"
 
+#include "../ivf_pq/debug.h"
+
 mat pq_test_load_train(char* dataset, int tam){
 	mat vtrain;
-	char *ftrain;
-
-	ftrain = (char*) malloc(sizeof(char)*100);
-
-	if(strcmp(dataset, "siftsmall")==0){
-		strcpy (ftrain, BASE_DIR);
-		strcat (ftrain,"siftsmall_learn.fvecs");
-		vtrain.n=25000;
-		vtrain.d=128;
-		vtrain.mat= fmat_new (vtrain.d, vtrain.n);
-	}
-	else if(strcmp(dataset, "sift")==0){
-		strcpy (ftrain, BASE_DIR);
-		strcat (ftrain,"sift_learn.fvecs");
-		vtrain.n=100000;
-		vtrain.d=128;
-		vtrain.mat= fmat_new (vtrain.d, vtrain.n);
-	}
-	else if(strcmp(dataset, "siftbig")==0 ){
-		strcpy (ftrain, BASE_DIR);
-		strcat (ftrain,"siftbig_learn.bvecs");
-		vtrain.n=tam/10;
-		vtrain.d=128;
-		vtrain.mat= fmat_new (vtrain.d, vtrain.n);
-	}
-	else if(strcmp(dataset, "gist")==0){
-		strcpy (ftrain, BASE_DIR);
-		strcat (ftrain,"gist_learn.fvecs");
-		vtrain.n=500000;
-		vtrain.d=960;
-		vtrain.mat= fmat_new (vtrain.d, vtrain.n);
-	}
-
-	if(strcmp(dataset, "siftbig")!=0){
-		fvecs_read (ftrain, vtrain.d, vtrain.n, vtrain.mat);
-	}
-	else{
+	vtrain.n = tam / 10;
+	vtrain.d = 128;
+	vtrain.mat = fmat_new(vtrain.d, vtrain.n);
+	
+	char ftrain[100];
+	strcpy(ftrain, BASE_DIR);
+	strcat(ftrain, "/");
+	strcat(ftrain, dataset);
+	strcat(ftrain,"/learn.");
+	
+	
+	if(! strcmp(dataset, "siftbig")){
+		strcat(ftrain, "bvecs");
 		b2fvecs_read (ftrain, vtrain.d, vtrain.n, vtrain.mat);
 	}
-	free(ftrain);
+	else {
+		strcat(ftrain, "fvecs");
+		fvecs_read (ftrain, vtrain.d, vtrain.n, vtrain.mat);
+	}
+	
 	return vtrain;
 }
 
 matI pq_test_load_gdn(char* dataset, int tam, int nqueries){
 	matI vids_gnd;
 	int *ids_gnd;
-	char *fgroundtruth;
+	char fgroundtruth[100];
 
-	fgroundtruth= (char*) malloc(sizeof(char)*100);
-
-	if(strcmp(dataset, "siftsmall")==0){
-		strcpy (fgroundtruth, BASE_DIR);
-		strcat (fgroundtruth,"siftsmall_gnd.ivecs");
-		vids_gnd.n=nqueries;
-		vids_gnd.d=100;
-		ids_gnd= ivec_new (vids_gnd.n*vids_gnd.d);
-	}
-	else if(strcmp(dataset, "sift")==0){
-		strcpy (fgroundtruth, BASE_DIR);
-		strcat (fgroundtruth,"sift_gnd.ivecs");
-		vids_gnd.n=nqueries;
-		vids_gnd.d=100;
-		ids_gnd= ivec_new (vids_gnd.n*vids_gnd.d);
-	}
-	else if(strcmp(dataset, "siftbig")==0 ){
-		if(tam==1000000){
-			strcpy (fgroundtruth, BASE_DIR);
-			strcat (fgroundtruth,"gnd/idx_1M.ivecs");
+	strcpy(fgroundtruth, BASE_DIR);
+	strcat(fgroundtruth, "/");
+	strcat(fgroundtruth, dataset);
+	strcat(fgroundtruth,"/");
+	
+	if (! strcmp(dataset, "siftbig")) {
+		if (tam == 1000000)
+			strcat(fgroundtruth, "gnd/idx_1M.ivecs");
+		else if (tam == 2000000)
+			strcat(fgroundtruth, "gnd/idx_2M.ivecs");
+		else if (tam == 5000000)
+			strcat(fgroundtruth, "gnd/idx_5M.ivecs");
+		else if (tam == 10000000)
+			strcat(fgroundtruth, "gnd/idx_10M.ivecs");
+		else if (tam == 20000000)
+			strcat(fgroundtruth, "gnd/idx_20M.ivecs");
+		else if (tam == 50000000)
+			strcat(fgroundtruth, "gnd/idx_50M.ivecs");
+		else if (tam == 100000000)
+			strcat(fgroundtruth, "gnd/idx_100M.ivecs");
+		else if (tam == 200000000)
+			strcat(fgroundtruth, "gnd/idx_200M.ivecs");
+		else if (tam == 500000000)
+			strcat(fgroundtruth, "gnd/idx_500M.ivecs");
+		else if (tam == 1000000000)
+			strcat(fgroundtruth, "gnd/idx_1000M.ivecs");
+		else {
+			std::printf("Wrong database size supplied\n");
+			exit(0);
 		}
-		else if(tam==2000000){
-			strcpy (fgroundtruth, BASE_DIR);
-			strcat (fgroundtruth,"gnd/idx_2M.ivecs");
-		}
-		else if(tam==5000000){
-			strcpy (fgroundtruth, BASE_DIR);
-			strcat (fgroundtruth,"gnd/idx_5M.ivecs");
-		}
-		else if(tam==10000000){
-			strcpy (fgroundtruth, BASE_DIR);
-			strcat (fgroundtruth,"gnd/idx_10M.ivecs");
-		}
-		else if(tam==20000000){
-			strcpy (fgroundtruth, BASE_DIR);
-			strcat (fgroundtruth,"gnd/idx_20M.ivecs");
-		}
-		else if(tam==50000000){
-			strcpy (fgroundtruth, BASE_DIR);
-			strcat (fgroundtruth,"gnd/idx_50M.ivecs");
-		}
-		else if(tam==100000000){
-			strcpy (fgroundtruth, BASE_DIR);
-			strcat (fgroundtruth,"gnd/idx_100M.ivecs");
-		}
-		else if(tam==200000000){
-			strcpy (fgroundtruth, BASE_DIR);
-			strcat (fgroundtruth,"gnd/idx_200M.ivecs");
-		}
-		else if(tam==500000000){
-			strcpy (fgroundtruth, BASE_DIR);
-			strcat (fgroundtruth,"gnd/idx_500M.ivecs");
-		}
-		else if(tam==1000000000){
-			strcpy (fgroundtruth, BASE_DIR);
-			strcat (fgroundtruth,"gnd/idx_1000M.ivecs");
-		}
-		else{
-			strcpy (fgroundtruth, BASE_DIR);
-			strcat (fgroundtruth,"gnd/idx_1M.ivecs");
-		}
-		vids_gnd.n=nqueries;
-		vids_gnd.d=1000;
-		ids_gnd= ivec_new (vids_gnd.n*vids_gnd.d);
-	}
-	else if(strcmp(dataset, "gist")==0){
-		strcpy (fgroundtruth, BASE_DIR);
-		strcat (fgroundtruth,"gist_gnd.ivecs");
-		vids_gnd.n=nqueries;
-		vids_gnd.d=100;
-		ids_gnd= ivec_new (vids_gnd.n*vids_gnd.d);
+		
+		vids_gnd.d = 1000;
+	} else {
+		strcat(fgroundtruth,"gnd.ivecs");
+		vids_gnd.d = 100;	
 	}
 
-	ivecs_read (fgroundtruth, vids_gnd.d , vids_gnd.n, ids_gnd);
-
-	vids_gnd.mat= ivec_new (vids_gnd.n);
-	for(int i=0; i<vids_gnd.n;i++){
-		vids_gnd.mat[i]=ids_gnd[i*vids_gnd.d];
+	vids_gnd.n = nqueries;
+	ids_gnd = ivec_new(vids_gnd.n * vids_gnd.d);
+	ivecs_read(fgroundtruth, vids_gnd.d, vids_gnd.n, ids_gnd);
+	vids_gnd.mat = ivec_new (vids_gnd.n);
+	
+	for(int i=0; i < vids_gnd.n; i++){
+		vids_gnd.mat[i] = ids_gnd[i * vids_gnd.d];
 	}
-	vids_gnd.d=1;
+	
+	vids_gnd.d = 1;
+	
 	free(ids_gnd);
-	free(fgroundtruth);
 	return vids_gnd;
 }
 
 mat pq_test_load_query(char* dataset, int threads, int nqueries){
 	mat vquery;
 	char srank[4];
-	char *fquery;
-	fquery = (char*) malloc(sizeof(char)*100);
+	char fquery[100];
+	
+	strcpy(fquery, BASE_DIR);
+	strcat(fquery, "/");
+	strcat(fquery, dataset);
+	strcat(fquery, "/query.fvecs");
+	vquery.n = nqueries;
+	vquery.d = 128;
+	vquery.mat = fmat_new(vquery.d, vquery.n);
+	
+	if (! strcmp(dataset, "siftbig")) b2fvecs_read(fquery, vquery.d, vquery.n, vquery.mat);
+	else fvecs_read(fquery, vquery.d, vquery.n, vquery.mat);
 
-	if(strcmp(dataset, "siftsmall")==0){
-		strcpy (fquery, BASE_DIR);
-		strcat (fquery,"siftsmall_query.fvecs");
-		vquery.n=nqueries;
-		vquery.d=128;
-		vquery.mat= fmat_new (vquery.d, vquery.n);
-	}
-	else if(strcmp(dataset, "sift")==0){
-		strcpy (fquery, BASE_DIR);
-		strcat (fquery,"sift_query.fvecs");
-		vquery.n=nqueries;
-		vquery.d=128;
-		vquery.mat= fmat_new (vquery.d, vquery.n);
-	}
-	else if(strcmp(dataset, "siftbig")==0){
-		strcpy (fquery, BASE_DIR);
-		strcat (fquery,"siftbig_query.bvecs");
-		vquery.n=nqueries;
-		vquery.d=128;
-		vquery.mat= fmat_new (vquery.d, vquery.n);
-	}
-	else if(strcmp(dataset, "gist")==0){
-		strcpy (fquery, BASE_DIR);
-		strcat (fquery,"gist_query.fvecs");
-		vquery.n=nqueries;
-		vquery.d=960;
-		vquery.mat= fmat_new (vquery.d, vquery.n);
-	}
-	if(strcmp(dataset, "siftbig")!=0){
-		fvecs_read (fquery, vquery.d, vquery.n, vquery.mat);
-	}
-	else{
-		b2fvecs_read (fquery, vquery.d, vquery.n, vquery.mat);
-	}
-	free(fquery);
+
 	return vquery;
 }
 
 mat pq_test_load_base(char* dataset, int offset, int my_rank, int tam){
 	mat vbase;
 	char srank[4];
-	sprintf (srank, "%d",my_rank);
-	char *fbase;
-	fbase= (char*) malloc(sizeof(char)*100);
-
-	if(strcmp(dataset, "siftsmall")==0){
-		strcpy (fbase, BASE_DIR);
-		strcat (fbase,"siftsmall_base.fvecs");
-		vbase.n=10000;
-		vbase.d=128;
-		vbase.mat= fmat_new (vbase.d, vbase.n);
-	}
-	else if(strcmp(dataset, "sift")==0){
-		strcpy (fbase, BASE_DIR);
-		strcat (fbase,"sift_base.fvecs");
-		vbase.n=1000000;
-		vbase.d=128;
-		vbase.mat= fmat_new (vbase.d, vbase.n);
-	}
-	else if(strcmp(dataset, "siftbig")==0 ){
-		strcpy (fbase, BASE_DIR);
-		strcat (fbase,"siftbig_base.bvecs");
-		vbase.n=1000000;
-		vbase.d=128;
-		vbase.mat= (float*) malloc(sizeof(float)*vbase.d*vbase.n);
-	}
-	else if(strcmp(dataset, "gist")==0){
-		strcpy (fbase, BASE_DIR);
-		strcat (fbase,"gist_base.fvecs");
-		vbase.n=100000;
-		vbase.d=960;
-		vbase.mat= fmat_new (vbase.d, vbase.n);
-	}
+	sprintf(srank, "%d", my_rank);
+	char fbase[100];
+	strcpy(fbase, BASE_DIR);
+	strcat(fbase, "/");
+	strcat(fbase, dataset);
+	strcat(fbase, "/base.fvecs");
 	strcat(fbase, srank);
-	if(strcmp(dataset, "siftbig")!=0){
+	vbase.n = tam;
+	vbase.d = 128;
+	
+
+	if (! strcmp(dataset, "siftbig")) {
+		vbase.mat = (float*) malloc(sizeof(float) * vbase.d * vbase.n);
+		my_bvecs_read (offset, fbase, vbase.d, vbase.n, vbase.mat);
+	} else { 
+		vbase.mat= fmat_new (vbase.d, vbase.n);
 		fvecs_read (fbase, vbase.d, vbase.n, vbase.mat);
 	}
-	else{
-		my_bvecs_read (offset, fbase, vbase.d, vbase.n, vbase.mat);
-	}
-	free(fbase);
+	
 	return vbase;
 }
 
