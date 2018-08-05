@@ -7,11 +7,12 @@ testes.txt
 yael_needs
 ivfpq_test
 makefile.inc
-sift
-siftbig
+sift*
 parallel2/vgcore.6077
 parallel2/.idea
 parallel2/cmake*
 parallel2/CMake*
 siftsmall
 log*
+bin
+vgcore*
