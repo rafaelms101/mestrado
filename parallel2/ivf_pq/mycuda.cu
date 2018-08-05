@@ -22,13 +22,13 @@ extern __shared__ char shared_memory[];
 //compute_dists<<<grid, block,  sm_size>>>(gpu_PQ, gpu_residual, gpu_ivf, gpu_rid_to_ivf, gpu_qid_to_starting_outid, gpu_distance_buffer, biggest_idstam, gpu_idxs, gpu_dists, k);
 __global__ void compute_dists(const pqtipo PQ, const mat residual, const ivf_t* const ivf,
 		const int* rid_to_ivf, const int* const qid_to_starting_outid,
-		Img* distance_buffer, int block_buffer_size, matI idxs, mat dists, const int k, const int w) {
+		Img* distance_buffer, int block_buffer_size, matI idxs, mat dists, const int k, const int w, float* global_distab) {
 	auto tid = threadIdx.x;
 	auto nthreads = blockDim.x;
 	auto bid = blockIdx.x;
 	auto numBlocks = gridDim.x;
 
-	float* distab = (float*) shared_memory;
+	auto distab = global_distab + bid * PQ.nsq * PQ.ks;
 	
 	for (int qid = bid; qid < residual.n / w; qid += numBlocks) {
 		Img* block_input = distance_buffer + bid * block_buffer_size;
@@ -117,12 +117,12 @@ void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* rid_to_ivf
 
 	pqtipo gpu_PQ = PQ;
 
-	debug("Allocating %d MB for centroids\n",  sizeof(float) * PQ.centroidsd * PQ.centroidsn / 1024 / 1024);
+	debug("Allocating %d MB for centroids",  sizeof(float) * PQ.centroidsd * PQ.centroidsn / 1024 / 1024);
 	safe_call(alloc((void **) &gpu_PQ.centroids, sizeof(float) * PQ.centroidsd * PQ.centroidsn));
 	safe_call(cudaMemcpy(gpu_PQ.centroids, PQ.centroids, sizeof(float) * PQ.centroidsd * PQ.centroidsn, cudaMemcpyHostToDevice));
 
 	mat gpu_residual = residual;
-	debug("Allocating %d MB for residuals\n",  sizeof(float) * residual.n * residual.d / 1024 / 1024);
+	debug("Allocating %d MB for residuals",  sizeof(float) * residual.n * residual.d / 1024 / 1024);
 	safe_call(alloc((void **) &gpu_residual.mat, sizeof(float) * residual.n * residual.d));
 	safe_call(cudaMemcpy(gpu_residual.mat, residual.mat, sizeof(float) * residual.n * residual.d, cudaMemcpyHostToDevice));
 
@@ -130,7 +130,7 @@ void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* rid_to_ivf
 	ivf_t* gpu_ivf;
 
 	ivf_mem_size += sizeof(ivf_t) * ivf_size;
-	debug("IVF memory size up to now: %d MB\n",  ivf_mem_size / 1024 / 1024);
+	debug("IVF memory size up to now: %d MB",  ivf_mem_size / 1024 / 1024);
 	safe_call(alloc((void **) &gpu_ivf, sizeof(ivf_t) * ivf_size));
 
 
@@ -155,44 +155,48 @@ void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* rid_to_ivf
 		safe_call(cudaMemcpy(tmp_ivf[i].codes.mat, ivf[i].codes.mat, sizeof(int) * ivf[i].codes.n * ivf[i].codes.d, cudaMemcpyHostToDevice));
 	}
 
-	debug("Allocating %d MB for IVF\n",  ivf_mem_size / 1024 / 1024);
+	debug("Allocating %d MB for IVF",  ivf_mem_size / 1024 / 1024);
 	safe_call(cudaMemcpy(gpu_ivf, tmp_ivf, sizeof(ivf_t) * ivf_size, cudaMemcpyHostToDevice));
 
 	int* gpu_rid_to_ivf;
-	debug("Allocating %d MB for rid_to_ivf\n",  sizeof(int) * residual.n / 1024 / 1024);
+	debug("Allocating %d MB for rid_to_ivf",  sizeof(int) * residual.n / 1024 / 1024);
 	safe_call(alloc((void **) &gpu_rid_to_ivf, sizeof(int) * residual.n));
 	safe_call(cudaMemcpy(gpu_rid_to_ivf, rid_to_ivf, sizeof(int) * residual.n, cudaMemcpyHostToDevice));
 
 
 	matI gpu_idxs = idxs;
 
-	debug("Allocating %d MB for idxs\n", sizeof(int) * idxs.n / 1024 / 1024);
+	debug("Allocating %d MB for idxs", sizeof(int) * idxs.n / 1024 / 1024);
 	safe_call(alloc((void **) &gpu_idxs.mat, sizeof(int) * idxs.n));
 
 	mat gpu_dists = dists;
-	debug("Allocating %d MB for dists\n", sizeof(float) * dists.n / 1024 / 1024);
+	debug("Allocating %d MB for dists", sizeof(float) * dists.n / 1024 / 1024);
 	safe_call(alloc((void **) &gpu_dists.mat, sizeof(float) * dists.n));
 
 	//allocating the input buffer
 	int* gpu_qid_to_starting_outid;
-	debug("Allocating %d MB for qid_to_starting_outid\n", sizeof(int) * residual.n / w / 1024 / 1024);
+	debug("Allocating %d MB for qid_to_starting_outid", sizeof(int) * residual.n / w / 1024 / 1024);
 	safe_call(alloc((void **) &gpu_qid_to_starting_outid, sizeof(int) * residual.n / w));
 	safe_call(cudaMemcpy(gpu_qid_to_starting_outid, qid_to_starting_outid, sizeof(int) * residual.n / w, cudaMemcpyHostToDevice));
 
-	debug("Allocating %d MB for the distance buffer\n",  sizeof(Img) * biggest_idstam * w * ACTIVE_BLOCKS / 1024 / 1024);
+	debug("Allocating %d MB for the distance buffer",  sizeof(Img) * biggest_idstam * w * ACTIVE_BLOCKS / 1024 / 1024);
 	Img* gpu_distance_buffer;
 	safe_call(alloc((void **) &gpu_distance_buffer, sizeof(Img) * biggest_idstam * w * ACTIVE_BLOCKS)); //TODO: its possible to save some memory if I compute the biggest AGGREGATED idstam (as in, the sum of all w idstam)
 
 
+	float* gpu_distab;
+	debug("Allocating %d MB for distab", sizeof(float) * PQ.ks * PQ.nsq * ACTIVE_BLOCKS / 1024 / 1024);
+	safe_call(alloc((void**) &gpu_distab, sizeof(float) * PQ.ks * PQ.nsq * ACTIVE_BLOCKS));
+	
 	dim3 block(1024, 1, 1);
 	dim3 grid(ACTIVE_BLOCKS, 1, 1);
 
 	int sm_size = 48 << 10;
 
-	debug("Trying to allocate: %dKB in shared memory\n", 48 << 10 / 1024);
-	debug("distab needs: %dKB in shared memory\n",  PQ.ks * PQ.nsq * sizeof(float) / 1024);
+//	debug("Trying to allocate: %dKB in shared memory\n", 48 << 10 / 1024);
+//	debug("distab needs: %dKB in shared memory\n",  PQ.ks * PQ.nsq * sizeof(float) / 1024);
 
-	compute_dists<<<grid, block,  sm_size>>>(gpu_PQ, gpu_residual, gpu_ivf, gpu_rid_to_ivf, gpu_qid_to_starting_outid, gpu_distance_buffer, biggest_idstam * w, gpu_idxs, gpu_dists, k, w);
+	compute_dists<<<grid, block,  sm_size>>>(gpu_PQ, gpu_residual, gpu_ivf, gpu_rid_to_ivf, gpu_qid_to_starting_outid, gpu_distance_buffer, biggest_idstam * w, gpu_idxs, gpu_dists, k, w, gpu_distab);
 
 	err = cudaGetLastError();
 
