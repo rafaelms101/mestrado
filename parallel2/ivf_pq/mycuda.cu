@@ -16,18 +16,24 @@
 
 extern __shared__ char shared_memory[];
 
-#define ACTIVE_BLOCKS 32
+#define ACTIVE_BLOCKS 1
 
+__device__ float* centroids;
+__device__ ivf_t* ivf;
+
+
+cudaError_t err = cudaSuccess; //TODO: find a way to not have a global
 
 //compute_dists<<<grid, block,  sm_size>>>(gpu_PQ, gpu_residual, gpu_ivf, gpu_rid_to_ivf, gpu_qid_to_starting_outid, gpu_distance_buffer, biggest_idstam, gpu_idxs, gpu_dists, k);
-__global__ void compute_dists(const pqtipo PQ, const mat residual, const ivf_t* const ivf,
+//TODO: preload PQ.centroids and ivf
+__global__ void compute_dists(const pqtipo PQ, const mat residual, 
 		const int* rid_to_ivf, const int* const qid_to_starting_outid,
 		Img* distance_buffer, int block_buffer_size, matI idxs, mat dists, const int k, const int w) {
 	auto tid = threadIdx.x;
 	auto nthreads = blockDim.x;
 	auto bid = blockIdx.x;
 	auto numBlocks = gridDim.x;
-
+	
 	float* distab = (float*) shared_memory;
 	
 	for (int qid = bid; qid < residual.n / w; qid += numBlocks) {
@@ -47,7 +53,7 @@ __global__ void compute_dists(const pqtipo PQ, const mat residual, const ivf_t* 
 
 
 			for (int i = begin_i; i <= end_i; i++) {
-				float* centroid = PQ.centroids + i * PQ.ds;
+				float* centroid = centroids + i * PQ.ds;
 				int d = i / PQ.ks;
 
 				float* sub_residual = current_residual + d * PQ.ds;
@@ -113,50 +119,50 @@ cudaError_t alloc(void **devPtr, size_t size) {
 
 void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* rid_to_ivf, int* qid_to_starting_outid, matI idxs, mat dists, int k, int w) {
 	//TODO: implement / redo the error handling so that we have less code duplication
-	cudaError_t err = cudaSuccess;
+	
 
 	pqtipo gpu_PQ = PQ;
-
-	debug("Allocating %d MB for centroids\n",  sizeof(float) * PQ.centroidsd * PQ.centroidsn / 1024 / 1024);
-	safe_call(alloc((void **) &gpu_PQ.centroids, sizeof(float) * PQ.centroidsd * PQ.centroidsn));
-	safe_call(cudaMemcpy(gpu_PQ.centroids, PQ.centroids, sizeof(float) * PQ.centroidsd * PQ.centroidsn, cudaMemcpyHostToDevice));
+//
+//	debug("Allocating %d MB for centroids\n",  sizeof(float) * PQ.centroidsd * PQ.centroidsn / 1024 / 1024);
+//	safe_call(alloc((void **) &gpu_PQ.centroids, sizeof(float) * PQ.centroidsd * PQ.centroidsn));
+//	safe_call(cudaMemcpy(gpu_PQ.centroids, PQ.centroids, sizeof(float) * PQ.centroidsd * PQ.centroidsn, cudaMemcpyHostToDevice));
 
 	mat gpu_residual = residual;
 	debug("Allocating %d MB for residuals\n",  sizeof(float) * residual.n * residual.d / 1024 / 1024);
 	safe_call(alloc((void **) &gpu_residual.mat, sizeof(float) * residual.n * residual.d));
 	safe_call(cudaMemcpy(gpu_residual.mat, residual.mat, sizeof(float) * residual.n * residual.d, cudaMemcpyHostToDevice));
 
-	long ivf_mem_size = 0;
-	ivf_t* gpu_ivf;
-
-	ivf_mem_size += sizeof(ivf_t) * ivf_size;
-	debug("IVF memory size up to now: %d MB\n",  ivf_mem_size / 1024 / 1024);
-	safe_call(alloc((void **) &gpu_ivf, sizeof(ivf_t) * ivf_size));
-
-
-	ivf_t* tmp_ivf = new ivf_t[ivf_size];
+//	long ivf_mem_size = 0;
+//	ivf_t* gpu_ivf;
+//
+//	ivf_mem_size += sizeof(ivf_t) * ivf_size;
+//	debug("IVF memory size up to now: %d MB\n",  ivf_mem_size / 1024 / 1024);
+//	safe_call(alloc((void **) &gpu_ivf, sizeof(ivf_t) * ivf_size));
+//
+//
+//	ivf_t* tmp_ivf = new ivf_t[ivf_size];
 	int biggest_idstam = 0;
-
+//
 	for (int i = 0; i < ivf_size; i++) {
 		if (ivf[i].idstam > biggest_idstam) biggest_idstam = ivf[i].idstam;
-
-		tmp_ivf[i].idstam = ivf[i].idstam;
-		tmp_ivf[i].codes = ivf[i].codes;
-
-		ivf_mem_size += sizeof(int) * tmp_ivf[i].idstam;
-//		debug("IVF memory size up to now: %d MB\n",  ivf_mem_size / 1024 / 1024);
-		safe_call(alloc((void **) &tmp_ivf[i].ids, sizeof(int) * tmp_ivf[i].idstam));
-		safe_call(cudaMemcpy(tmp_ivf[i].ids, ivf[i].ids, sizeof(int) * ivf[i].idstam, cudaMemcpyHostToDevice));
-
-		ivf_mem_size += sizeof(int) * tmp_ivf[i].codes.n * tmp_ivf[i].codes.d;
-//		debug("IVF memory size up to now: %d MB\n",  ivf_mem_size / 1024 / 1024);
-		safe_call(alloc((void **) &tmp_ivf[i].codes.mat, sizeof(int) * tmp_ivf[i].codes.n * tmp_ivf[i].codes.d));
-//		debug("entry=%d, idstam=%d, codes.n=%d, codes.d=%d\n", i, tmp_ivf[i].idstam, tmp_ivf[i].codes.n, tmp_ivf[i].codes.d);
-		safe_call(cudaMemcpy(tmp_ivf[i].codes.mat, ivf[i].codes.mat, sizeof(int) * ivf[i].codes.n * ivf[i].codes.d, cudaMemcpyHostToDevice));
+//
+//		tmp_ivf[i].idstam = ivf[i].idstam;
+//		tmp_ivf[i].codes = ivf[i].codes;
+//
+//		ivf_mem_size += sizeof(int) * tmp_ivf[i].idstam;
+////		debug("IVF memory size up to now: %d MB\n",  ivf_mem_size / 1024 / 1024);
+//		safe_call(alloc((void **) &tmp_ivf[i].ids, sizeof(int) * tmp_ivf[i].idstam));
+//		safe_call(cudaMemcpy(tmp_ivf[i].ids, ivf[i].ids, sizeof(int) * ivf[i].idstam, cudaMemcpyHostToDevice));
+//
+//		ivf_mem_size += sizeof(int) * tmp_ivf[i].codes.n * tmp_ivf[i].codes.d;
+////		debug("IVF memory size up to now: %d MB\n",  ivf_mem_size / 1024 / 1024);
+//		safe_call(alloc((void **) &tmp_ivf[i].codes.mat, sizeof(int) * tmp_ivf[i].codes.n * tmp_ivf[i].codes.d));
+////		debug("entry=%d, idstam=%d, codes.n=%d, codes.d=%d\n", i, tmp_ivf[i].idstam, tmp_ivf[i].codes.n, tmp_ivf[i].codes.d);
+//		safe_call(cudaMemcpy(tmp_ivf[i].codes.mat, ivf[i].codes.mat, sizeof(int) * ivf[i].codes.n * ivf[i].codes.d, cudaMemcpyHostToDevice));
 	}
-
-	debug("Allocating %d MB for IVF\n",  ivf_mem_size / 1024 / 1024);
-	safe_call(cudaMemcpy(gpu_ivf, tmp_ivf, sizeof(ivf_t) * ivf_size, cudaMemcpyHostToDevice));
+//
+//	debug("Allocating %d MB for IVF\n",  ivf_mem_size / 1024 / 1024);
+//	safe_call(cudaMemcpy(gpu_ivf, tmp_ivf, sizeof(ivf_t) * ivf_size, cudaMemcpyHostToDevice));
 
 	int* gpu_rid_to_ivf;
 	debug("Allocating %d MB for rid_to_ivf\n",  sizeof(int) * residual.n / 1024 / 1024);
@@ -192,7 +198,8 @@ void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* rid_to_ivf
 	debug("Trying to allocate: %dKB in shared memory\n", 48 << 10 / 1024);
 	debug("distab needs: %dKB in shared memory\n",  PQ.ks * PQ.nsq * sizeof(float) / 1024);
 
-	compute_dists<<<grid, block,  sm_size>>>(gpu_PQ, gpu_residual, gpu_ivf, gpu_rid_to_ivf, gpu_qid_to_starting_outid, gpu_distance_buffer, biggest_idstam * w, gpu_idxs, gpu_dists, k, w);
+	//void compute_dists(const pqtipo PQ, const mat residual, const ivf_t* const ivf, const int* rid_to_ivf, const int* const qid_to_starting_outid, Img* distance_buffer, int block_buffer_size, matI idxs, mat dists, const int k, const int w) 
+	compute_dists<<<grid, block,  sm_size>>>(gpu_PQ, gpu_residual, gpu_rid_to_ivf, gpu_qid_to_starting_outid, gpu_distance_buffer, biggest_idstam * w, gpu_idxs, gpu_dists, k, w);
 
 	err = cudaGetLastError();
 
@@ -209,14 +216,14 @@ void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* rid_to_ivf
 	safe_call(cudaMemcpy(dists.mat, gpu_dists.mat, sizeof(float) * dists.n, cudaMemcpyDeviceToHost));
 
 	//FREEING MEMORY
-	cudaFree(gpu_PQ.centroids);
+//	cudaFree(gpu_PQ.centroids);
 	cudaFree(gpu_residual.mat);
-	cudaFree(gpu_ivf);
-
-	for (int i = 0; i < ivf_size; i++) {
-		cudaFree(tmp_ivf[i].ids);
-		cudaFree(tmp_ivf[i].codes.mat);
-	}
+//	cudaFree(gpu_ivf);
+//
+//	for (int i = 0; i < ivf_size; i++) {
+//		cudaFree(tmp_ivf[i].ids);
+//		cudaFree(tmp_ivf[i].codes.mat);
+//	}
 
 	cudaFree(gpu_rid_to_ivf);
 	cudaFree(gpu_idxs.mat);
@@ -224,5 +231,49 @@ void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* rid_to_ivf
 	cudaFree(gpu_qid_to_starting_outid);
 	cudaFree(gpu_distance_buffer);
 
-	delete[] tmp_ivf;
+//	delete[] tmp_ivf;
+}
+
+void preallocate_gpu_mem(pqtipo host_PQ, ivf_t* host_ivf, int ivf_size) {
+	//ivf
+	long ivf_mem_size = 0;
+	
+	ivf_t* gpu_ivf;
+	safe_call(alloc((void **) &gpu_ivf, sizeof(ivf_t) * ivf_size));	
+
+	ivf_mem_size += sizeof(ivf_t) * ivf_size;
+	safe_call(alloc((void **) &gpu_ivf, sizeof(ivf_t) * ivf_size));
+	ivf_t* tmp_ivf = new ivf_t[ivf_size];
+
+	for (int i = 0; i < ivf_size; i++) {
+		tmp_ivf[i].idstam = host_ivf[i].idstam;
+		tmp_ivf[i].codes = host_ivf[i].codes;
+
+		ivf_mem_size += sizeof(int) * tmp_ivf[i].idstam;
+		safe_call(alloc((void ** ) &tmp_ivf[i].ids, sizeof(int) * tmp_ivf[i].idstam));
+		safe_call(cudaMemcpy(tmp_ivf[i].ids, host_ivf[i].ids, sizeof(int) * host_ivf[i].idstam, cudaMemcpyHostToDevice));
+		ivf_mem_size += sizeof(int) * tmp_ivf[i].codes.n * tmp_ivf[i].codes.d;
+		safe_call(alloc((void ** ) &tmp_ivf[i].codes.mat, sizeof(int) * tmp_ivf[i].codes.n * tmp_ivf[i].codes.d));
+		safe_call(cudaMemcpy(tmp_ivf[i].codes.mat, host_ivf[i].codes.mat, sizeof(int) * host_ivf[i].codes.n * host_ivf[i].codes.d, cudaMemcpyHostToDevice));
+	}
+
+	debug("Allocating %d MB for IVF\n",  ivf_mem_size / 1024 / 1024);
+	safe_call(cudaMemcpy(gpu_ivf, tmp_ivf, sizeof(ivf_t) * ivf_size, cudaMemcpyHostToDevice)); //TODO: the entire code of this function is wrong
+	ivf_t** global_ivf;
+	safe_call(cudaGetSymbolAddress((void **) &global_ivf, ivf));
+	safe_call(cudaMemcpy(global_ivf, &gpu_ivf, sizeof(ivf_t*), cudaMemcpyHostToDevice));
+	
+	
+	//centroids
+	debug("Allocating %d MB for centroids\n",  sizeof(float) * host_PQ.centroidsd * host_PQ.centroidsn / 1024 / 1024);
+	
+	float* gpu_centroids;
+	float** global_centroids;
+	safe_call(cudaGetSymbolAddress((void **) &global_centroids, centroids));
+	
+	safe_call(alloc((void **) &gpu_centroids, sizeof(float) * host_PQ.centroidsd * host_PQ.centroidsn));
+	safe_call(cudaMemcpy(gpu_centroids, host_PQ.centroids, sizeof(float) * host_PQ.centroidsd * host_PQ.centroidsn, cudaMemcpyHostToDevice));
+	safe_call(cudaMemcpy(global_centroids, &gpu_centroids, sizeof(float*), cudaMemcpyHostToDevice));
+	
+	//TODO: remember to free the memory allocated here
 }

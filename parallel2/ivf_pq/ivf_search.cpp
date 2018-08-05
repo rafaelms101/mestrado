@@ -210,6 +210,8 @@ void send_results(int nqueries, query_id_t* elements, matI idxs, mat dists, int 
 	MPI_Send(&finish, 1, MPI_INT, last_aggregator, 0, MPI_COMM_WORLD);
 }
 
+
+
 void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Comm search_comm, char *dataset, int w){
 	ivfpq_t ivfpq;
 	mat residual;
@@ -260,6 +262,8 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 	MPI_Barrier(search_comm);
 
 	sem_init(&sem, 0, 1);
+	
+	preallocate_gpu_mem(ivfpq.pq, ivf, ivfpq.coa_centroidsn);
 
 	gettimeofday(&total_start_tv, NULL);
 
