@@ -234,17 +234,22 @@ void core_gpu(pqtipo PQ, mat residual, ivf_t* ivf, int ivf_size, int* rid_to_ivf
 //	delete[] tmp_ivf;
 }
 
+ivf_t* tmp_ivf;
+int tmp_size;
+ivf_t* gpu_ivf;
+float* gpu_centroids;
+
 void preallocate_gpu_mem(pqtipo host_PQ, ivf_t* host_ivf, int ivf_size) {
 	//ivf
 	long ivf_mem_size = 0;
 	
-	ivf_t* gpu_ivf;
+	
 	safe_call(alloc((void **) &gpu_ivf, sizeof(ivf_t) * ivf_size));	
-
+	
 	ivf_mem_size += sizeof(ivf_t) * ivf_size;
-	safe_call(alloc((void **) &gpu_ivf, sizeof(ivf_t) * ivf_size));
-	ivf_t* tmp_ivf = new ivf_t[ivf_size];
-
+	tmp_ivf = new ivf_t[ivf_size];
+	tmp_size = ivf_size;
+	
 	for (int i = 0; i < ivf_size; i++) {
 		tmp_ivf[i].idstam = host_ivf[i].idstam;
 		tmp_ivf[i].codes = host_ivf[i].codes;
@@ -267,7 +272,7 @@ void preallocate_gpu_mem(pqtipo host_PQ, ivf_t* host_ivf, int ivf_size) {
 	//centroids
 	debug("Allocating %d MB for centroids\n",  sizeof(float) * host_PQ.centroidsd * host_PQ.centroidsn / 1024 / 1024);
 	
-	float* gpu_centroids;
+	
 	float** global_centroids;
 	safe_call(cudaGetSymbolAddress((void **) &global_centroids, centroids));
 	
@@ -276,4 +281,17 @@ void preallocate_gpu_mem(pqtipo host_PQ, ivf_t* host_ivf, int ivf_size) {
 	safe_call(cudaMemcpy(global_centroids, &gpu_centroids, sizeof(float*), cudaMemcpyHostToDevice));
 	
 	//TODO: remember to free the memory allocated here
+}
+
+void deallocate_gpu_mem() {
+	for (int i = 0; i < tmp_size; i++) {
+		cudaFree(tmp_ivf[i].ids);
+		cudaFree(tmp_ivf[i].codes.mat);
+		
+	}
+	
+	cudaFree(gpu_ivf);
+	cudaFree(gpu_centroids);
+	
+	delete tmp_ivf;
 }

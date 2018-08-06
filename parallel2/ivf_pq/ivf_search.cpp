@@ -332,6 +332,8 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 	micro = (total_tv.tv_sec - total_start_tv.tv_sec) * 1000000 + (total_tv.tv_usec - total_start_tv.tv_usec); \
 	printf("\nElapsed: %.2lf seconds on TOTAL\n", micro / 1000000);
 
+	deallocate_gpu_mem();
+	
 	debug("GOT OUT OF HERE");
 	
 	sem_destroy(&sem);
