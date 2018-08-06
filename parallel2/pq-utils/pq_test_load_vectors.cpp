@@ -12,15 +12,13 @@ mat pq_test_load_train(char* dataset, int tam){
 	strcpy(ftrain, BASE_DIR);
 	strcat(ftrain, "/");
 	strcat(ftrain, dataset);
-	strcat(ftrain,"/learn.");
+	strcat(ftrain,"/learn");
 	
 	
 	if(! strcmp(dataset, "siftbig")){
-		strcat(ftrain, "bvecs");
 		b2fvecs_read (ftrain, vtrain.d, vtrain.n, vtrain.mat);
 	}
 	else {
-		strcat(ftrain, "fvecs");
 		fvecs_read (ftrain, vtrain.d, vtrain.n, vtrain.mat);
 	}
 	
@@ -92,7 +90,7 @@ mat pq_test_load_query(char* dataset, int threads, int nqueries){
 	strcpy(fquery, BASE_DIR);
 	strcat(fquery, "/");
 	strcat(fquery, dataset);
-	strcat(fquery, "/query.fvecs");
+	strcat(fquery, "/query");
 	vquery.n = nqueries;
 	vquery.d = 128;
 	vquery.mat = fmat_new(vquery.d, vquery.n);
@@ -112,7 +110,7 @@ mat pq_test_load_base(char* dataset, int offset, int my_rank, int tam){
 	strcpy(fbase, BASE_DIR);
 	strcat(fbase, "/");
 	strcat(fbase, dataset);
-	strcat(fbase, "/base.fvecs");
+	strcat(fbase, "/base");
 	strcat(fbase, srank);
 	vbase.n = tam;
 	vbase.d = 128;
