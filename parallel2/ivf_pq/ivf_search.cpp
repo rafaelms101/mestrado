@@ -416,38 +416,27 @@ void write_ivf(ivfpq_t ivfpq, int threads, int tam, int my_rank, int nsq, char* 
 	char name_arq[100];
 	struct timeval start, end;
 	double time;
-	int lim, i;
-
+	
 	debug("Indexing");
 
 	gettimeofday(&start, NULL);
 
-	lim = tam/1000000;
-	if(tam%1000000!=0){
-		lim = (tam/1000000) + 1;
-	}
+	int lim = tam / 1000000;
+	if (tam % 1000000 != 0) lim++;
 
 	//Cria a lista invertida correspondente ao trecho da base assinalado a esse processo
 	#pragma omp parallel for num_threads(threads) schedule(dynamic)
-		for(i=0; i<lim; i++) {
-
-			ivf_t *ivf;
-			int aux;
-			mat vbase;
-			ivf = (ivf_t *)malloc(sizeof(ivf_t)*ivfpq.coarsek);
-
-			vbase = pq_test_load_base(dataset, i, my_rank-last_assign, tam);
+		for (int i = 0; i < lim; i++) {
+			ivf_t* ivf = (ivf_t *) malloc(sizeof(ivf_t)*ivfpq.coarsek);
+			mat vbase = pq_test_load_base(dataset, i, my_rank - last_assign, tam);
 
 			ivfpq_assign(ivfpq, vbase, ivf);
 
 			free(vbase.mat);
 
-			for(int j=0; j<ivfpq.coarsek; j++){
-				for(int l=0; l<ivf[j].idstam; l++){
-					ivf[j].ids[l]+=1000000*i+tam*(my_rank-last_assign-1);
-				}
+			for (int j = 0; j < ivfpq.coarsek; j++) {
+				for (int l = 0; l < ivf[j].idstam; l++) ivf[j].ids[l] += 1000000 * i + tam * (my_rank - last_assign - 1);
 
-				aux = ivf[j].idstam;
 				#pragma omp critical
 				{
 					sprintf(name_arq, "/home/rafael/mestrado/parallel2/ivf/ivf_%d_%d_%d.bin", ivfpq.coarsek, tam, j);
@@ -460,6 +449,7 @@ void write_ivf(ivfpq_t ivfpq, int threads, int tam, int my_rank, int nsq, char* 
 					fwrite(&ivf[j].codes.mat[0], sizeof(int), ivf[j].codes.n*ivf[j].codes.d, fp);
 					fclose(fp);
 				}
+				
 				free(ivf[j].ids);
 				free(ivf[j].codes.mat);
 			}
@@ -487,36 +477,35 @@ ivf_t* read_ivf(ivfpq_t ivfpq, int tam, int my_rank){
 	debug("ivfpq.coarsek=%d", ivfpq.coarsek);
 
 	int lim = tam / 1000000;
-	if (tam % 1000000 != 0) {
-		lim = (tam / 1000000) + 1;
-	}
+	if (tam % 1000000 != 0) lim++;
+
 	
-	for(int i=0; i<ivfpq.coarsek; i++){
+	for(int i = 0; i < ivfpq.coarsek; i++){
 		int idstam, codesn, codesd;
 
-		ivf[i].ids = (int*)malloc(sizeof(int));
+		ivf[i].ids = (int*) malloc(sizeof(int));
 		ivf[i].idstam = 0;
-		ivf[i].codes.mat = (int*)malloc(sizeof(int));
+		ivf[i].codes.mat = (int*) malloc(sizeof(int));
 		ivf[i].codes.n = 0;
 		ivf[i].codes.d = ivfpq.pq.nsq;
 
 		sprintf(name_arq, "/home/rafael/mestrado/parallel2/ivf/ivf_%d_%d_%d.bin", ivfpq.coarsek, tam, i);
-		debug("Opening %s", name_arq);
+//		debug("Opening %s", name_arq);
 		fp = fopen(name_arq,"rb");
 
 		for(int j=0; j<lim; j++){
 			fread(&coarsek, sizeof(int), 1, fp);
-			debug("coarsek=%d", coarsek);
+//			debug("coarsek=%d", coarsek);
 			fread(&idstam, sizeof(int), 1, fp);
-			debug("idstam=%d", idstam);
+//			debug("idstam=%d", idstam);
 			ivf[i].idstam += idstam;
 			ivf[i].ids = (int*)realloc(ivf[i].ids,sizeof(int)*ivf[i].idstam);
 			fread(&ivf[i].ids[ivf[i].idstam-idstam], sizeof(int), idstam, fp);
 			fread(&codesn, sizeof(int), 1, fp);
-			debug("codesn=%d", codesn);
+//			debug("codesn=%d", codesn);
 			ivf[i].codes.n += codesn;
 			fread(&codesd, sizeof(int), 1, fp);
-			debug("codesd=%d", codesd);
+//			debug("codesd=%d", codesd);
 			ivf[i].codes.d = codesd;
 			ivf[i].codes.mat = (int*)realloc(ivf[i].codes.mat,sizeof(int)*ivf[i].codes.n*ivf[i].codes.d);
 			fread(&ivf[i].codes.mat[((ivf[i].codes.n)*(ivf[i].codes.d))-codesn*codesd], sizeof(int), codesn*codesd, fp);

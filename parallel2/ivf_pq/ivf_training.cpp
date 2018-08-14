@@ -1,61 +1,62 @@
 #include "ivf_training.h"
 
-void parallel_training (char *dataset, int coarsek, int nsq, int tam, int comm_sz, int threads){
-	mat vtrain;
-	ivfpq_t ivfpq;
-	char file[100];
-	char file2[100];
-	char file3[100];
-	static int last_assign, last_search, last_aggregator;
-
-	set_last (comm_sz, &last_assign, &last_search, &last_aggregator);
-
-	sprintf(file, "bin/file_ivfpq_%d.bin", coarsek);
-	sprintf(file2, "bin/cent_ivfpq_%d.bin", coarsek);
-	sprintf(file3, "bin/coa_ivfpq_%d.bin", coarsek);
-	
-	// Cria os centroides baseado em uma base de treinamento e os armazena em arquivos
-	#ifdef TRAIN
-		vtrain = pq_test_load_train(dataset, tam);
-
-		ivfpq = ivfpq_new(coarsek, nsq, vtrain, threads);
-
-		write_cent(file, file2, file3, ivfpq);
-
-		free(vtrain.mat);
-    		free(ivfpq.pq.centroids);
-		free(ivfpq.coa_centroids);
-
-	//Le ou cria os centroides e os envia para os processos de assign
-	#else
-    	int my_rank;
-		
-		MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
-
-		//Le os centroides de um arquivo
-		#ifdef READ_TRAIN
-			
-			read_cent(file, file2, file3, &ivfpq);
-			
- 		//Cria centroides a partir dos vetores de treinamento
-		#else
-			vtrain = pq_test_load_train(dataset, tam);
-			ivfpq = ivfpq_new(coarsek, nsq, vtrain, threads);
-			free(vtrain.mat);
-		#endif
-		
-		//Envia os centroides para os processos de recebimento da query e de indexação e busca
-		for(int i=1; i<=last_search; i++){
-			MPI_Send(&ivfpq, sizeof(ivfpq_t), MPI_BYTE, i, 0, MPI_COMM_WORLD);
-			MPI_Send(&ivfpq.pq.centroids[0], ivfpq.pq.centroidsn*ivfpq.pq.centroidsd, MPI_FLOAT, i, 0, MPI_COMM_WORLD);
-			MPI_Send(&ivfpq.coa_centroids[0], ivfpq.coa_centroidsd*ivfpq.coa_centroidsn, MPI_FLOAT, i, 0, MPI_COMM_WORLD);
-		}
-		
-		free(ivfpq.pq.centroids);
-		free(ivfpq.coa_centroids);
-
-	#endif
-}
+////TODO: delete this function as it is replicated somewhere else
+//void parallel_training (char *dataset, int coarsek, int nsq, int tam, int comm_sz, int threads){
+//	mat vtrain;
+//	ivfpq_t ivfpq;
+//	char file[100];
+//	char file2[100];
+//	char file3[100];
+//	static int last_assign, last_search, last_aggregator;
+//
+//	set_last(comm_sz, &last_assign, &last_search, &last_aggregator);
+//
+//	sprintf(file, "bin/file_ivfpq_%d.bin", coarsek);
+//	sprintf(file2, "bin/cent_ivfpq_%d.bin", coarsek);
+//	sprintf(file3, "bin/coa_ivfpq_%d.bin", coarsek);
+//	
+//	// Cria os centroides baseado em uma base de treinamento e os armazena em arquivos
+//	#ifdef TRAIN
+//		vtrain = pq_test_load_train(dataset, tam);
+//
+//		ivfpq = ivfpq_new(coarsek, nsq, vtrain, threads);
+//
+//		write_cent(file, file2, file3, ivfpq);
+//
+//		free(vtrain.mat);
+//    		free(ivfpq.pq.centroids);
+//		free(ivfpq.coa_centroids);
+//
+//	//Le ou cria os centroides e os envia para os processos de assign
+//	#else
+//    	int my_rank;
+//		
+//		MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+//
+//		//Le os centroides de um arquivo
+//		#ifdef READ_TRAIN
+//			
+//			read_cent(file, file2, file3, &ivfpq);
+//			
+// 		//Cria centroides a partir dos vetores de treinamento
+//		#else
+//			vtrain = pq_test_load_train(dataset, tam);
+//			ivfpq = ivfpq_new(coarsek, nsq, vtrain, threads);
+//			free(vtrain.mat);
+//		#endif
+//		
+//		//Envia os centroides para os processos de recebimento da query e de indexação e busca
+//		for(int i=1; i <= last_search; i++){
+//			MPI_Send(&ivfpq, sizeof(ivfpq_t), MPI_BYTE, i, 0, MPI_COMM_WORLD);
+//			MPI_Send(&ivfpq.pq.centroids[0], ivfpq.pq.centroidsn*ivfpq.pq.centroidsd, MPI_FLOAT, i, 0, MPI_COMM_WORLD);
+//			MPI_Send(&ivfpq.coa_centroids[0], ivfpq.coa_centroidsd*ivfpq.coa_centroidsn, MPI_FLOAT, i, 0, MPI_COMM_WORLD);
+//		}
+//		
+//		free(ivfpq.pq.centroids);
+//		free(ivfpq.coa_centroids);
+//
+//	#endif
+//}
 
 ivfpq_t ivfpq_new(int coarsek, int nsq, mat vtrain, int threads){
 
@@ -89,57 +90,73 @@ ivfpq_t ivfpq_new(int coarsek, int nsq, mat vtrain, int threads){
 	return ivfpq;
 }
 
-void write_cent(char *file, char *file2, char *file3, ivfpq_t ivfpq){
-	FILE *arq, *arq2, *arq3;
+void write_cent(char *header_path, char *pq_centroids_path, char *coa_centroids_path, ivfpq_t ivfpq) {
+	FILE* header = fopen(header_path, "wb");
+	FILE* pq_centroids = fopen(pq_centroids_path, "wb");
+	FILE* coa_centroids = fopen(coa_centroids_path, "wb");
 
-	arq = fopen(file, "wb");
-	arq2 = fopen(file2, "wb");
-	arq3 = fopen(file3, "wb");
+	if (header == NULL) {
+		printf("Unable to open: %s\n", header_path);
+		std::exit(-1);
+	} else if (pq_centroids == NULL) {
+		printf("Unable to open: %s\n", pq_centroids_path);
+		std::exit(-1);
+	} else if (coa_centroids == NULL) {
+		printf("Unable to open: %s\n", coa_centroids_path);
+		std::exit(-1);
+	}
+	
 
-	if (arq == NULL){
-   	printf("Problemas na CRIACAO do arquivo\n");
-  	return;
-  }
+  fwrite(&ivfpq.pq.nsq, sizeof(int), 1, header);
+  fwrite(&ivfpq.pq.ks, sizeof(int), 1, header);
+  fwrite(&ivfpq.pq.ds, sizeof(int), 1, header);
+  fwrite(&ivfpq.pq.centroidsn, sizeof(int), 1, header);
+  fwrite(&ivfpq.pq.centroidsd, sizeof(int), 1, header);
+  fwrite(&ivfpq.coarsek, sizeof(int), 1, header);
+  fwrite(&ivfpq.coa_centroidsn, sizeof(int), 1, header);
+  fwrite(&ivfpq.coa_centroidsd, sizeof(int), 1, header);
+  fwrite(ivfpq.pq.centroids, sizeof(float), ivfpq.pq.centroidsn * ivfpq.pq.centroidsd, pq_centroids);
+  fwrite(ivfpq.coa_centroids, sizeof(float), ivfpq.coa_centroidsn * ivfpq.coa_centroidsd, coa_centroids);
 
-  fwrite (&ivfpq.pq.nsq, sizeof(int), 1, arq);
-  fwrite (&ivfpq.pq.ks, sizeof(int), 1, arq);
-  fwrite (&ivfpq.pq.ds, sizeof(int), 1, arq);
-  fwrite (&ivfpq.pq.centroidsn, sizeof(int), 1, arq);
-  fwrite (&ivfpq.pq.centroidsd, sizeof(int), 1, arq);
-  fwrite (&ivfpq.coarsek, sizeof(int), 1, arq);
-  fwrite (&ivfpq.coa_centroidsn, sizeof(int), 1, arq);
-  fwrite (&ivfpq.coa_centroidsd, sizeof(int), 1, arq);
-  fwrite (&ivfpq.pq.centroids[0], sizeof(float), ivfpq.pq.centroidsn*ivfpq.pq.centroidsd, arq2);
-  fwrite (&ivfpq.coa_centroids[0], sizeof(float), ivfpq.coa_centroidsn*ivfpq.coa_centroidsd, arq3);
-
-  fclose(arq);
-  fclose(arq2);
-  fclose(arq3);
+  fclose(header);
+  fclose(pq_centroids);
+  fclose(coa_centroids);
 }
 
-void read_cent(char *file, char *file2, char *file3, ivfpq_t *ivfpq){
-	FILE *arq, *arq2, *arq3;
+void read_cent(char *header_path, char *pq_centroids_path, char *coa_centroids_path, ivfpq_t *ivfpq){
+	FILE* header = fopen(header_path, "rb");
+	FILE* pq_centroids = fopen(pq_centroids_path, "rb");
+	FILE* coa_centroids = fopen(coa_centroids_path, "rb");
 
-	arq = fopen(file, "rb");
-	arq2 = fopen(file2, "rb");
-	arq3 = fopen(file3, "rb");
+	if (header == NULL) {
+		printf("Unable to open: %s\n", header_path);
+		std::exit(-1);
+	} else if (pq_centroids == NULL) {
+		printf("Unable to open: %s\n", pq_centroids_path);
+		std::exit(-1);
+	} else if (coa_centroids == NULL) {
+		printf("Unable to open: %s\n", coa_centroids_path);
+		std::exit(-1);
+	}
+	
+	fread(&ivfpq->pq.nsq, sizeof(int), 1, header);
+  	fread(&ivfpq->pq.ks, sizeof(int), 1, header);
+  	fread(&ivfpq->pq.ds, sizeof(int), 1, header);
+  	fread(&ivfpq->pq.centroidsn, sizeof(int), 1, header);
+  	fread(&ivfpq->pq.centroidsd, sizeof(int), 1, header);
+  	fread(&ivfpq->coarsek, sizeof(int), 1, header);
+ 	fread(&ivfpq->coa_centroidsn, sizeof(int), 1, header);
+	fread(&ivfpq->coa_centroidsd, sizeof(int), 1, header);
 
-	fread (&ivfpq->pq.nsq, sizeof(int), 1, arq);
-  	fread (&ivfpq->pq.ks, sizeof(int), 1, arq);
-  	fread (&ivfpq->pq.ds, sizeof(int), 1, arq);
-  	fread (&ivfpq->pq.centroidsn, sizeof(int), 1, arq);
-  	fread (&ivfpq->pq.centroidsd, sizeof(int), 1, arq);
-  	fread (&ivfpq->coarsek, sizeof(int), 1, arq);
- 	fread (&ivfpq->coa_centroidsn, sizeof(int), 1, arq);
-	fread (&ivfpq->coa_centroidsd, sizeof(int), 1, arq);
-	ivfpq->pq.centroids = (float *) malloc(sizeof(float)*ivfpq->pq.centroidsn*ivfpq->pq.centroidsd);
-	fread (&ivfpq->pq.centroids[0], sizeof(float), ivfpq->pq.centroidsn*ivfpq->pq.centroidsd, arq2);
-	ivfpq->coa_centroids = (float *) malloc(sizeof(float)*ivfpq->coa_centroidsn*ivfpq->coa_centroidsd);
-	fread (&ivfpq->coa_centroids[0], sizeof(float), ivfpq->coa_centroidsn*ivfpq->coa_centroidsd, arq3);
+	ivfpq->pq.centroids = (float*) malloc(sizeof(float) * ivfpq->pq.centroidsn * ivfpq->pq.centroidsd);
+	fread(ivfpq->pq.centroids, sizeof(float), ivfpq->pq.centroidsn*ivfpq->pq.centroidsd, pq_centroids);
+	
+	ivfpq->coa_centroids = (float*) malloc(sizeof(float) * ivfpq->coa_centroidsn*ivfpq->coa_centroidsd);
+	fread(ivfpq->coa_centroids, sizeof(float), ivfpq->coa_centroidsn*ivfpq->coa_centroidsd, coa_centroids);
 
-	fclose(arq);
-	fclose(arq2);
-	fclose(arq3);
+	fclose(header);
+	fclose(pq_centroids);
+	fclose(coa_centroids);
 }
 
 void subtract(mat v, float* v2, int* idx, int c_d){

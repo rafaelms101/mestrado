@@ -2,10 +2,10 @@
 
 include makefile.inc
 
-CC=gcc -g -O3 
-CXX=g++  -g -O3 
+CC=gcc -g -O3
+CXX=g++  -g -O3
 #MF = -DREAD_TRAIN
-MF = 
+MF = -DREAD_TRAIN -DREAD_IVF
 IVF =
 MPICXX = mpic++ $(MF) $(IVF) -fopenmp  -g -no-pie
 PQ_UTILS_DIR = ./pq-utils
@@ -13,9 +13,9 @@ OBJDIR=./obj
 IVF_DIR = ./ivf_pq
 OMP = -fopenmp
 PTHREAD = -lpthread
-NVCC_FLAGS = -O3 
+NVCC_FLAGS = -O3
 
-all: mycuda.o pq_test_load_vectors.o pq_new.o pq_assign.o pq_search.o pq_test.o pq_test $(OBJDIR)/myIVF.o $(OBJDIR)/ivf_training.o $(OBJDIR)/ivf_assign.o $(OBJDIR)/ivf_search.o $(OBJDIR)/k_min.o ivfpq_test.o ivfpq_test
+all: train mycuda.o pq_test_load_vectors.o pq_new.o pq_assign.o pq_search.o pq_test.o pq_test $(OBJDIR)/myIVF.o $(OBJDIR)/ivf_training.o $(OBJDIR)/ivf_assign.o $(OBJDIR)/ivf_search.o $(OBJDIR)/k_min.o ivfpq_test.o ivfpq_test
 
 
 ifeq "$(USEARPACK)" "yes"
@@ -91,8 +91,14 @@ $(OBJDIR)/k_min.o: $(IVF_DIR)/k_min.cpp $(IVF_DIR)/k_min.h $(IVF_DIR)/ivf_aggreg
 ivfpq_test.o: ivf_test.cpp $(OBJDIR)/ivf_aggregator.o $(OBJDIR)/ivf_assign.o $(OBJDIR)/myIVF.o $(OBJDIR)/ivf_training.o $(OBJDIR)/ivf_search.o $(IVF_DIR)/ivf_search.h $(IVF_DIR)/ivf_training.h $(IVF_DIR)/myIVF.h $(IVF_DIR)/ivf_aggregator.h $(IVF_DIR)/ivf_assign.h $(OBJDIR)/pq_test_load_vectors.o $(PQ_UTILS_DIR)/pq_test_load_vectors.h $(OBJDIR)/pq_test_compute_stats.o $(PQ_UTILS_DIR)/pq_test_compute_stats.h $(OBJDIR)/pq_new.o $(PQ_UTILS_DIR)/pq_new.h $(OBJDIR)/pq_assign.o $(PQ_UTILS_DIR)/pq_assign.h $(OBJDIR)/pq_search.o $(PQ_UTILS_DIR)/pq_search.h
 	$(MPICXX) $(cflags) -c $< -o $@ $(flags) $(extracflags) $(yaelcflags) $(PTHREAD)
 
-ivfpq_test:  mycuda.o ivfpq_test.o $(OBJDIR)/ivf_aggregator.o $(OBJDIR)/ivf_assign.o $(OBJDIR)/myIVF.o $(OBJDIR)/ivf_training.o $(OBJDIR)/ivf_search.o $(OBJDIR)/k_min.o $(IVF_DIR)/k_min.h $(IVF_DIR)/ivf_search.h $(IVF_DIR)/ivf_training.h $(IVF_DIR)/myIVF.h $(IVF_DIR)/ivf_assign.h $(IVF_DIR)/ivf_aggregator.h  $(OBJDIR)/pq_test_load_vectors.o $(PQ_UTILS_DIR)/pq_test_load_vectors.h $(OBJDIR)/pq_test_compute_stats.o $(PQ_UTILS_DIR)/pq_test_compute_stats.h $(OBJDIR)/pq_new.o $(PQ_UTILS_DIR)/pq_new.h $(OBJDIR)/pq_assign.o $(PQ_UTILS_DIR)/pq_assign.h $(OBJDIR)/pq_search.o $(PQ_UTILS_DIR)/pq_search.h
+ivfpq_test:  $(OBJDIR)/mycuda.o $(OBJDIR)/ivfpq_test.o $(OBJDIR)/ivf_aggregator.o $(OBJDIR)/ivf_assign.o $(OBJDIR)/myIVF.o $(OBJDIR)/ivf_training.o $(OBJDIR)/ivf_search.o $(OBJDIR)/k_min.o $(IVF_DIR)/k_min.h $(IVF_DIR)/ivf_search.h $(IVF_DIR)/ivf_training.h $(IVF_DIR)/myIVF.h $(IVF_DIR)/ivf_assign.h $(IVF_DIR)/ivf_aggregator.h  $(OBJDIR)/pq_test_load_vectors.o $(PQ_UTILS_DIR)/pq_test_load_vectors.h $(OBJDIR)/pq_test_compute_stats.o $(PQ_UTILS_DIR)/pq_test_compute_stats.h $(OBJDIR)/pq_new.o $(PQ_UTILS_DIR)/pq_new.h $(OBJDIR)/pq_assign.o $(PQ_UTILS_DIR)/pq_assign.h $(OBJDIR)/pq_search.o $(PQ_UTILS_DIR)/pq_search.h
 		$(MPICXX) $(cflags)  -o $@ $^ $(LDFLAGS) $(LAPACKLDFLAGS) $(THREADLDFLAGS) $(EXTRAYAELLDFLAG) $(YAELLDFLAGS) $(PTHREAD) -lcudart -L/opt/cuda/lib64
 
+$(OBJDIR)/train.o: $(IVF_DIR)/ivf_training.h $(PQ_UTILS_DIR)/pq_test_load_vectors.h
+	$(MPICXX) $(cflags) -c train.cpp -o $@ $(flags) $(extracflags) $(yaelcflags) $(PTHREAD)
+
+train: $(OBJDIR)/train.o $(OBJDIR)/ivf_training.o $(OBJDIR)/pq_test_load_vectors.o $(OBJDIR)/pq_new.o $(OBJDIR)/pq_assign.o
+	$(MPICXX) $(cflags) -o $@ $^ $(LDFLAGS) $(LAPACKLDFLAGS) $(THREADLDFLAGS) $(EXTRAYAELLDFLAG) $(YAELLDFLAGS) $(PTHREAD) -lboost_system -lboost_filesystem
+
 clean:
-	rm -f $(OBJDIR)/*.o pq_test *.o ivfpq_test
+	rm -f $(OBJDIR)/*.o pq_test *.o ivfpq_test train
