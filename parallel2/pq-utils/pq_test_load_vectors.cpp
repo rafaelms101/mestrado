@@ -102,26 +102,23 @@ mat pq_test_load_query(char* dataset, int threads, int nqueries){
 	return vquery;
 }
 
-mat pq_test_load_base(char* dataset, int offset, int my_rank, int tam){
+mat pq_test_load_base(char* dataset, int offset, int tam){
 	mat vbase;
-	char srank[4];
-	sprintf(srank, "%d", my_rank);
 	char fbase[100];
 	strcpy(fbase, BASE_DIR);
 	strcat(fbase, "/");
 	strcat(fbase, dataset);
 	strcat(fbase, "/base");
-	strcat(fbase, srank);
 	vbase.n = tam;
 	vbase.d = 128;
 	
 
 	if (! strcmp(dataset, "siftbig")) {
 		vbase.mat = (float*) malloc(sizeof(float) * vbase.d * vbase.n);
-		my_bvecs_read (offset, fbase, vbase.d, vbase.n, vbase.mat);
+		my_bvecs_read(offset, fbase, vbase.d, vbase.n, vbase.mat);
 	} else { 
 		vbase.mat= fmat_new (vbase.d, vbase.n);
-		fvecs_read (fbase, vbase.d, vbase.n, vbase.mat);
+		fvecs_read(fbase, vbase.d, vbase.n, vbase.mat);
 	}
 	
 	return vbase;

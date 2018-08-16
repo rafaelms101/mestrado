@@ -17,3 +17,5 @@ log*
 bin
 vgcore*
 ivf
+genivf
+train

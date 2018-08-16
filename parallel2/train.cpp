@@ -17,9 +17,12 @@ int main(int argc, char **argv) {
 	int threads = atoi(argv[5]);
 
 	char* path;
-	asprintf(&path, "%s/%s/train/%d_%d", BASE_DIR, dataset, coarsek, nsq);
+	asprintf(&path, "%s/%s/train/%d_%d_%d", BASE_DIR, dataset, tam, coarsek, nsq);
 
-	if (boost::filesystem::exists(path)) return 0;
+	if (boost::filesystem::exists(path)) {
+		boost::filesystem::remove_all(path);
+	}
+	
 	boost::filesystem::create_directories(path);
 	
 	char* header;

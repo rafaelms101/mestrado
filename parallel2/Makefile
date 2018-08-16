@@ -94,10 +94,16 @@ ivfpq_test.o: ivf_test.cpp $(OBJDIR)/ivf_aggregator.o $(OBJDIR)/ivf_assign.o $(O
 ivfpq_test:  $(OBJDIR)/mycuda.o $(OBJDIR)/ivfpq_test.o $(OBJDIR)/ivf_aggregator.o $(OBJDIR)/ivf_assign.o $(OBJDIR)/myIVF.o $(OBJDIR)/ivf_training.o $(OBJDIR)/ivf_search.o $(OBJDIR)/k_min.o $(IVF_DIR)/k_min.h $(IVF_DIR)/ivf_search.h $(IVF_DIR)/ivf_training.h $(IVF_DIR)/myIVF.h $(IVF_DIR)/ivf_assign.h $(IVF_DIR)/ivf_aggregator.h  $(OBJDIR)/pq_test_load_vectors.o $(PQ_UTILS_DIR)/pq_test_load_vectors.h $(OBJDIR)/pq_test_compute_stats.o $(PQ_UTILS_DIR)/pq_test_compute_stats.h $(OBJDIR)/pq_new.o $(PQ_UTILS_DIR)/pq_new.h $(OBJDIR)/pq_assign.o $(PQ_UTILS_DIR)/pq_assign.h $(OBJDIR)/pq_search.o $(PQ_UTILS_DIR)/pq_search.h
 		$(MPICXX) $(cflags)  -o $@ $^ $(LDFLAGS) $(LAPACKLDFLAGS) $(THREADLDFLAGS) $(EXTRAYAELLDFLAG) $(YAELLDFLAGS) $(PTHREAD) -lcudart -L/opt/cuda/lib64
 
-$(OBJDIR)/train.o: $(IVF_DIR)/ivf_training.h $(PQ_UTILS_DIR)/pq_test_load_vectors.h
+$(OBJDIR)/train.o: train.cpp $(IVF_DIR)/ivf_training.h $(PQ_UTILS_DIR)/pq_test_load_vectors.h
 	$(MPICXX) $(cflags) -c train.cpp -o $@ $(flags) $(extracflags) $(yaelcflags) $(PTHREAD)
 
 train: $(OBJDIR)/train.o $(OBJDIR)/ivf_training.o $(OBJDIR)/pq_test_load_vectors.o $(OBJDIR)/pq_new.o $(OBJDIR)/pq_assign.o
+	$(MPICXX) $(cflags) -o $@ $^ $(LDFLAGS) $(LAPACKLDFLAGS) $(THREADLDFLAGS) $(EXTRAYAELLDFLAG) $(YAELLDFLAGS) $(PTHREAD) -lboost_system -lboost_filesystem
+
+$(OBJDIR)/genivf.o: genivf.cpp $(IVF_DIR)/ivf_training.h $(OBJDIR)/pq_test_load_vectors.o
+	$(MPICXX) $(cflags) -c $< -o $@ $(flags) $(extracflags) $(yaelcflags) $(PTHREAD)
+
+genivf: $(OBJDIR)/genivf.o $(OBJDIR)/ivf_training.o $(OBJDIR)/pq_test_load_vectors.o $(OBJDIR)/pq_new.o $(OBJDIR)/pq_assign.o
 	$(MPICXX) $(cflags) -o $@ $^ $(LDFLAGS) $(LAPACKLDFLAGS) $(THREADLDFLAGS) $(EXTRAYAELLDFLAG) $(YAELLDFLAGS) $(PTHREAD) -lboost_system -lboost_filesystem
 
 clean:

@@ -411,56 +411,7 @@ ivf_t* create_ivf(ivfpq_t ivfpq, int threads, int tam, int my_rank, int nsq, cha
 	return ivf;
 }
 
-void write_ivf(ivfpq_t ivfpq, int threads, int tam, int my_rank, int nsq, char* dataset){
-	FILE *fp;
-	char name_arq[100];
-	struct timeval start, end;
-	double time;
-	
-	debug("Indexing");
 
-	gettimeofday(&start, NULL);
-
-	int lim = tam / 1000000;
-	if (tam % 1000000 != 0) lim++;
-
-	//Cria a lista invertida correspondente ao trecho da base assinalado a esse processo
-	#pragma omp parallel for num_threads(threads) schedule(dynamic)
-		for (int i = 0; i < lim; i++) {
-			ivf_t* ivf = (ivf_t *) malloc(sizeof(ivf_t)*ivfpq.coarsek);
-			mat vbase = pq_test_load_base(dataset, i, my_rank - last_assign, tam);
-
-			ivfpq_assign(ivfpq, vbase, ivf);
-
-			free(vbase.mat);
-
-			for (int j = 0; j < ivfpq.coarsek; j++) {
-				for (int l = 0; l < ivf[j].idstam; l++) ivf[j].ids[l] += 1000000 * i + tam * (my_rank - last_assign - 1);
-
-				#pragma omp critical
-				{
-					sprintf(name_arq, "/home/rafael/mestrado/parallel2/ivf/ivf_%d_%d_%d.bin", ivfpq.coarsek, tam, j);
-					fp = fopen(name_arq,"ab");
-					fwrite(&ivfpq.coarsek, sizeof(int), 1, fp);
-					fwrite(&ivf[j].idstam, sizeof(int), 1, fp);
-					fwrite(&ivf[j].ids[0], sizeof(int), ivf[j].idstam, fp);
-					fwrite(&ivf[j].codes.n, sizeof(int), 1, fp);
-					fwrite(&ivf[j].codes.d, sizeof(int), 1, fp);
-					fwrite(&ivf[j].codes.mat[0], sizeof(int), ivf[j].codes.n*ivf[j].codes.d, fp);
-					fclose(fp);
-				}
-				
-				free(ivf[j].ids);
-				free(ivf[j].codes.mat);
-			}
-			free(ivf);
-		}
-
-	gettimeofday(&end, NULL);
-	time = ((end.tv_sec * 1000000 + end.tv_usec)-(start.tv_sec * 1000000 + start.tv_usec))/1000;
-
-	debug("\nTempo de criacao da lista invertida: %g",time);
-}
 
 //TODO: make these paths available in a config file
 //TODO: make the decision of wheter reading or writing the IVF a runtime option
