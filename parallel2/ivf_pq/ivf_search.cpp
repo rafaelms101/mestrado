@@ -14,7 +14,7 @@
 
 #include "debug.h"
 
-static int last_assign, last_search, last_aggregator;
+
 static sem_t sem;
 
 
@@ -192,67 +192,72 @@ void do_gpu(ivfpq_t PQ, std::list<int>& to_gpu, mat residual, int* coaidx, ivf_t
 	do_on(&core_gpu, PQ, to_gpu, residual, coaidx, ivf, elements, idxs, dists, k, w);
 }
 
-void send_results(int nqueries, query_id_t* elements, matI idxs, mat dists, int finish) {
+void send_results(int nqueries, query_id_t* elements, matI idxs, mat dists, int aggregator_id) {
 	int counter = 0;
 
 	int my_rank;
 	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
-	MPI_Send(&my_rank, 1, MPI_INT, last_aggregator, 1, MPI_COMM_WORLD);
-	MPI_Send(&nqueries, 1, MPI_INT, last_aggregator, 0, MPI_COMM_WORLD);
-	MPI_Send(elements, sizeof(query_id_t) * nqueries, MPI_BYTE, last_aggregator,
-			0, MPI_COMM_WORLD);
+	MPI_Send(&my_rank, 1, MPI_INT, aggregator_id, 1, MPI_COMM_WORLD);
+	MPI_Send(&nqueries, 1, MPI_INT, aggregator_id, 0, MPI_COMM_WORLD);
+	MPI_Send(elements, sizeof(query_id_t) * nqueries, MPI_BYTE, aggregator_id, 0, MPI_COMM_WORLD);
 
-	MPI_Send(idxs.mat, idxs.n, MPI_INT, last_aggregator, 0,
-	MPI_COMM_WORLD);
-	MPI_Send(dists.mat, dists.n, MPI_FLOAT, last_aggregator, 0,
-	MPI_COMM_WORLD);
-	MPI_Send(&finish, 1, MPI_INT, last_aggregator, 0, MPI_COMM_WORLD);
+	MPI_Send(idxs.mat, idxs.n, MPI_INT, aggregator_id, 0, MPI_COMM_WORLD);
+	MPI_Send(dists.mat, dists.n, MPI_FLOAT, aggregator_id, 0, MPI_COMM_WORLD);
 }
 
 
 
-void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Comm search_comm, char *dataset, int w){
-	ivfpq_t ivfpq;
+void parallel_search (int nsq, int k, int threads, int tam, int aggregator_id, MPI_Comm search_comm, char *dataset, int w, char* train_path, char* ivf_path){
 	mat residual;
 	int *coaidx, my_rank;
 	//double time;
 
 	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
-	set_last (comm_sz, &last_assign, &last_search, &last_aggregator);
+//	set_last (comm_sz, &last_assign, &last_search, &last_aggregator);
 
-	//Recebe os centroides
-	MPI_Recv(&ivfpq, sizeof(ivfpq_t), MPI_BYTE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-	ivfpq.pq.centroids = (float*)malloc(sizeof(float)*ivfpq.pq.centroidsn*ivfpq.pq.centroidsd);
-	MPI_Recv(&ivfpq.pq.centroids[0], ivfpq.pq.centroidsn*ivfpq.pq.centroidsd, MPI_FLOAT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-	ivfpq.coa_centroids=(float*)malloc(sizeof(float)*ivfpq.coa_centroidsd*ivfpq.coa_centroidsn);
-	MPI_Recv(&ivfpq.coa_centroids[0], ivfpq.coa_centroidsn*ivfpq.coa_centroidsd, MPI_FLOAT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+//	//Recebe os centroides
+//	MPI_Recv(&ivfpq, sizeof(ivfpq_t), MPI_BYTE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+//	ivfpq.pq.centroids = (float*)malloc(sizeof(float)*ivfpq.pq.centroidsn*ivfpq.pq.centroidsd);
+//	MPI_Recv(&ivfpq.pq.centroids[0], ivfpq.pq.centroidsn*ivfpq.pq.centroidsd, MPI_FLOAT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+//	ivfpq.coa_centroids=(float*)malloc(sizeof(float)*ivfpq.coa_centroidsd*ivfpq.coa_centroidsn);
+//	MPI_Recv(&ivfpq.coa_centroids[0], ivfpq.coa_centroidsn*ivfpq.coa_centroidsd, MPI_FLOAT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
+	char* header;
+	asprintf(&header, "%s/header", train_path);
+	char* cent;
+	asprintf(&cent, "%s/pq_centroids", train_path);
+	char* coa;
+	asprintf(&coa, "%s/coa_centroids", train_path);
+
+	ivfpq_t ivfpq;
+	read_cent(header, cent, coa, &ivfpq);
+	
 	std::cout << "number of coarse centroids: " << ivfpq.coa_centroidsn << "\n";
 	std::cout << "number of product centroids per dimension: " << ivfpq.pq.centroidsn << "\n";
 	std::cout << "number of product centroids dimensions: " << ivfpq.pq.centroidsd << "\n";
 
 
 	ivf_t *ivf, *ivf2;
-
-	#ifdef WRITE_IVF
-		debug("STEP1: CREATING IVF");
-		write_ivf(ivfpq, threads, tam, my_rank, nsq, dataset);
-		debug("STEP2: READING IVF");
-		ivf = read_ivf(ivfpq, tam, my_rank);
-	#else
-		#ifdef READ_IVF
-			ivf = read_ivf(ivfpq, tam, my_rank);
-
-		#else
-			ivf = create_ivf(ivfpq, threads, tam, my_rank, nsq, dataset);
-		#endif
-	#endif
+	ivf = read_ivf(ivfpq, tam, my_rank, ivf_path);
+	
+//	#ifdef WRITE_IVF
+//		debug("STEP1: CREATING IVF");
+//		write_ivf(ivfpq, threads, tam, my_rank, nsq, dataset);
+//		debug("STEP2: READING IVF");
+//		ivf = read_ivf(ivfpq, tam, my_rank);
+//	#else
+//		#ifdef READ_IVF
+//			ivf = read_ivf(ivfpq, tam, my_rank);
+//
+//		#else
+//			ivf = create_ivf(ivfpq, threads, tam, my_rank, nsq, dataset);
+//		#endif
+//	#endif
 
 	float **dis;
 	int **ids;
-	int finish_aux=0;
 
 	int count = 0;
 
@@ -268,65 +273,58 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 	gettimeofday(&total_start_tv, NULL);
 
 
-	while (1) {
-		MPI_Bcast(&residual.n, 1, MPI_INT, 0, search_comm);
-		MPI_Bcast(&residual.d, 1, MPI_INT, 0, search_comm);
+	MPI_Bcast(&residual.n, 1, MPI_INT, 0, search_comm);
+	MPI_Bcast(&residual.d, 1, MPI_INT, 0, search_comm);
 
-		residual.mat = (float*) malloc(sizeof(float) * residual.n * residual.d);
+	residual.mat = (float*) malloc(sizeof(float) * residual.n * residual.d);
 
-		MPI_Bcast(&residual.mat[0], residual.d * residual.n, MPI_FLOAT, 0,
-				search_comm);
+	MPI_Bcast(&residual.mat[0], residual.d * residual.n, MPI_FLOAT, 0, search_comm);
 
-		coaidx = (int*) malloc(sizeof(int) * residual.n);
+	coaidx = (int*) malloc(sizeof(int) * residual.n);
 
-		MPI_Bcast(&coaidx[0], residual.n, MPI_INT, 0, search_comm);
-		MPI_Bcast(&finish_aux, 1, MPI_INT, 0, search_comm);
+	MPI_Bcast(&coaidx[0], residual.n, MPI_INT, 0, search_comm);
+//	MPI_Bcast(&finish_aux, 1, MPI_INT, 0, search_comm);
 
-		dis = (float**) malloc(sizeof(float *) * (residual.n / w));
-		ids = (int**) malloc(sizeof(int *) * (residual.n / w));
+	dis = (float**) malloc(sizeof(float *) * (residual.n / w));
+	ids = (int**) malloc(sizeof(int *) * (residual.n / w));
 
-		std::list<int> to_gpu;
-		std::list<int> to_cpu;
+	std::list<int> to_gpu;
+	std::list<int> to_cpu;
 
-		debug("residual.n=%d", residual.n);
+	debug("residual.n=%d", residual.n);
 
-		for (int qid = 0;  qid < residual.n / w;  qid++) {
-			to_gpu.push_back(qid);
-		}
-
-		debug("EXECUTING ON THE %s", to_cpu.size() == 0 ? "gpu" : "cpu");
-
-		time_t start,end;
-		time (&start);
-
-		debug("PQ.ks=%d and k=%d", ivfpq.pq.ks, k);
-
-		//GPU PART
-		query_id_t* elements;
-		matI idxs;
-		mat dists;
-		
-		if (to_gpu.size() != 0) {
-			sw(do_gpu(ivfpq, to_gpu, residual, coaidx, ivf, elements, idxs, dists, k, w));
-		} else {
-			sw(do_cpu(ivfpq, to_cpu, residual, coaidx, ivf, elements, idxs, dists, k, w));
-		}
-
-		debug("Before sending results");
-		sw(send_results(to_cpu.size() + to_gpu.size(), elements, idxs, dists, finish_aux));
-		debug("after sending results");
-		
-		delete[] elements;
-		delete[] idxs.mat;
-		delete[] dists.mat;
-
-		base_id += residual.n / w;
-
-
-		if (finish_aux == 1) break;
-
-		std::cout << "ABORTTTTTTTTTT THIS SHIT\n";
+	for (int qid = 0; qid < residual.n / w; qid++) {
+		to_gpu.push_back(qid);
 	}
+
+	debug("EXECUTING ON THE %s", to_cpu.size() == 0 ? "gpu" : "cpu");
+
+	time_t start, end;
+	time(&start);
+
+	debug("PQ.ks=%d and k=%d", ivfpq.pq.ks, k);
+
+	//GPU PART
+	query_id_t* elements;
+	matI idxs;
+	mat dists;
+
+	if (to_gpu.size() != 0) {
+		sw(do_gpu(ivfpq, to_gpu, residual, coaidx, ivf, elements, idxs, dists, k, w));
+	} else {
+		sw(do_cpu(ivfpq, to_cpu, residual, coaidx, ivf, elements, idxs, dists, k, w));
+	}
+
+	debug("Before sending results");
+	sw(send_results(to_cpu.size() + to_gpu.size(), elements, idxs, dists, aggregator_id));
+	debug("after sending results");
+
+	delete[] elements;
+	delete[] idxs.mat;
+	delete[] dists.mat;
+
+	base_id += residual.n / w;
+
 
 	gettimeofday(&total_tv, NULL);
 	micro = (total_tv.tv_sec - total_start_tv.tv_sec) * 1000000 + (total_tv.tv_usec - total_start_tv.tv_usec); \
@@ -344,78 +342,79 @@ void parallel_search (int nsq, int k, int comm_sz, int threads, int tam, MPI_Com
 	debug("FINISHED THE SEARCH");
 }
 
-ivf_t* create_ivf(ivfpq_t ivfpq, int threads, int tam, int my_rank, int nsq, char* dataset){
-	ivf_t *ivf;
-	struct timeval start, end;
-	double time;
-	int lim;
-
-	debug("Indexing");
-
-	gettimeofday(&start, NULL);
-
-	ivf = (ivf_t*)malloc(sizeof(ivf_t)*ivfpq.coarsek);
-	for(int i=0; i<ivfpq.coarsek; i++){
-		ivf[i].ids = (int*)malloc(sizeof(int));
-		ivf[i].idstam = 0;
-		ivf[i].codes.mat = (int*)malloc(sizeof(int));
-		ivf[i].codes.n = 0;
-		ivf[i].codes.d = nsq;
-	}
-	lim = tam/1000000;
-	if(tam%1000000!=0){
-		lim = (tam/1000000) + 1;
-	}
-
-	tam = (tam - 1) % 1000000 + 1;
-
-	//Cria a lista invertida correspondente ao trecho da base assinalado a esse processo
-	#pragma omp parallel for num_threads(threads) schedule(dynamic)
-		for(int i=0; i<lim; i++) {
-			ivf_t *ivf2;
-			int aux;
-			mat vbase;
-			ivf2 = (ivf_t *)malloc(sizeof(ivf_t)*ivfpq.coarsek);
-
-			vbase = pq_test_load_base(dataset, i, my_rank-last_assign, tam);
-
-			ivfpq_assign(ivfpq, vbase, ivf2);
-
-			for(int j=0; j<ivfpq.coarsek; j++){
-				for(int l=0; l<ivf2[j].idstam; l++){
-					ivf2[j].ids[l]+=1000000*i+tam*(my_rank-last_assign-1);
-				}
-
-				aux = ivf[j].idstam;
-				#pragma omp critical
-				{
-					ivf[j].idstam += ivf2[j].idstam;
-					ivf[j].ids = (int*)realloc(ivf[j].ids,sizeof(int)*ivf[j].idstam);
-					memcpy (ivf[j].ids+aux, ivf2[j].ids, sizeof(int)*ivf2[j].idstam);
-					ivf[j].codes.n += ivf2[j].codes.n;
-					ivf[j].codes.mat = (int*)realloc(ivf[j].codes.mat,sizeof(int)*ivf[j].codes.n*ivf[j].codes.d);
-					memcpy (ivf[j].codes.mat+aux*ivf[i].codes.d, ivf2[j].codes.mat, sizeof(int)*ivf2[j].codes.n*ivf2[j].codes.d);
-				}
-				free(ivf2[j].ids);
-				free(ivf2[j].codes.mat);
-			}
-			free(vbase.mat);
-			free(ivf2);
-		}
-
-	gettimeofday(&end, NULL);
-	time = ((end.tv_sec * 1000000 + end.tv_usec)-(start.tv_sec * 1000000 + start.tv_usec))/1000;
-
-	debug("Tempo de criacao da lista invertida: %g",time);
-
-	return ivf;
-}
+//ivf_t* create_ivf(ivfpq_t ivfpq, int threads, int tam, int my_rank, int nsq, char* dataset){
+//	ivf_t *ivf;
+//	struct timeval start, end;
+//	double time;
+//	int lim;
+//
+//	debug("Indexing");
+//
+//	gettimeofday(&start, NULL);
+//
+//	ivf = (ivf_t*)malloc(sizeof(ivf_t)*ivfpq.coarsek);
+//	for(int i=0; i<ivfpq.coarsek; i++){
+//		ivf[i].ids = (int*)malloc(sizeof(int));
+//		ivf[i].idstam = 0;
+//		ivf[i].codes.mat = (int*)malloc(sizeof(int));
+//		ivf[i].codes.n = 0;
+//		ivf[i].codes.d = nsq;
+//	}
+//	lim = tam/1000000;
+//	if(tam%1000000!=0){
+//		lim = (tam/1000000) + 1;
+//	}
+//
+//	tam = (tam - 1) % 1000000 + 1;
+//
+//	//Cria a lista invertida correspondente ao trecho da base assinalado a esse processo
+//	#pragma omp parallel for num_threads(threads) schedule(dynamic)
+//		for(int i=0; i<lim; i++) {
+//			ivf_t *ivf2;
+//			int aux;
+//			mat vbase;
+//			ivf2 = (ivf_t *)malloc(sizeof(ivf_t)*ivfpq.coarsek);
+//
+//			vbase = pq_test_load_base(dataset, i, my_rank-last_assign, tam);
+//
+//			ivfpq_assign(ivfpq, vbase, ivf2);
+//
+//			for(int j=0; j<ivfpq.coarsek; j++){
+//				for(int l=0; l<ivf2[j].idstam; l++){
+//					ivf2[j].ids[l]+=1000000*i+tam*(my_rank-last_assign-1);
+//				}
+//
+//				aux = ivf[j].idstam;
+//				#pragma omp critical
+//				{
+//					ivf[j].idstam += ivf2[j].idstam;
+//					ivf[j].ids = (int*)realloc(ivf[j].ids,sizeof(int)*ivf[j].idstam);
+//					memcpy (ivf[j].ids+aux, ivf2[j].ids, sizeof(int)*ivf2[j].idstam);
+//					ivf[j].codes.n += ivf2[j].codes.n;
+//					ivf[j].codes.mat = (int*)realloc(ivf[j].codes.mat,sizeof(int)*ivf[j].codes.n*ivf[j].codes.d);
+//					memcpy (ivf[j].codes.mat+aux*ivf[i].codes.d, ivf2[j].codes.mat, sizeof(int)*ivf2[j].codes.n*ivf2[j].codes.d);
+//				}
+//				free(ivf2[j].ids);
+//				free(ivf2[j].codes.mat);
+//			}
+//			free(vbase.mat);
+//			free(ivf2);
+//		}
+//
+//	gettimeofday(&end, NULL);
+//	time = ((end.tv_sec * 1000000 + end.tv_usec)-(start.tv_sec * 1000000 + start.tv_usec))/1000;
+//
+//	debug("Tempo de criacao da lista invertida: %g",time);
+//
+//	return ivf;
+//}
 
 
 
 //TODO: make these paths available in a config file
 //TODO: make the decision of wheter reading or writing the IVF a runtime option
-ivf_t* read_ivf(ivfpq_t ivfpq, int tam, int my_rank){
+//TODO: currently it assumes that we have only one search node. NEED TO FIX THIS ASAP
+ivf_t* read_ivf(ivfpq_t ivfpq, int tam, int my_rank, char* ivf_path){
 	debug("READ_IVF called");
 	
 	ivf_t* ivf;
@@ -431,7 +430,7 @@ ivf_t* read_ivf(ivfpq_t ivfpq, int tam, int my_rank){
 	if (tam % 1000000 != 0) lim++;
 
 	
-	for(int i = 0; i < ivfpq.coarsek; i++){
+	for(int i = 0; i < ivfpq.coarsek; i++) {
 		int idstam, codesn, codesd;
 
 		ivf[i].ids = (int*) malloc(sizeof(int));
@@ -440,11 +439,11 @@ ivf_t* read_ivf(ivfpq_t ivfpq, int tam, int my_rank){
 		ivf[i].codes.n = 0;
 		ivf[i].codes.d = ivfpq.pq.nsq;
 
-		sprintf(name_arq, "/home/rafael/mestrado/parallel2/ivf/ivf_%d_%d_%d.bin", ivfpq.coarsek, tam, i);
+		sprintf(name_arq, "%s/%d", ivf_path, i);
 //		debug("Opening %s", name_arq);
 		fp = fopen(name_arq,"rb");
 
-		for(int j=0; j<lim; j++){
+		for(int j=0; j < lim; j++){
 			fread(&coarsek, sizeof(int), 1, fp);
 //			debug("coarsek=%d", coarsek);
 			fread(&idstam, sizeof(int), 1, fp);

@@ -2,8 +2,7 @@
 
 #include "debug.h"
 
-void parallel_aggregator(int k, int w, int my_rank, int comm_sz, int tam_base, int nqueries, int threads, char* dataset){
-	static int last_assign, last_search, last_aggregator;
+void parallel_aggregator(int k, int w, int my_rank, int assign_id, int num_search_nodes, int tam_base, int nqueries, int threads, char* dataset){
 	dis_t *q;
 	matI ids_gnd;
 	float  *dis;
@@ -11,11 +10,9 @@ void parallel_aggregator(int k, int w, int my_rank, int comm_sz, int tam_base, i
 	double start=0, end;
 	char arquivo[15] = "testes.txt";
 
-	set_last (comm_sz, &last_assign, &last_search, &last_aggregator);
-
 	//Recebe o vetor contendo os indices da lista invertida
-	MPI_Recv(&queryn, 1, MPI_INT, last_assign, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-	MPI_Recv(&start, 1, MPI_DOUBLE, last_assign, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	MPI_Recv(&queryn, 1, MPI_INT, assign_id, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	MPI_Recv(&start, 1, MPI_DOUBLE, assign_id, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
 	q = (dis_t*)malloc(sizeof(dis_t)*queryn);
 	in_q = (int*)calloc(queryn,sizeof(in_q));
@@ -37,7 +34,7 @@ void parallel_aggregator(int k, int w, int my_rank, int comm_sz, int tam_base, i
 
 		if(omp_rank == 0) {//Recebe os resultados do vetor de busca
 			int num;
-			while(fim < last_search - last_assign){
+			while(fim < num_search_nodes){
 				float *dis2;
 				int *ids2;
 				int ttam=0;
@@ -59,12 +56,10 @@ void parallel_aggregator(int k, int w, int my_rank, int comm_sz, int tam_base, i
 
 				MPI_Recv(&ids2[0], ttam, MPI_INT, rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 				MPI_Recv(&dis2[0], ttam, MPI_FLOAT, rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-				MPI_Recv(&finish, 1, MPI_INT, rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-				if(finish==1){
-					fim++;
-					finish=0;
-				}
+				fim++;
+				finish = 0;
+				
 
 				ttam=0;
 				for(int j=0; j<num; j++){
@@ -88,8 +83,8 @@ void parallel_aggregator(int k, int w, int my_rank, int comm_sz, int tam_base, i
 			int *ids2 = (int*)malloc(sizeof(int)*k);
 			int ttam=0, in=0;
 
-			while(in < queryn){
-				if(in_q[in]==(last_search-last_assign)){
+			while (in < queryn){
+				if (in_q[in] == num_search_nodes){
 					ktmp = min(q[in].idx.n, k);
 					my_k_min(q[in], ktmp, dis2, ids2);
 					dis = (float*)realloc(dis,sizeof(float)*(ttam+k));
@@ -103,7 +98,7 @@ void parallel_aggregator(int k, int w, int my_rank, int comm_sz, int tam_base, i
 					free(q[in].dis.mat);
 					free(q[in].idx.mat);
 					in++;
-					ttam+=k;
+					ttam += k;
 				}
 			}
 
@@ -118,20 +113,13 @@ void parallel_aggregator(int k, int w, int my_rank, int comm_sz, int tam_base, i
 
 	//ids = (int*)realloc(ids,sizeof(int)*k*queryn);
 
-	FILE *fp;
+	FILE *fp = fopen(arquivo, "a");
 
-    	fp = fopen(arquivo, "a");
-
-	fprintf(fp,"w=%d, tasks=%d, tamanho da base=%d\n", w, last_aggregator+1, tam_base);
+	fprintf(fp,"w=%d, tasks=%d, tamanho da base=%d\n", w, my_rank + 1, tam_base);
 	fprintf(fp,"Tempo de busca: %g\n\n",end*1000-start*1000);
 
 	fclose(fp);
 	ids_gnd = pq_test_load_gdn(dataset, tam_base, nqueries);
-
-	//for(int i=0; i<queryn;i++){
-	//	cout << ids[i] << "  " << ids_gnd.mat[i] << endl;
-//
-//	}
 
 	pq_test_compute_stats(ids, ids_gnd,k);
 	
