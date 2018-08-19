@@ -3,17 +3,9 @@
 #include "ivf_pq/ivf_training.h"
 #include <mpi.h>
 
-void write_ivf(ivfpq_t ivfpq, int threads, int tam, int my_rank, int nsq, char* dataset, char* ivf_path);
+void write_ivf(ivfpq_t ivfpq, int threads, int tam, int nsq, char* dataset, char* ivf_path);
 
 int main(int argc, char **argv) {
-	int provided;
-	int my_rank;
-
-	MPI_Init_thread(&argc, &argv, MPI_THREAD_SERIALIZED, &provided);
-	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
-	std::printf("rank: %d\n", my_rank);
-
-	
 	if (argc != 6) {
 		std::cout
 				<< "Usage: genivf <database> <tam> <coarsek> <nsq> <threads>"
@@ -53,7 +45,7 @@ int main(int argc, char **argv) {
 
 	ivfpq_t ivfpq;
 	read_cent(header, cent, coa, &ivfpq);
-	write_ivf(ivfpq, threads, tam, my_rank, nsq, dataset, ivf_path);
+	write_ivf(ivfpq, threads, tam, nsq, dataset, ivf_path);
 	
 	free(ivfpq.pq.centroids);
 	free(ivfpq.coa_centroids);
@@ -63,15 +55,15 @@ int main(int argc, char **argv) {
 	free(header);
 	free(cent);
 	free(coa);
-	
-	MPI_Finalize();
 }
 
-void write_ivf(ivfpq_t ivfpq, int threads, int tam, int my_rank, int nsq, char* dataset, char* ivf_path) {
+void write_ivf(ivfpq_t ivfpq, int threads, int tam, int nsq, char* dataset, char* ivf_path) {
 	char filename[100];
 
 	int lim = tam / 1000000;
 	if (tam % 1000000 != 0) lim++;
+	
+	tam = std::min(tam, 1000000);
 
 	//Cria a lista invertida correspondente ao trecho da base assinalado a esse processo
 	#pragma omp parallel for num_threads(threads) schedule(dynamic)
@@ -84,9 +76,6 @@ void write_ivf(ivfpq_t ivfpq, int threads, int tam, int my_rank, int nsq, char* 
 		free(vbase.mat);
 
 		for (int j = 0; j < ivfpq.coarsek; j++) {
-			for (int l = 0; l < ivf[j].idstam; l++)
-				ivf[j].ids[l] += 1000000 * i + tam * my_rank;
-
 			#pragma omp critical
 			{
 				sprintf(filename, "%s/%d", ivf_path, j);
