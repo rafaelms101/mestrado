@@ -6,9 +6,6 @@ void parallel_assign(char *dataset, int w, int aggregator_id, MPI_Comm search_co
 	mat vquery, residual;
 	int *coaidx, dest, rest,id, search_rank;
 	float *coadis;
-//	static int last_assign, last_search, last_aggregator;
-
-//	set_last (comm_sz, &last_assign, &last_search, &last_aggregator);
 
 	vquery = pq_test_load_query(dataset, threads, nqueries);
 	printf("g1");
@@ -22,13 +19,6 @@ void parallel_assign(char *dataset, int w, int aggregator_id, MPI_Comm search_co
 	
 	ivfpq_t ivfpq;
 	read_cent(header, cent, coa, &ivfpq);
-	
-//	//Recebe os centroides
-//	MPI_Recv(&ivfpq, sizeof(ivfpq_t), MPI_BYTE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-//	ivfpq.pq.centroids = (float*)malloc(sizeof(float)*ivfpq.pq.centroidsn*ivfpq.pq.centroidsd);
-//	MPI_Recv(&ivfpq.pq.centroids[0], ivfpq.pq.centroidsn*ivfpq.pq.centroidsd, MPI_FLOAT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-//	ivfpq.coa_centroids=(float*)malloc(sizeof(float)*ivfpq.coa_centroidsd*ivfpq.coa_centroidsn);
-//	MPI_Recv(&ivfpq.coa_centroids[0], ivfpq.coa_centroidsn*ivfpq.coa_centroidsd, MPI_FLOAT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
 	printf("g2");
 
@@ -62,7 +52,7 @@ void parallel_assign(char *dataset, int w, int aggregator_id, MPI_Comm search_co
 	MPI_Barrier(search_comm);
 	double start = MPI_Wtime();
 	MPI_Send(&start, 1, MPI_DOUBLE, aggregator_id, 0, MPI_COMM_WORLD);
-
+//
 	//Envia o resíduo para o processo de busca
 	MPI_Bcast(&residual.n, 1, MPI_INT, 0, search_comm);
 	MPI_Bcast(&residual.d, 1, MPI_INT, 0, search_comm);

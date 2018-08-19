@@ -53,25 +53,23 @@ int main(int argc, char **argv){
 	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 	debug("rank: %d", my_rank);
 	
-	
 	MPI_Comm_group(MPI_COMM_WORLD, &world_group);
 
 	int last_assign, last_search, last_aggregator;
-
 	last_assign = 0;
 	last_search = comm_sz - 2;
 	last_aggregator = comm_sz - 1;
 
-	int search_nodes_qty = comm_sz - 2;
-	int ranks[search_nodes_qty];
+	int search_nodes_qty = last_search - last_assign;
+	int ranks[search_nodes_qty+1];
 
-	for (int i = 0; i < search_nodes_qty; i++) {
-		ranks[i] = i + 1;
+	for (int i = 0; i < search_nodes_qty + 1; i++) {
+		ranks[i] = i;
 	}
-
+	
 	MPI_Group search_group;
 	MPI_Comm search_comm;
-	MPI_Group_incl(world_group, search_nodes_qty, ranks, &search_group);
+	MPI_Group_incl(world_group, search_nodes_qty + 1, ranks, &search_group);
 	MPI_Comm_create_group(MPI_COMM_WORLD, search_group, 0, &search_comm);
 
 	char* train_path;
@@ -91,7 +89,6 @@ int main(int argc, char **argv){
 	}
 	
 	if (my_rank <= last_assign) {
-		
 		parallel_assign(dataset, w, comm_sz - 1, search_comm, threads, num_queries, train_path);
 	} else if (my_rank <= last_search) {
 		parallel_search(nsq, k, threads, tam / search_nodes_qty, comm_sz - 1, search_comm, dataset, w, train_path, ivf_path);

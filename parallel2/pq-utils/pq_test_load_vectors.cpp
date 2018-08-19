@@ -63,7 +63,7 @@ matI pq_test_load_gdn(char* dataset, int tam, int nqueries){
 		
 		vids_gnd.d = 1000;
 	} else {
-		strcat(fgroundtruth,"gnd.ivecs");
+		strcat(fgroundtruth,"gnd");
 		vids_gnd.d = 100;	
 	}
 

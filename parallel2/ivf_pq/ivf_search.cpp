@@ -211,18 +211,8 @@ void send_results(int nqueries, query_id_t* elements, matI idxs, mat dists, int 
 void parallel_search (int nsq, int k, int threads, int tam, int aggregator_id, MPI_Comm search_comm, char *dataset, int w, char* train_path, char* ivf_path){
 	mat residual;
 	int *coaidx, my_rank;
-	//double time;
 
 	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
-
-//	set_last (comm_sz, &last_assign, &last_search, &last_aggregator);
-
-//	//Recebe os centroides
-//	MPI_Recv(&ivfpq, sizeof(ivfpq_t), MPI_BYTE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-//	ivfpq.pq.centroids = (float*)malloc(sizeof(float)*ivfpq.pq.centroidsn*ivfpq.pq.centroidsd);
-//	MPI_Recv(&ivfpq.pq.centroids[0], ivfpq.pq.centroidsn*ivfpq.pq.centroidsd, MPI_FLOAT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-//	ivfpq.coa_centroids=(float*)malloc(sizeof(float)*ivfpq.coa_centroidsd*ivfpq.coa_centroidsn);
-//	MPI_Recv(&ivfpq.coa_centroids[0], ivfpq.coa_centroidsn*ivfpq.coa_centroidsd, MPI_FLOAT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
 	char* header;
 	asprintf(&header, "%s/header", train_path);
@@ -241,20 +231,6 @@ void parallel_search (int nsq, int k, int threads, int tam, int aggregator_id, M
 
 	ivf_t *ivf, *ivf2;
 	ivf = read_ivf(ivfpq, tam, my_rank, ivf_path);
-	
-//	#ifdef WRITE_IVF
-//		debug("STEP1: CREATING IVF");
-//		write_ivf(ivfpq, threads, tam, my_rank, nsq, dataset);
-//		debug("STEP2: READING IVF");
-//		ivf = read_ivf(ivfpq, tam, my_rank);
-//	#else
-//		#ifdef READ_IVF
-//			ivf = read_ivf(ivfpq, tam, my_rank);
-//
-//		#else
-//			ivf = create_ivf(ivfpq, threads, tam, my_rank, nsq, dataset);
-//		#endif
-//	#endif
 
 	float **dis;
 	int **ids;
@@ -272,10 +248,10 @@ void parallel_search (int nsq, int k, int threads, int tam, int aggregator_id, M
 
 	gettimeofday(&total_start_tv, NULL);
 
-
+//
 	MPI_Bcast(&residual.n, 1, MPI_INT, 0, search_comm);
 	MPI_Bcast(&residual.d, 1, MPI_INT, 0, search_comm);
-
+//
 	residual.mat = (float*) malloc(sizeof(float) * residual.n * residual.d);
 
 	MPI_Bcast(&residual.mat[0], residual.d * residual.n, MPI_FLOAT, 0, search_comm);
@@ -283,7 +259,6 @@ void parallel_search (int nsq, int k, int threads, int tam, int aggregator_id, M
 	coaidx = (int*) malloc(sizeof(int) * residual.n);
 
 	MPI_Bcast(&coaidx[0], residual.n, MPI_INT, 0, search_comm);
-//	MPI_Bcast(&finish_aux, 1, MPI_INT, 0, search_comm);
 
 	dis = (float**) malloc(sizeof(float *) * (residual.n / w));
 	ids = (int**) malloc(sizeof(int *) * (residual.n / w));
@@ -341,74 +316,6 @@ void parallel_search (int nsq, int k, int threads, int tam, int aggregator_id, M
 
 	debug("FINISHED THE SEARCH");
 }
-
-//ivf_t* create_ivf(ivfpq_t ivfpq, int threads, int tam, int my_rank, int nsq, char* dataset){
-//	ivf_t *ivf;
-//	struct timeval start, end;
-//	double time;
-//	int lim;
-//
-//	debug("Indexing");
-//
-//	gettimeofday(&start, NULL);
-//
-//	ivf = (ivf_t*)malloc(sizeof(ivf_t)*ivfpq.coarsek);
-//	for(int i=0; i<ivfpq.coarsek; i++){
-//		ivf[i].ids = (int*)malloc(sizeof(int));
-//		ivf[i].idstam = 0;
-//		ivf[i].codes.mat = (int*)malloc(sizeof(int));
-//		ivf[i].codes.n = 0;
-//		ivf[i].codes.d = nsq;
-//	}
-//	lim = tam/1000000;
-//	if(tam%1000000!=0){
-//		lim = (tam/1000000) + 1;
-//	}
-//
-//	tam = (tam - 1) % 1000000 + 1;
-//
-//	//Cria a lista invertida correspondente ao trecho da base assinalado a esse processo
-//	#pragma omp parallel for num_threads(threads) schedule(dynamic)
-//		for(int i=0; i<lim; i++) {
-//			ivf_t *ivf2;
-//			int aux;
-//			mat vbase;
-//			ivf2 = (ivf_t *)malloc(sizeof(ivf_t)*ivfpq.coarsek);
-//
-//			vbase = pq_test_load_base(dataset, i, my_rank-last_assign, tam);
-//
-//			ivfpq_assign(ivfpq, vbase, ivf2);
-//
-//			for(int j=0; j<ivfpq.coarsek; j++){
-//				for(int l=0; l<ivf2[j].idstam; l++){
-//					ivf2[j].ids[l]+=1000000*i+tam*(my_rank-last_assign-1);
-//				}
-//
-//				aux = ivf[j].idstam;
-//				#pragma omp critical
-//				{
-//					ivf[j].idstam += ivf2[j].idstam;
-//					ivf[j].ids = (int*)realloc(ivf[j].ids,sizeof(int)*ivf[j].idstam);
-//					memcpy (ivf[j].ids+aux, ivf2[j].ids, sizeof(int)*ivf2[j].idstam);
-//					ivf[j].codes.n += ivf2[j].codes.n;
-//					ivf[j].codes.mat = (int*)realloc(ivf[j].codes.mat,sizeof(int)*ivf[j].codes.n*ivf[j].codes.d);
-//					memcpy (ivf[j].codes.mat+aux*ivf[i].codes.d, ivf2[j].codes.mat, sizeof(int)*ivf2[j].codes.n*ivf2[j].codes.d);
-//				}
-//				free(ivf2[j].ids);
-//				free(ivf2[j].codes.mat);
-//			}
-//			free(vbase.mat);
-//			free(ivf2);
-//		}
-//
-//	gettimeofday(&end, NULL);
-//	time = ((end.tv_sec * 1000000 + end.tv_usec)-(start.tv_sec * 1000000 + start.tv_usec))/1000;
-//
-//	debug("Tempo de criacao da lista invertida: %g",time);
-//
-//	return ivf;
-//}
-
 
 
 //TODO: make these paths available in a config file
