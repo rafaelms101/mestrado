@@ -57,41 +57,30 @@ int main(int argc, char **argv) {
 	free(coa);
 }
 
+//TODO: using a limit of 1.000.000 while loading all the data in parallel doesn't make sense if the objective was to put an upper limit on memory usage
+//TODO: redo this when I need to load more memory than we have available
 void write_ivf(ivfpq_t ivfpq, int threads, int tam, int nsq, char* dataset, char* ivf_path) {
 	char filename[100];
-
-	int lim = tam / 1000000;
-	if (tam % 1000000 != 0) lim++;
 	
-	tam = std::min(tam, 1000000);
-
-	//Cria a lista invertida correspondente ao trecho da base assinalado a esse processo
-	#pragma omp parallel for num_threads(threads) schedule(dynamic)
-	for (int i = 0; i < lim; i++) {
-		ivf_t* ivf = (ivf_t*) malloc(sizeof(ivf_t) * ivfpq.coarsek);
-		mat vbase = pq_test_load_base(dataset, i, tam);
-
-		ivfpq_assign(ivfpq, vbase, ivf);
-
-		free(vbase.mat);
-
-		for (int j = 0; j < ivfpq.coarsek; j++) {
-			#pragma omp critical
-			{
-				sprintf(filename, "%s/%d", ivf_path, j);
-				FILE* fp = fopen(filename, "ab");
-				fwrite(&ivfpq.coarsek, sizeof(int), 1, fp);
-				fwrite(&ivf[j].idstam, sizeof(int), 1, fp);
-				fwrite(&ivf[j].ids[0], sizeof(int), ivf[j].idstam, fp);
-				fwrite(&ivf[j].codes.n, sizeof(int), 1, fp);
-				fwrite(&ivf[j].codes.d, sizeof(int), 1, fp);
-				fwrite(&ivf[j].codes.mat[0], sizeof(int), ivf[j].codes.n * ivf[j].codes.d, fp);
-				fclose(fp);
-			}
-
-			free(ivf[j].ids);
-			free(ivf[j].codes.mat);
-		}
-		free(ivf);
+	ivf_t* ivf = (ivf_t*) malloc(sizeof(ivf_t) * ivfpq.coarsek);
+	mat vbase = pq_test_load_base(dataset, tam);
+	ivfpq_assign(ivfpq, vbase, ivf);
+	free(vbase.mat);
+	
+	for (int j = 0; j < ivfpq.coarsek; j++) {
+		sprintf(filename, "%s/%d", ivf_path, j);
+		FILE* fp = fopen(filename, "ab");
+		fwrite(&ivfpq.coarsek, sizeof(int), 1, fp);
+		fwrite(&ivf[j].idstam, sizeof(int), 1, fp);
+		fwrite(&ivf[j].ids[0], sizeof(int), ivf[j].idstam, fp);
+		fwrite(&ivf[j].codes.n, sizeof(int), 1, fp);
+		fwrite(&ivf[j].codes.d, sizeof(int), 1, fp);
+		fwrite(&ivf[j].codes.mat[0], sizeof(int), ivf[j].codes.n * ivf[j].codes.d, fp);
+		fclose(fp);
+		free(ivf[j].ids);
+		free(ivf[j].codes.mat);
 	}
+	
+	
+	free(ivf);
 }

@@ -246,7 +246,7 @@ void parallel_search (int nsq, int k, int threads, int tam, int aggregator_id, M
 	
 	preallocate_gpu_mem(ivfpq.pq, ivf, ivfpq.coa_centroidsn);
 
-	gettimeofday(&total_start_tv, NULL);
+	
 
 //
 	MPI_Bcast(&residual.n, 1, MPI_INT, 0, search_comm);
@@ -259,6 +259,8 @@ void parallel_search (int nsq, int k, int threads, int tam, int aggregator_id, M
 	coaidx = (int*) malloc(sizeof(int) * residual.n);
 
 	MPI_Bcast(&coaidx[0], residual.n, MPI_INT, 0, search_comm);
+	
+	gettimeofday(&total_start_tv, NULL);
 
 	dis = (float**) malloc(sizeof(float *) * (residual.n / w));
 	ids = (int**) malloc(sizeof(int *) * (residual.n / w));
@@ -322,51 +324,29 @@ void parallel_search (int nsq, int k, int threads, int tam, int aggregator_id, M
 //TODO: make the decision of wheter reading or writing the IVF a runtime option
 //TODO: currently it assumes that we have only one search node. NEED TO FIX THIS ASAP
 ivf_t* read_ivf(ivfpq_t ivfpq, int tam, int my_rank, char* ivf_path){
-	debug("READ_IVF called");
-	
-	ivf_t* ivf;
 	FILE *fp;
 	char name_arq[100];
-	int coarsek;
 
-	ivf = (ivf_t*)malloc(sizeof(ivf_t)*ivfpq.coarsek);
-	
-	debug("ivfpq.coarsek=%d", ivfpq.coarsek);
+	ivf_t* ivf = (ivf_t*) malloc(sizeof(ivf_t) * ivfpq.coarsek);
 
-	int lim = tam / 1000000;
-	if (tam % 1000000 != 0) lim++;
-
-	
 	for(int i = 0; i < ivfpq.coarsek; i++) {
-		int idstam, codesn, codesd;
-
-		ivf[i].ids = (int*) malloc(sizeof(int));
-		ivf[i].idstam = 0;
-		ivf[i].codes.mat = (int*) malloc(sizeof(int));
-		ivf[i].codes.n = 0;
-		ivf[i].codes.d = ivfpq.pq.nsq;
-
 		sprintf(name_arq, "%s/%d", ivf_path, i);
-//		debug("Opening %s", name_arq);
+
 		fp = fopen(name_arq,"rb");
 
-		for(int j=0; j < lim; j++){
-			fread(&coarsek, sizeof(int), 1, fp);
-//			debug("coarsek=%d", coarsek);
-			fread(&idstam, sizeof(int), 1, fp);
-//			debug("idstam=%d", idstam);
-			ivf[i].idstam += idstam;
-			ivf[i].ids = (int*)realloc(ivf[i].ids,sizeof(int)*ivf[i].idstam);
-			fread(&ivf[i].ids[ivf[i].idstam-idstam], sizeof(int), idstam, fp);
-			fread(&codesn, sizeof(int), 1, fp);
-//			debug("codesn=%d", codesn);
-			ivf[i].codes.n += codesn;
-			fread(&codesd, sizeof(int), 1, fp);
-//			debug("codesd=%d", codesd);
-			ivf[i].codes.d = codesd;
-			ivf[i].codes.mat = (int*)realloc(ivf[i].codes.mat,sizeof(int)*ivf[i].codes.n*ivf[i].codes.d);
-			fread(&ivf[i].codes.mat[((ivf[i].codes.n)*(ivf[i].codes.d))-codesn*codesd], sizeof(int), codesn*codesd, fp);
-		}
+		int coarsek;
+		fread(&coarsek, sizeof(int), 1, fp);
+		
+		fread(&ivf[i].idstam, sizeof(int), 1, fp);
+		ivf[i].ids = (int*) malloc(sizeof(int) * ivf[i].idstam);
+		fread(&ivf[i].ids[0], sizeof(int), ivf[i].idstam, fp);
+
+
+		fread(&ivf[i].codes.n, sizeof(int), 1, fp);
+		fread(&ivf[i].codes.d, sizeof(int), 1, fp);
+		
+		ivf[i].codes.mat = (int*) malloc(sizeof(int) * ivf[i].codes.n * ivf[i].codes.d);
+		fread(&ivf[i].codes.mat[0], sizeof(int), ivf[i].codes.n * ivf[i].codes.d, fp);
 		fclose(fp);
 	}
 

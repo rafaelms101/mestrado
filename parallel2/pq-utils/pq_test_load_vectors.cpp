@@ -16,10 +16,10 @@ mat pq_test_load_train(char* dataset, int tam){
 	
 	
 	if(! strcmp(dataset, "siftbig")){
-		b2fvecs_read (ftrain, vtrain.d, vtrain.n, vtrain.mat);
+		b2fvecs_read(ftrain, vtrain.d, vtrain.n, vtrain.mat);
 	}
 	else {
-		fvecs_read (ftrain, vtrain.d, vtrain.n, vtrain.mat);
+		fvecs_read(ftrain, vtrain.d, vtrain.n, vtrain.mat);
 	}
 	
 	return vtrain;
@@ -102,7 +102,7 @@ mat pq_test_load_query(char* dataset, int threads, int nqueries){
 	return vquery;
 }
 
-mat pq_test_load_base(char* dataset, int offset, int tam){
+mat pq_test_load_base(char* dataset, int tam){
 	mat vbase;
 	char fbase[100];
 	strcpy(fbase, BASE_DIR);
@@ -115,7 +115,7 @@ mat pq_test_load_base(char* dataset, int offset, int tam){
 
 	if (! strcmp(dataset, "siftbig")) {
 		vbase.mat = (float*) malloc(sizeof(float) * vbase.d * vbase.n);
-		my_bvecs_read(offset, fbase, vbase.d, vbase.n, vbase.mat);
+		my_bvecs_read(0, fbase, vbase.d, vbase.n, vbase.mat);
 	} else { 
 		vbase.mat= fmat_new (vbase.d, vbase.n);
 		fvecs_read(fbase, vbase.d, vbase.n, vbase.mat);
