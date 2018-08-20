@@ -174,7 +174,7 @@ void send_results(int nqueries, query_id_t* elements, matI idxs, mat dists, int 
 
 
 
-void parallel_search (int nsq, int k, int threads, int tam, int aggregator_id, MPI_Comm search_comm, char *dataset, int w, char* train_path, char* ivf_path){
+void parallel_search (int nsq, int k, int threads, int tam, int aggregator_id, MPI_Comm search_comm, char *dataset, int w, char* train_path, char* ivf_path, bool gpu){
 	mat residual;
 	int *coaidx, my_rank;
 
@@ -237,7 +237,8 @@ void parallel_search (int nsq, int k, int threads, int tam, int aggregator_id, M
 	debug("residual.n=%d", residual.n);
 
 	for (int qid = 0; qid < residual.n / w; qid++) {
-		to_gpu.push_back(qid);
+		if (gpu) to_gpu.push_back(qid);
+		else to_cpu.push_back(qid);
 	}
 
 	debug("EXECUTING ON THE %s", to_cpu.size() == 0 ? "gpu" : "cpu");

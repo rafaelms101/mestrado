@@ -21,8 +21,8 @@
 //TODO: it might be possible to read some of these arguments from the ivf files itself rather than passing them.
 int main(int argc, char **argv){
 
-	if (argc != 8) {
-		cout << "Usage: mpiexec -n ./ivfpq_test <dataset> <threads> <tam> <num_queries> <coarsek> <nsq> <w>"
+	if (argc != 9) {
+		cout << "Usage: mpiexec -n ./ivfpq_test <dataset> <threads> <tam> <num_queries> <coarsek> <nsq> <w> <gpu/cpu>"
 			 << endl;
 		return -1;
 	}
@@ -36,6 +36,7 @@ int main(int argc, char **argv){
 	int nsq = atoi(argv[6]);
 	int w = atoi(argv[7]);
 	int k = 100;
+	bool gpu = ! std::strcmp("gpu", argv[8]);
 
 	
 	
@@ -91,7 +92,7 @@ int main(int argc, char **argv){
 	if (my_rank <= last_assign) {
 		parallel_assign(dataset, w, comm_sz - 1, search_comm, threads, num_queries, train_path);
 	} else if (my_rank <= last_search) {
-		parallel_search(nsq, k, threads, tam / search_nodes_qty, comm_sz - 1, search_comm, dataset, w, train_path, ivf_path);
+		parallel_search(nsq, k, threads, tam / search_nodes_qty, comm_sz - 1, search_comm, dataset, w, train_path, ivf_path, gpu);
 	} else {
 		parallel_aggregator(k, w, my_rank, 0, search_nodes_qty, tam, num_queries, threads, dataset);
 	}

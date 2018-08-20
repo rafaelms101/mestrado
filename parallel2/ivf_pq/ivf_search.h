@@ -29,7 +29,7 @@
 		mat residual;
 	}ivf_threads_t;
 
-	void parallel_search (int nsq, int k, int threads, int tam, int aggregator_id, MPI_Comm search_comm, char *dataset, int w, char* train_path, char* ivf_path);
+	void parallel_search (int nsq, int k, int threads, int tam, int aggregator_id, MPI_Comm search_comm, char *dataset, int w, char* train_path, char* ivf_path, bool gpu);
 	void send_aggregator(int residualn, int w, query_id_t *fila, int **ids, float **dis, int finish_aux, int count);
 //	ivf_t* create_ivf(ivfpq_t ivfpq, int threads, int tam, int my_rank, int nsq, char* dataset);
 	void write_ivf(ivfpq_t ivfpq, int threads, int tam, int my_rank, int nsq, char*dataset);
